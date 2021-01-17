@@ -1,0 +1,23 @@
+[package]
+name = "bevy_improved_audio"
+version = "0.1.0"
+authors = ["Niklas Eicker"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# bevy
+bevy = { version = "0.4.0", default-features = false }
+
+# other
+anyhow = "1.0"
+rodio = { version = "0.13", default-features = false }
+parking_lot = "0.11.0"
+
+[features]
+
+mp3 = ["rodio/mp3"]
+flac = ["rodio/flac"]
+wav = ["rodio/wav"]
+vorbis = ["rodio/vorbis"]
