@@ -17,10 +17,10 @@ pub struct AudioPlugin;
 
 impl Plugin for AudioPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.init_thread_local_resource::<AudioOutput<AudioSource>>()
-            .add_asset::<AudioSource>()
-            .init_asset_loader::<Mp3Loader>()
+        app.init_asset_loader::<AudioLoader>()
+            .init_thread_local_resource::<AudioOutput<AudioSource>>()
             .init_resource::<Audio<AudioSource>>()
+            .add_asset::<AudioSource>()
             .add_system_to_stage(
                 stage::POST_UPDATE,
                 play_queued_audio_system::<AudioSource>.system(),

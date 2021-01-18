@@ -1,5 +1,6 @@
 use crate::{Audio, AudioSource, Decodable};
 use bevy::asset::Asset;
+use bevy::ecs::bevy_utils::HashMap;
 use bevy::prelude::*;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 use std::marker::PhantomData;
@@ -12,6 +13,7 @@ where
     _stream: OutputStream,
     stream_handle: OutputStreamHandle,
     phantom: PhantomData<P>,
+    sinks: HashMap<String, Sink>,
 }
 
 impl<P> Default for AudioOutput<P>
@@ -25,6 +27,7 @@ where
             _stream: stream,
             stream_handle,
             phantom: PhantomData,
+            sinks: Default::default(),
         }
     }
 }
@@ -35,24 +38,47 @@ where
     <P as Decodable>::Decoder: rodio::Source + Send + Sync,
     <<P as Decodable>::Decoder as Iterator>::Item: rodio::Sample + Send + Sync,
 {
-    fn play_source(&self, audio_source: &P) {
+    fn play_source(&mut self, audio_source: &P, key: Option<String>) {
         let sink = Sink::try_new(&self.stream_handle).unwrap();
         sink.append(audio_source.decoder());
-        sink.detach();
+        if let Some(key) = key {
+            self.sinks.insert(key, sink);
+        } else {
+            sink.detach();
+        }
     }
 
-    fn try_play_queued(&self, audio_sources: &Assets<P>, audio: &mut Audio<P>) {
+    fn pause_source(&mut self, key: String) {
+        let sink = self.sinks.get_mut(&key);
+        if let Some(sink) = sink {
+            sink.pause();
+        }
+    }
+
+    fn try_play_queued(&mut self, audio_sources: &Assets<P>, audio: &mut Audio<P>) {
         let mut queue = audio.queue.write();
+        let mut key_queue = audio.keys_queue.write();
         let len = queue.len();
         let mut i = 0;
         while i < len {
             let audio_source_handle = queue.pop_back().unwrap();
             if let Some(audio_source) = audio_sources.get(&audio_source_handle) {
-                self.play_source(audio_source);
+                let audio_source_key = key_queue.pop_back().unwrap();
+                self.play_source(audio_source, audio_source_key);
             } else {
                 // audio source hasn't loaded yet. add it back to the queue
                 queue.push_front(audio_source_handle);
             }
+            i += 1;
+        }
+
+        let mut pause_queue = audio.pause_queue.write();
+        let len = pause_queue.len();
+        i = 0;
+        while i < len {
+            let audio_source_key = pause_queue.pop_back().unwrap();
+            self.pause_source(audio_source_key);
+
             i += 1;
         }
     }
@@ -65,7 +91,7 @@ where
     <P as Decodable>::Decoder: rodio::Source + Send + Sync,
     <<P as Decodable>::Decoder as Iterator>::Item: rodio::Sample + Send + Sync,
 {
-    let audio_output = resources.get_thread_local::<AudioOutput<P>>().unwrap();
+    let mut audio_output = resources.get_thread_local_mut::<AudioOutput<P>>().unwrap();
     let mut audio = resources.get_mut::<Audio<P>>().unwrap();
 
     if let Some(audio_sources) = resources.get::<Assets<P>>() {
