@@ -1,8 +1,8 @@
+use crate::channel::Channel;
 use crate::{Audio, AudioSource, Decodable};
 use bevy::asset::Asset;
 use bevy::ecs::bevy_utils::HashMap;
 use bevy::prelude::*;
-use rodio::{OutputStream, OutputStreamHandle, Sink};
 use std::marker::PhantomData;
 
 /// Used internally to play audio on the current "audio device"
@@ -10,10 +10,8 @@ pub struct AudioOutput<P = AudioSource>
 where
     P: Decodable,
 {
-    _stream: OutputStream,
-    stream_handle: OutputStreamHandle,
     phantom: PhantomData<P>,
-    sinks: HashMap<String, Sink>,
+    channels: HashMap<Option<String>, Channel>,
 }
 
 impl<P> Default for AudioOutput<P>
@@ -21,13 +19,9 @@ where
     P: Decodable,
 {
     fn default() -> Self {
-        let (stream, stream_handle) = OutputStream::try_default().unwrap();
-
         Self {
-            _stream: stream,
-            stream_handle,
             phantom: PhantomData,
-            sinks: Default::default(),
+            channels: HashMap::default(),
         }
     }
 }
@@ -38,20 +32,21 @@ where
     <P as Decodable>::Decoder: rodio::Source + Send + Sync,
     <<P as Decodable>::Decoder as Iterator>::Item: rodio::Sample + Send + Sync,
 {
-    fn play_source(&mut self, audio_source: &P, key: Option<String>) {
-        let sink = Sink::try_new(&self.stream_handle).unwrap();
-        sink.append(audio_source.decoder());
-        if let Some(key) = key {
-            self.sinks.insert(key, sink);
+    fn play(&mut self, audio_source: &P, channel_key: Option<String>) {
+        let channel = self.channels.get_mut(&channel_key);
+        if let Some(channel) = channel {
+            channel.add_audio(audio_source);
         } else {
-            sink.detach();
+            let mut channel = Channel::default();
+            channel.add_audio(audio_source);
+            self.channels.insert(channel_key, channel);
         }
     }
 
-    fn pause_source(&mut self, key: String) {
-        let sink = self.sinks.get_mut(&key);
-        if let Some(sink) = sink {
-            sink.pause();
+    fn pause(&mut self, channel_key: Option<String>) {
+        let channel = self.channels.get_mut(&channel_key);
+        if let Some(channel) = channel {
+            channel.pause();
         }
     }
 
@@ -64,7 +59,7 @@ where
             let audio_source_handle = queue.pop_back().unwrap();
             if let Some(audio_source) = audio_sources.get(&audio_source_handle) {
                 let audio_source_key = key_queue.pop_back().unwrap();
-                self.play_source(audio_source, audio_source_key);
+                self.play(audio_source, audio_source_key);
             } else {
                 // audio source hasn't loaded yet. add it back to the queue
                 queue.push_front(audio_source_handle);
@@ -77,7 +72,17 @@ where
         i = 0;
         while i < len {
             let audio_source_key = pause_queue.pop_back().unwrap();
-            self.pause_source(audio_source_key);
+            self.pause(audio_source_key);
+
+            i += 1;
+        }
+
+        let mut drop_queue = audio.drop_queue.write();
+        let len = drop_queue.len();
+        i = 0;
+        while i < len {
+            let audio_source_key = drop_queue.pop_back().unwrap();
+            self.channels.remove(&audio_source_key);
 
             i += 1;
         }

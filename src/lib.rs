@@ -1,6 +1,7 @@
 mod audio;
 mod audio_output;
 mod audio_source;
+mod channel;
 
 pub use audio::*;
 pub use audio_output::*;
