@@ -12,7 +12,7 @@ bevy = { version = "0.4.0", default-features = false }
 
 # other
 anyhow = "1.0"
-rodio = { version = "0.13", default-features = false }
+rodio = { git="https://github.com/NiklasEi/rodio.git" }
 parking_lot = "0.11.0"
 
 [features]
@@ -20,3 +20,4 @@ mp3 = ["rodio/mp3"]
 flac = ["rodio/flac"]
 wav = ["rodio/wav"]
 vorbis = ["rodio/vorbis"]
+wasm = ["rodio/wasm-bindgen"]
