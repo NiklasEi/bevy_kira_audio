@@ -6,18 +6,15 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+
 [dependencies]
 # bevy
 bevy = { version = "0.4.0", default-features = false }
+bevy_reflect = {version = "0.4.0"}
 
 # other
 anyhow = "1.0"
-rodio = { git="https://github.com/NiklasEi/rodio.git", default-features=false }
+kira = { version="0.4.1", default-features=false }
+minimp3 = { version = "0.5.0" }
 parking_lot = "0.11.0"
-
-[features]
-mp3 = ["rodio/mp3"]
-flac = ["rodio/flac"]
-wav = ["rodio/wav"]
-vorbis = ["rodio/vorbis"]
-wasm = ["rodio/wasm-bindgen"]
