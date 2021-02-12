@@ -13,6 +13,8 @@ use crate::audio_output::{play_queued_audio_system, AudioOutput};
 use crate::source::Mp3Loader;
 #[cfg(feature = "vorbis")]
 use crate::source::OggLoader;
+#[cfg(feature = "wav")]
+use crate::source::WavLoader;
 
 #[derive(Default)]
 pub struct AudioPlugin;
@@ -26,6 +28,8 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<Mp3Loader>();
         #[cfg(feature = "vorbis")]
         app.init_asset_loader::<OggLoader>();
+        #[cfg(feature = "wav")]
+        app.init_asset_loader::<WavLoader>();
 
         app.init_resource::<Audio>()
             .add_system_to_stage(stage::POST_UPDATE, play_queued_audio_system.system());
