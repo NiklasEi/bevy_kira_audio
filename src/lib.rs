@@ -9,6 +9,8 @@ mod source;
 
 use crate::audio_output::{play_queued_audio_system, AudioOutput};
 
+#[cfg(feature = "flac")]
+use crate::source::FlacLoader;
 #[cfg(feature = "mp3")]
 use crate::source::Mp3Loader;
 #[cfg(feature = "vorbis")]
@@ -30,6 +32,8 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<OggLoader>();
         #[cfg(feature = "wav")]
         app.init_asset_loader::<WavLoader>();
+        #[cfg(feature = "flac")]
+        app.init_asset_loader::<FlacLoader>();
 
         app.init_resource::<Audio>()
             .add_system_to_stage(stage::POST_UPDATE, play_queued_audio_system.system());

@@ -1,3 +1,4 @@
+mod flac_loader;
 mod mp3_loader;
 mod ogg_loader;
 mod wav_loader;
@@ -5,11 +6,9 @@ mod wav_loader;
 use bevy_reflect::TypeUuid;
 use kira::sound::Sound;
 
-#[cfg(feature = "mp3")]
+pub use flac_loader::FlacLoader;
 pub use mp3_loader::Mp3Loader;
-#[cfg(feature = "vorbis")]
 pub use ogg_loader::OggLoader;
-#[cfg(feature = "wav")]
 pub use wav_loader::WavLoader;
 
 /// A source of audio data
