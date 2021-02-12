@@ -1,27 +1,27 @@
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use anyhow::{Error, Result};
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use bevy::utils::BoxedFuture;
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use kira::sound::error::SoundFromFileError;
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use kira::sound::{Sound, SoundSettings};
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use kira::Frame;
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use lewton::{inside_ogg::OggStreamReader, samples::Samples};
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use std::io::Cursor;
 
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 use crate::source::AudioSource;
 
 #[derive(Default)]
 pub struct OggLoader;
 
-#[cfg(feature = "vorbis")]
+#[cfg(feature = "ogg")]
 impl AssetLoader for OggLoader {
     fn load<'a>(
         &'a self,

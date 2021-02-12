@@ -8,7 +8,7 @@ edition = "2018"
 
 [features]
 mp3 = ["minimp3"]
-vorbis = ["lewton"]
+ogg = ["lewton"]
 flac = ["claxon"]
 wav = ["hound"]
 
