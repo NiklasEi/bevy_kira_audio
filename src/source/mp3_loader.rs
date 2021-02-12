@@ -1,21 +1,26 @@
+#[cfg(feature = "mp3")]
 use anyhow::{Error, Result};
+#[cfg(feature = "mp3")]
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
+#[cfg(feature = "mp3")]
 use bevy::utils::BoxedFuture;
-use bevy_reflect::TypeUuid;
+#[cfg(feature = "mp3")]
 use kira::sound::error::SoundFromFileError;
+#[cfg(feature = "mp3")]
 use kira::sound::{Sound, SoundSettings};
+#[cfg(feature = "mp3")]
 use kira::Frame;
 
-/// A source of audio data
-#[derive(Debug, Clone, TypeUuid)]
-#[uuid = "7a14806a-672b-443b-8d16-4f18afefa463"]
-pub struct AudioSource {
-    pub sound: Sound,
-}
+#[cfg(feature = "mp3")]
+use minimp3;
+
+#[cfg(feature = "mp3")]
+use crate::source::AudioSource;
 
 #[derive(Default)]
 pub struct Mp3Loader;
 
+#[cfg(feature = "mp3")]
 impl AssetLoader for Mp3Loader {
     fn load<'a>(
         &'a self,

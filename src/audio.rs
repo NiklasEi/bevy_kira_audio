@@ -1,4 +1,4 @@
-use crate::audio_source::AudioSource;
+use crate::source::AudioSource;
 use bevy::prelude::Handle;
 use parking_lot::RwLock;
 use std::collections::VecDeque;

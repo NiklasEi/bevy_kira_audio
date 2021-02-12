@@ -1,7 +1,7 @@
 use crate::audio::Audio;
 use bevy::prelude::*;
 
-use crate::audio_source::AudioSource;
+use crate::source::AudioSource;
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::sequence::Sequence;
 use kira::sound::handle::SoundHandle;
@@ -33,7 +33,7 @@ impl AudioOutput {
                 let handle = if let Some(handle) = self.sounds.get(&audio_source_handle) {
                     handle
                 } else {
-                    let mut sound = audio_source.sound.clone();
+                    let sound = audio_source.sound.clone();
                     let handle = self.manager.add_sound(sound).unwrap();
                     self.sounds
                         .insert(audio_source_handle.clone(), handle.clone());
