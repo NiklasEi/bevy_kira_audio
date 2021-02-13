@@ -1,11 +1,11 @@
 # Bevy Kira audio
 
-This bevy plugin is intended for testing of improvements for `bevy_audio`. The biggest change so far from the original crate has been a switch from [Rodio][rodio] to [Kira][kira].
+This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal would be to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `.ogg`, `.mp3`, `.flac`, and `.wav` formats and supports web builds for everything except for `mp3`.
 
 I am using [Oicana][oicana] as "guinea pig project" and will keep it's [game audio plugin][oicana-audio] up to date with this crate.
 
 ## Usage
-To initialize the corresponding `AssetLoaders`, use at least one of the features `mp3`, `ogg`, `wav`, or `flac`. The following example assumes that `bevy_kira_audio/mp3` is used.
+To initialize the corresponding `AssetLoaders`, use at least one of the features `ogg`, `mp3`, `wav`, or `flac`. The following example assumes that `bevy_kira_audio/ogg` is used.
 
 ```rust
 use bevy_kira_audio::{Audio, AudioPlugin};
@@ -17,26 +17,30 @@ fn my_audio_system(
     asset_server: Res<AssetServer>,
     audio: Res<Audio>,
 ) {
-    let music_handle = asset_server.get_handle("sounds/music.mp3");
+    let music_handle = asset_server.get_handle("sounds/music.ogg");
     audio.play(music_handle);
 }
 ```
 
-## To do
-- [ ] pause/resume and stop tracks
-- [ ] play a track on repeat
-- [x] play other formats than `mp3`
+## Current state
+- [x] play common audio formats
   - [x] `ogg`
+  - [x] `mp3`
   - [x] `wav`
   - [x] `flac`
+- [x] web support
+  - The features `ogg`, `flac` and `wav` can be build for WASM. There are some differences between browsers:
+    - Firefox: The audio might sound distorted (trying to figure out why)
+    - Chrome: an interaction with the website is required before the AudioContext is started (e.g. a button click). Currently, the plugin cannot restart the AudioContext after an interaction.
+- [ ] pause/resume and stop tracks
+- [ ] play a track on repeat
 - [ ] get the current status of a track (time elapsed/left)?
-- [ ] web support
 
 ## License
 
 This crate is distributed under the terms of the [MIT license](LICENSE.md).
 
-Substantial parts of the asset loaders were taken from [Kira][kira], under the [MIT license][kira-license] (`Copyright 2020 Andrew Minnich`).
+Substantial parts of the asset loaders were taken from [Kira][kira] ([MIT license][kira-license] `Copyright 2020 Andrew Minnich`).
 
 
 
