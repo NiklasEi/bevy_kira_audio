@@ -10,7 +10,7 @@ homepage = "https://github.com/NiklasEi/bevy_kira_audio"
 documentation = "https://github.com/NiklasEi/bevy_kira_audio"
 keywords = ["bevy", "gamedev", "audio", "music"]
 categories = ["game-development", "multimedia::audio"]
-readme = "../README.md"
+readme = "./README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
