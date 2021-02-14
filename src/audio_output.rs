@@ -62,7 +62,7 @@ impl AudioOutput {
     fn play(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) -> ArrangementHandle {
         let mut arrangement = Arrangement::new(ArrangementSettings::new());
         arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
-        let mut arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
+        let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
 
         self.play_arrangement(arrangement_handle.clone(), channel);
         arrangement_handle
@@ -70,31 +70,37 @@ impl AudioOutput {
 
     fn play_looped(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
-        let mut arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
+        let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
 
-        self.play_arrangement(arrangement_handle.clone(), channel);
+        self.play_arrangement(arrangement_handle, channel);
     }
 
     fn stop(&mut self) {
         for (_channel_id, mut instances) in self.channels.drain() {
             for mut instance in instances.drain(..) {
-                instance.stop(StopInstanceSettings::default());
+                if let Err(error) = instance.stop(StopInstanceSettings::default()) {
+                    println!("Failed to stop instance: {:?}", error);
+                }
             }
         }
     }
 
     fn pause(&mut self) {
-        for (_channel_id, mut instances) in self.channels.iter_mut() {
-            for mut instance in instances.iter_mut() {
-                instance.pause(PauseInstanceSettings::default());
+        for (_channel_id, instances) in self.channels.iter_mut() {
+            for instance in instances.iter_mut() {
+                if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
+                    println!("Failed to pause instance: {:?}", error);
+                }
             }
         }
     }
 
     fn resume(&mut self) {
-        for (_channel_id, mut instances) in self.channels.iter_mut() {
-            for mut instance in instances.iter_mut() {
-                instance.resume(ResumeInstanceSettings::default());
+        for (_channel_id, instances) in self.channels.iter_mut() {
+            for instance in instances.iter_mut() {
+                if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
+                    println!("Failed to resume instance: {:?}", error);
+                }
             }
         }
     }
@@ -115,12 +121,16 @@ impl AudioOutput {
                         let sound_handle =
                             self.get_or_create_sound(audio_source, play_settings.source.clone());
                         if play_settings.looped {
+                            // ToDo: check cached arrangements to not go over the limit
                             self.play_looped(&sound_handle, &play_settings.channel);
                         } else {
-                            if let Some(arrangementHandle) =
+                            // ToDo: I should make sure all other play settings are also the same (e.g. looped)
+                            if let Some(arrangement_handle) =
                                 self.arrangements.get_mut(&play_settings.source)
                             {
-                                arrangementHandle.play(Default::default());
+                                if let Err(error) = arrangement_handle.play(Default::default()) {
+                                    println!("Failed to play arrangement: {:?}", error);
+                                }
                             } else {
                                 let arrangement_handle =
                                     self.play(&sound_handle, &play_settings.channel);
