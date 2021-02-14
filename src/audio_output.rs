@@ -1,16 +1,20 @@
 use crate::audio::{Audio, AudioCommands};
 use bevy::prelude::*;
 
+use crate::channel::ChannelId;
 use crate::source::AudioSource;
-use kira::arrangement::Arrangement;
+use kira::arrangement::handle::ArrangementHandle;
+use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
+use kira::instance::handle::InstanceHandle;
 use kira::manager::{AudioManager, AudioManagerSettings};
-use kira::sequence::Sequence;
 use kira::sound::handle::SoundHandle;
 use std::collections::HashMap;
 
 pub struct AudioOutput {
     manager: AudioManager,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
+    arrangements: HashMap<Handle<AudioSource>, ArrangementHandle>,
+    channels: HashMap<ChannelId, Vec<InstanceHandle>>,
 }
 
 impl Default for AudioOutput {
@@ -18,6 +22,8 @@ impl Default for AudioOutput {
         Self {
             manager: AudioManager::new(AudioManagerSettings::default()).unwrap(),
             sounds: HashMap::default(),
+            arrangements: HashMap::default(),
+            channels: HashMap::default(),
         }
     }
 }
@@ -38,20 +44,34 @@ impl AudioOutput {
         handle
     }
 
-    fn play(&mut self, sound_handle: &SoundHandle) {
-        let mut sequence = Sequence::<()>::new(Default::default());
-        sequence.play(sound_handle, Default::default());
-        self.manager
-            .start_sequence(sequence, Default::default())
-            .unwrap();
+    fn play_arrangement(&mut self, mut arrangement_handle: ArrangementHandle, channel: &ChannelId) {
+        let play_result = arrangement_handle.play(Default::default());
+        if let Err(error) = play_result {
+            println!("Failed to play arrangement: {:?}", error);
+            return;
+        }
+        let instance_handle = play_result.unwrap();
+        if let Some(instance_handles) = self.channels.get_mut(&channel) {
+            instance_handles.push(instance_handle);
+        } else {
+            self.channels.insert(channel.clone(), vec![instance_handle]);
+        }
     }
 
-    fn play_looped(&mut self, sound_handle: &SoundHandle) {
+    fn play(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) -> ArrangementHandle {
+        let mut arrangement = Arrangement::new(ArrangementSettings::new());
+        arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
+        let mut arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
+
+        self.play_arrangement(arrangement_handle.clone(), channel);
+        arrangement_handle
+    }
+
+    fn play_looped(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
         let mut arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
-        if let Err(error) = arrangement_handle.play(Default::default()) {
-            println!("Failed to play arrangement: {:?}", error);
-        }
+
+        self.play_arrangement(arrangement_handle.clone(), channel);
     }
 
     fn stop(&mut self) {
@@ -78,9 +98,18 @@ impl AudioOutput {
                         let sound_handle =
                             self.get_or_create_sound(audio_source, play_settings.source.clone());
                         if play_settings.looped {
-                            self.play_looped(&sound_handle);
+                            self.play_looped(&sound_handle, &play_settings.channel);
                         } else {
-                            self.play(&sound_handle);
+                            if let Some(arrangementHandle) =
+                                self.arrangements.get_mut(&play_settings.source)
+                            {
+                                arrangementHandle.play(Default::default());
+                            } else {
+                                let arrangement_handle =
+                                    self.play(&sound_handle, &play_settings.channel);
+                                self.arrangements
+                                    .insert(play_settings.source.clone(), arrangement_handle);
+                            }
                         }
                     } else {
                         // audio source hasn't loaded yet. Add it back to the queue
@@ -93,6 +122,7 @@ impl AudioOutput {
             }
             i += 1;
         }
+        self.manager.free_unused_resources();
     }
 }
 

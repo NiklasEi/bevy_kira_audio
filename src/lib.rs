@@ -5,6 +5,7 @@ pub use source::AudioSource;
 
 mod audio;
 mod audio_output;
+mod channel;
 mod source;
 
 use crate::audio_output::{play_queued_audio_system, AudioOutput};

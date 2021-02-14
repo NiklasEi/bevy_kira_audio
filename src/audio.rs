@@ -1,3 +1,4 @@
+use crate::channel::ChannelId;
 use crate::source::AudioSource;
 use bevy::prelude::Handle;
 use parking_lot::RwLock;
@@ -9,6 +10,7 @@ pub enum AudioCommands {
 }
 
 pub struct PlayAudioSettings {
+    pub channel: ChannelId,
     pub source: Handle<AudioSource>,
     pub looped: bool,
 }
@@ -23,6 +25,7 @@ impl Audio {
         self.commands
             .write()
             .push_front(AudioCommands::Play(PlayAudioSettings {
+                channel: Default::default(),
                 source: audio_source,
                 looped: false,
             }));
@@ -32,6 +35,7 @@ impl Audio {
         self.commands
             .write()
             .push_front(AudioCommands::Play(PlayAudioSettings {
+                channel: Default::default(),
                 source: audio_source,
                 looped: true,
             }));
