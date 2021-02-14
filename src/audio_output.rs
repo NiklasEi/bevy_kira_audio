@@ -1,11 +1,11 @@
-use crate::audio::Audio;
+use crate::audio::{Audio, AudioCommands};
 use bevy::prelude::*;
 
 use crate::source::AudioSource;
+use kira::arrangement::Arrangement;
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::sequence::Sequence;
 use kira::sound::handle::SoundHandle;
-use kira::Duration;
 use std::collections::HashMap;
 
 pub struct AudioOutput {
@@ -34,8 +34,7 @@ impl AudioOutput {
 
         let sound = audio_source.sound.clone();
         let handle = self.manager.add_sound(sound).unwrap();
-        self.sounds
-            .insert(audio_source_handle.clone(), handle.clone());
+        self.sounds.insert(audio_source_handle, handle.clone());
         handle
     }
 
@@ -48,31 +47,49 @@ impl AudioOutput {
     }
 
     fn play_looped(&mut self, sound_handle: &SoundHandle) {
-        let mut sequence = Sequence::<()>::new(Default::default());
-        sequence.start_loop();
-        sequence.play(sound_handle, Default::default());
-        sequence.wait(Duration::Seconds(sound_handle.duration()));
-        self.manager
-            .start_sequence(sequence, Default::default())
-            .unwrap();
+        let arrangement = Arrangement::new_loop(sound_handle, Default::default());
+        let mut arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
+        if let Err(error) = arrangement_handle.play(Default::default()) {
+            println!("Failed to play arrangement: {:?}", error);
+        }
     }
 
-    pub fn play_queued(&mut self, audio_sources: &Assets<AudioSource>, audio: &mut Audio) {
-        let mut queue = audio.queue.write();
-        let len = queue.len();
+    fn stop(&mut self) {
+        for sound in self.sounds.values().into_iter() {
+            if let Err(error) = self.manager.remove_sound(sound.id()) {
+                println!("Failed to remove sound: {:?}", error);
+            }
+        }
+    }
+
+    pub fn run_queued_audio_commands(
+        &mut self,
+        audio_sources: &Assets<AudioSource>,
+        audio: &mut Audio,
+    ) {
+        let mut commands = audio.commands.write();
+        let len = commands.len();
         let mut i = 0;
         while i < len {
-            let play_settings = queue.pop_back().unwrap();
-            if let Some(audio_source) = audio_sources.get(&play_settings.source) {
-                let sound_handle = self.get_or_create_sound(audio_source, play_settings.source);
-                if play_settings.looped {
-                    self.play_looped(&sound_handle);
-                } else {
-                    self.play(&sound_handle);
+            let audio_command = commands.pop_back().unwrap();
+            match &audio_command {
+                AudioCommands::Play(play_settings) => {
+                    if let Some(audio_source) = audio_sources.get(&play_settings.source) {
+                        let sound_handle =
+                            self.get_or_create_sound(audio_source, play_settings.source.clone());
+                        if play_settings.looped {
+                            self.play_looped(&sound_handle);
+                        } else {
+                            self.play(&sound_handle);
+                        }
+                    } else {
+                        // audio source hasn't loaded yet. Add it back to the queue
+                        commands.push_front(audio_command);
+                    }
                 }
-            } else {
-                // audio source hasn't loaded yet. add it back to the queue
-                queue.push_front(play_settings);
+                AudioCommands::Stop => {
+                    self.stop();
+                }
             }
             i += 1;
         }
@@ -83,6 +100,6 @@ pub fn play_queued_audio_system(_world: &mut World, resources: &mut Resources) {
     let mut audio_output = resources.get_thread_local_mut::<AudioOutput>().unwrap();
     let mut audio = resources.get_mut::<Audio>().unwrap();
     if let Some(audio_sources) = resources.get::<Assets<AudioSource>>() {
-        audio_output.play_queued(&*audio_sources, &mut *audio);
+        audio_output.run_queued_audio_commands(&*audio_sources, &mut *audio);
     }
 }

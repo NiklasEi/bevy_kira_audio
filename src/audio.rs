@@ -3,6 +3,11 @@ use bevy::prelude::Handle;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 
+pub enum AudioCommands {
+    Play(PlayAudioSettings),
+    Stop,
+}
+
 pub struct PlayAudioSettings {
     pub source: Handle<AudioSource>,
     pub looped: bool,
@@ -10,21 +15,29 @@ pub struct PlayAudioSettings {
 
 #[derive(Default)]
 pub struct Audio {
-    pub queue: RwLock<VecDeque<PlayAudioSettings>>,
+    pub commands: RwLock<VecDeque<AudioCommands>>,
 }
 
 impl Audio {
     pub fn play(&self, audio_source: Handle<AudioSource>) {
-        self.queue.write().push_front(PlayAudioSettings {
-            source: audio_source,
-            looped: false,
-        });
+        self.commands
+            .write()
+            .push_front(AudioCommands::Play(PlayAudioSettings {
+                source: audio_source,
+                looped: false,
+            }));
     }
 
     pub fn play_looped(&self, audio_source: Handle<AudioSource>) {
-        self.queue.write().push_front(PlayAudioSettings {
-            source: audio_source,
-            looped: true,
-        });
+        self.commands
+            .write()
+            .push_front(AudioCommands::Play(PlayAudioSettings {
+                source: audio_source,
+                looped: true,
+            }));
+    }
+
+    pub fn stop(&self) {
+        self.commands.write().push_front(AudioCommands::Stop);
     }
 }
