@@ -6,6 +6,7 @@ use crate::source::AudioSource;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
 use kira::instance::handle::InstanceHandle;
+use kira::instance::{PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings};
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::sound::handle::SoundHandle;
 use std::collections::HashMap;
@@ -75,9 +76,25 @@ impl AudioOutput {
     }
 
     fn stop(&mut self) {
-        for sound in self.sounds.values().into_iter() {
-            if let Err(error) = self.manager.remove_sound(sound.id()) {
-                println!("Failed to remove sound: {:?}", error);
+        for (_channel_id, mut instances) in self.channels.drain() {
+            for mut instance in instances.drain(..) {
+                instance.stop(StopInstanceSettings::default());
+            }
+        }
+    }
+
+    fn pause(&mut self) {
+        for (_channel_id, mut instances) in self.channels.iter_mut() {
+            for mut instance in instances.iter_mut() {
+                instance.pause(PauseInstanceSettings::default());
+            }
+        }
+    }
+
+    fn resume(&mut self) {
+        for (_channel_id, mut instances) in self.channels.iter_mut() {
+            for mut instance in instances.iter_mut() {
+                instance.resume(ResumeInstanceSettings::default());
             }
         }
     }
@@ -118,6 +135,12 @@ impl AudioOutput {
                 }
                 AudioCommands::Stop => {
                     self.stop();
+                }
+                AudioCommands::Pause => {
+                    self.pause();
+                }
+                AudioCommands::Resume => {
+                    self.resume();
                 }
             }
             i += 1;

@@ -7,6 +7,8 @@ use std::collections::VecDeque;
 pub enum AudioCommands {
     Play(PlayAudioSettings),
     Stop,
+    Pause,
+    Resume,
 }
 
 pub struct PlayAudioSettings {
@@ -43,5 +45,13 @@ impl Audio {
 
     pub fn stop(&self) {
         self.commands.write().push_front(AudioCommands::Stop);
+    }
+
+    pub fn pause(&self) {
+        self.commands.write().push_front(AudioCommands::Pause);
+    }
+
+    pub fn resume(&self) {
+        self.commands.write().push_front(AudioCommands::Resume);
     }
 }
