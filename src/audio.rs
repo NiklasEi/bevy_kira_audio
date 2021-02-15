@@ -11,6 +11,7 @@ pub enum AudioCommands {
     Resume,
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct PlayAudioSettings {
     pub channel: ChannelId,
     pub source: Handle<AudioSource>,

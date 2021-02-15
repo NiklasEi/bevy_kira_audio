@@ -1,4 +1,4 @@
-use crate::audio::{Audio, AudioCommands};
+use crate::audio::{Audio, AudioCommands, PlayAudioSettings};
 use bevy::prelude::*;
 
 use crate::channel::ChannelId;
@@ -14,7 +14,7 @@ use std::collections::HashMap;
 pub struct AudioOutput {
     manager: AudioManager,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
-    arrangements: HashMap<Handle<AudioSource>, ArrangementHandle>,
+    arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     channels: HashMap<ChannelId, Vec<InstanceHandle>>,
 }
 
@@ -68,11 +68,16 @@ impl AudioOutput {
         arrangement_handle
     }
 
-    fn play_looped(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) {
+    fn play_looped(
+        &mut self,
+        sound_handle: &SoundHandle,
+        channel: &ChannelId,
+    ) -> ArrangementHandle {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
         let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
 
-        self.play_arrangement(arrangement_handle, channel);
+        self.play_arrangement(arrangement_handle.clone(), channel);
+        arrangement_handle
     }
 
     fn stop(&mut self) {
@@ -120,23 +125,18 @@ impl AudioOutput {
                     if let Some(audio_source) = audio_sources.get(&play_settings.source) {
                         let sound_handle =
                             self.get_or_create_sound(audio_source, play_settings.source.clone());
-                        if play_settings.looped {
-                            // ToDo: check cached arrangements to not go over the limit
-                            self.play_looped(&sound_handle, &play_settings.channel);
-                        } else {
-                            // ToDo: I should make sure all other play settings are also the same (e.g. looped)
-                            if let Some(arrangement_handle) =
-                                self.arrangements.get_mut(&play_settings.source)
-                            {
-                                if let Err(error) = arrangement_handle.play(Default::default()) {
-                                    println!("Failed to play arrangement: {:?}", error);
-                                }
-                            } else {
-                                let arrangement_handle =
-                                    self.play(&sound_handle, &play_settings.channel);
-                                self.arrangements
-                                    .insert(play_settings.source.clone(), arrangement_handle);
+                        if let Some(arrangement_handle) = self.arrangements.get_mut(play_settings) {
+                            if let Err(error) = arrangement_handle.play(Default::default()) {
+                                println!("Failed to play arrangement: {:?}", error);
                             }
+                        } else {
+                            let arrangement_handle = if play_settings.looped {
+                                self.play_looped(&sound_handle, &play_settings.channel)
+                            } else {
+                                self.play(&sound_handle, &play_settings.channel)
+                            };
+                            self.arrangements
+                                .insert(play_settings.clone(), arrangement_handle);
                         }
                     } else {
                         // audio source hasn't loaded yet. Add it back to the queue
