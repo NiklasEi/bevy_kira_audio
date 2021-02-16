@@ -61,41 +61,45 @@ impl Audio {
             .push_front((AudioCommands::Resume, ChannelId::default()));
     }
 
-    pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: ChannelId) {
+    pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: &ChannelId) {
         self.commands.write().push_front((
             AudioCommands::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: false,
             }),
-            channel_id,
+            channel_id.clone(),
         ));
     }
 
-    pub fn play_looped_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: ChannelId) {
+    pub fn play_looped_in_channel(
+        &self,
+        audio_source: Handle<AudioSource>,
+        channel_id: &ChannelId,
+    ) {
         self.commands.write().push_front((
             AudioCommands::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: true,
             }),
-            channel_id,
+            channel_id.clone(),
         ));
     }
 
-    pub fn stop_channel(&self, channel_id: ChannelId) {
+    pub fn stop_channel(&self, channel_id: &ChannelId) {
         self.commands
             .write()
-            .push_front((AudioCommands::Stop, channel_id));
+            .push_front((AudioCommands::Stop, channel_id.clone()));
     }
 
-    pub fn pause_channel(&self, channel_id: ChannelId) {
+    pub fn pause_channel(&self, channel_id: &ChannelId) {
         self.commands
             .write()
-            .push_front((AudioCommands::Pause, channel_id));
+            .push_front((AudioCommands::Pause, channel_id.clone()));
     }
 
-    pub fn resume_channel(&self, channel_id: ChannelId) {
+    pub fn resume_channel(&self, channel_id: &ChannelId) {
         self.commands
             .write()
-            .push_front((AudioCommands::Resume, channel_id));
+            .push_front((AudioCommands::Resume, channel_id.clone()));
     }
 }

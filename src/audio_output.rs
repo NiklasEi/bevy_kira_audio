@@ -60,7 +60,7 @@ impl AudioOutput {
     }
 
     fn play(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) -> ArrangementHandle {
-        let mut arrangement = Arrangement::new(ArrangementSettings::new());
+        let mut arrangement = Arrangement::new(ArrangementSettings::new().cooldown(0.0));
         arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
         let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
 
@@ -82,7 +82,7 @@ impl AudioOutput {
 
     fn stop(&mut self, channel_id: ChannelId) {
         if let Some(instances) = self.channels.get_mut(&channel_id) {
-            for mut instance in instances.iter_mut() {
+            for instance in instances.iter_mut() {
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     println!("Failed to stop instance: {:?}", error);
                 }
@@ -92,7 +92,7 @@ impl AudioOutput {
 
     fn pause(&mut self, channel_id: ChannelId) {
         if let Some(instances) = self.channels.get_mut(&channel_id) {
-            for mut instance in instances.iter_mut() {
+            for instance in instances.iter_mut() {
                 if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
                     println!("Failed to pause instance: {:?}", error);
                 }
@@ -102,7 +102,7 @@ impl AudioOutput {
 
     fn resume(&mut self, channel_id: ChannelId) {
         if let Some(instances) = self.channels.get_mut(&channel_id) {
-            for mut instance in instances.iter_mut() {
+            for instance in instances.iter_mut() {
                 if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
                     println!("Failed to resume instance: {:?}", error);
                 }
@@ -125,10 +125,11 @@ impl AudioOutput {
                     if let Some(audio_source) = audio_sources.get(&play_settings.source) {
                         let sound_handle =
                             self.get_or_create_sound(audio_source, play_settings.source.clone());
-                        if let Some(arrangement_handle) = self.arrangements.get_mut(play_settings) {
-                            if let Err(error) = arrangement_handle.play(Default::default()) {
-                                println!("Failed to play arrangement: {:?}", error);
-                            }
+                        if self.arrangements.contains_key(play_settings) {
+                            self.play_arrangement(
+                                self.arrangements.get(play_settings).unwrap().clone(),
+                                &channel_id,
+                            );
                         } else {
                             let arrangement_handle = if play_settings.looped {
                                 self.play_looped(&sound_handle, &channel_id)

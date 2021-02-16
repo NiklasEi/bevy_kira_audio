@@ -2,7 +2,7 @@
 
 This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal would be to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `.ogg`, `.mp3`, `.flac`, and `.wav` formats and supports web builds for everything except for `mp3`.
 
-I am using [Oicana][oicana] as "guinea pig project" and will keep it's [game audio plugin][oicana-audio] up to date with this crate.
+I am using [Oicana][oicana] as "guinea pig project" and will keep it's [game audio plugin][oicana-audio] up to date with this crate. You can also check out the examples directory in this repository for a display of this plugin's functionality.
 
 ## Usage
 To initialize the corresponding `AssetLoaders`, use at least one of the features `ogg`, `mp3`, `wav`, or `flac`. The following example assumes that `bevy_kira_audio/ogg` is used.
@@ -32,8 +32,8 @@ fn my_audio_system(
   - The features `ogg`, `flac` and `wav` can be build for WASM. There are some differences between browsers:
     - Firefox: The audio might sound distorted (trying to figure out why)
     - Chrome: an interaction with the website is required before the AudioContext is started (e.g. a button click). Currently, the plugin cannot restart the AudioContext after an interaction.
-- [ ] pause/resume and stop tracks
-- [ ] play a track on repeat
+- [x] pause/resume and stop tracks
+- [x] play a track on repeat
 - [ ] get the current status of a track (time elapsed/left)?
 
 ## License

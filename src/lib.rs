@@ -10,6 +10,8 @@ mod source;
 
 use crate::audio_output::{play_queued_audio_system, AudioOutput};
 
+pub use channel::ChannelId;
+
 #[cfg(feature = "flac")]
 use crate::source::FlacLoader;
 #[cfg(feature = "mp3")]
