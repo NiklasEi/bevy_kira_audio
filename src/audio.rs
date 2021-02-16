@@ -13,46 +13,51 @@ pub enum AudioCommands {
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct PlayAudioSettings {
-    pub channel: ChannelId,
     pub source: Handle<AudioSource>,
     pub looped: bool,
 }
 
 #[derive(Default)]
 pub struct Audio {
-    pub commands: RwLock<VecDeque<AudioCommands>>,
+    pub commands: RwLock<VecDeque<(AudioCommands, ChannelId)>>,
 }
 
 impl Audio {
     pub fn play(&self, audio_source: Handle<AudioSource>) {
-        self.commands
-            .write()
-            .push_front(AudioCommands::Play(PlayAudioSettings {
-                channel: Default::default(),
+        self.commands.write().push_front((
+            AudioCommands::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: false,
-            }));
+            }),
+            ChannelId::default(),
+        ));
     }
 
     pub fn play_looped(&self, audio_source: Handle<AudioSource>) {
-        self.commands
-            .write()
-            .push_front(AudioCommands::Play(PlayAudioSettings {
-                channel: Default::default(),
+        self.commands.write().push_front((
+            AudioCommands::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: true,
-            }));
+            }),
+            ChannelId::default(),
+        ));
     }
 
     pub fn stop(&self) {
-        self.commands.write().push_front(AudioCommands::Stop);
+        self.commands
+            .write()
+            .push_front((AudioCommands::Stop, ChannelId::default()));
     }
 
     pub fn pause(&self) {
-        self.commands.write().push_front(AudioCommands::Pause);
+        self.commands
+            .write()
+            .push_front((AudioCommands::Pause, ChannelId::default()));
     }
 
     pub fn resume(&self) {
-        self.commands.write().push_front(AudioCommands::Resume);
+        self.commands
+            .write()
+            .push_front((AudioCommands::Resume, ChannelId::default()));
     }
 }

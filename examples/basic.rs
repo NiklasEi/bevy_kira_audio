@@ -1,6 +1,4 @@
 use bevy::prelude::*;
-use bevy::render::color::Color;
-use bevy::render::pass::ClearColor;
 use bevy_kira_audio::{Audio, AudioPlugin, AudioSource};
 
 fn main() {

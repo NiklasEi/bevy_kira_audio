@@ -119,7 +119,7 @@ impl AudioOutput {
         let len = commands.len();
         let mut i = 0;
         while i < len {
-            let audio_command = commands.pop_back().unwrap();
+            let (audio_command, channel_id) = commands.pop_back().unwrap();
             match &audio_command {
                 AudioCommands::Play(play_settings) => {
                     if let Some(audio_source) = audio_sources.get(&play_settings.source) {
@@ -131,16 +131,16 @@ impl AudioOutput {
                             }
                         } else {
                             let arrangement_handle = if play_settings.looped {
-                                self.play_looped(&sound_handle, &play_settings.channel)
+                                self.play_looped(&sound_handle, &channel_id)
                             } else {
-                                self.play(&sound_handle, &play_settings.channel)
+                                self.play(&sound_handle, &channel_id)
                             };
                             self.arrangements
                                 .insert(play_settings.clone(), arrangement_handle);
                         }
                     } else {
                         // audio source hasn't loaded yet. Add it back to the queue
-                        commands.push_front(audio_command);
+                        commands.push_front((audio_command, channel_id));
                     }
                 }
                 AudioCommands::Stop => {
