@@ -60,4 +60,42 @@ impl Audio {
             .write()
             .push_front((AudioCommands::Resume, ChannelId::default()));
     }
+
+    pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: ChannelId) {
+        self.commands.write().push_front((
+            AudioCommands::Play(PlayAudioSettings {
+                source: audio_source,
+                looped: false,
+            }),
+            channel_id,
+        ));
+    }
+
+    pub fn play_looped_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: ChannelId) {
+        self.commands.write().push_front((
+            AudioCommands::Play(PlayAudioSettings {
+                source: audio_source,
+                looped: true,
+            }),
+            channel_id,
+        ));
+    }
+
+    pub fn stop_channel(&self, channel_id: ChannelId) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::Stop, channel_id));
+    }
+
+    pub fn pause_channel(&self, channel_id: ChannelId) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::Pause, channel_id));
+    }
+
+    pub fn resume_channel(&self, channel_id: ChannelId) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::Resume, channel_id));
+    }
 }

@@ -80,9 +80,9 @@ impl AudioOutput {
         arrangement_handle
     }
 
-    fn stop(&mut self) {
-        for (_channel_id, mut instances) in self.channels.drain() {
-            for mut instance in instances.drain(..) {
+    fn stop(&mut self, channel_id: ChannelId) {
+        if let Some(instances) = self.channels.get_mut(&channel_id) {
+            for mut instance in instances.iter_mut() {
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     println!("Failed to stop instance: {:?}", error);
                 }
@@ -90,9 +90,9 @@ impl AudioOutput {
         }
     }
 
-    fn pause(&mut self) {
-        for (_channel_id, instances) in self.channels.iter_mut() {
-            for instance in instances.iter_mut() {
+    fn pause(&mut self, channel_id: ChannelId) {
+        if let Some(instances) = self.channels.get_mut(&channel_id) {
+            for mut instance in instances.iter_mut() {
                 if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
                     println!("Failed to pause instance: {:?}", error);
                 }
@@ -100,9 +100,9 @@ impl AudioOutput {
         }
     }
 
-    fn resume(&mut self) {
-        for (_channel_id, instances) in self.channels.iter_mut() {
-            for instance in instances.iter_mut() {
+    fn resume(&mut self, channel_id: ChannelId) {
+        if let Some(instances) = self.channels.get_mut(&channel_id) {
+            for mut instance in instances.iter_mut() {
                 if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
                     println!("Failed to resume instance: {:?}", error);
                 }
@@ -144,13 +144,13 @@ impl AudioOutput {
                     }
                 }
                 AudioCommands::Stop => {
-                    self.stop();
+                    self.stop(channel_id);
                 }
                 AudioCommands::Pause => {
-                    self.pause();
+                    self.pause(channel_id);
                 }
                 AudioCommands::Resume => {
-                    self.resume();
+                    self.resume(channel_id);
                 }
             }
             i += 1;
