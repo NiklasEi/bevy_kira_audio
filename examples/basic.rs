@@ -1,6 +1,6 @@
 use bevy::asset::LoadState;
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioPlugin, AudioSource, ChannelId};
+use bevy_kira_audio::{Audio, AudioChannel, AudioPlugin, AudioSource};
 use std::collections::HashMap;
 
 fn main() {
@@ -254,14 +254,14 @@ struct ChangeVolumeButton {
 struct StopButton;
 
 struct Channel {
-    channel: ChannelId,
+    channel: AudioChannel,
 }
 
 struct AudioState {
     audio_loaded: bool,
     loop_handle: Handle<AudioSource>,
     sound_handle: Handle<AudioSource>,
-    channels: HashMap<ChannelId, ChannelAudioState>,
+    channels: HashMap<AudioChannel, ChannelAudioState>,
 }
 
 struct ChannelAudioState {
@@ -306,15 +306,15 @@ fn prepare_audio_and_ui(
 ) {
     let mut channels = HashMap::new();
     channels.insert(
-        ChannelId::new("first".to_owned()),
+        AudioChannel::new("first".to_owned()),
         ChannelAudioState::default(),
     );
     channels.insert(
-        ChannelId::new("second".to_owned()),
+        AudioChannel::new("second".to_owned()),
         ChannelAudioState::default(),
     );
     channels.insert(
-        ChannelId::new("third".to_owned()),
+        AudioChannel::new("third".to_owned()),
         ChannelAudioState::default(),
     );
 
@@ -468,7 +468,7 @@ fn set_up_ui(
 
 fn spawn_button<T: 'static + Send + Sync>(
     parent: &mut ChildBuilder,
-    channel: &ChannelId,
+    channel: &AudioChannel,
     text: &str,
     material: Handle<ColorMaterial>,
     marker: T,

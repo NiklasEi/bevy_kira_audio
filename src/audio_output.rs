@@ -1,7 +1,7 @@
 use crate::audio::{Audio, AudioCommands, PlayAudioSettings};
 use bevy::prelude::*;
 
-use crate::channel::ChannelId;
+use crate::channel::AudioChannel;
 use crate::source::AudioSource;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
@@ -15,8 +15,8 @@ pub struct AudioOutput {
     manager: AudioManager,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
-    instances: HashMap<ChannelId, Vec<InstanceHandle>>,
-    channels: HashMap<ChannelId, ChannelState>,
+    instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
+    channels: HashMap<AudioChannel, ChannelState>,
 }
 
 impl Default for AudioOutput {
@@ -47,7 +47,11 @@ impl AudioOutput {
         handle
     }
 
-    fn play_arrangement(&mut self, mut arrangement_handle: ArrangementHandle, channel: &ChannelId) {
+    fn play_arrangement(
+        &mut self,
+        mut arrangement_handle: ArrangementHandle,
+        channel: &AudioChannel,
+    ) {
         let play_result = arrangement_handle.play(Default::default());
         if let Err(error) = play_result {
             println!("Failed to play arrangement: {:?}", error);
@@ -73,7 +77,7 @@ impl AudioOutput {
         }
     }
 
-    fn play(&mut self, sound_handle: &SoundHandle, channel: &ChannelId) -> ArrangementHandle {
+    fn play(&mut self, sound_handle: &SoundHandle, channel: &AudioChannel) -> ArrangementHandle {
         let mut arrangement = Arrangement::new(ArrangementSettings::new().cooldown(0.0));
         arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
         let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
@@ -85,7 +89,7 @@ impl AudioOutput {
     fn play_looped(
         &mut self,
         sound_handle: &SoundHandle,
-        channel: &ChannelId,
+        channel: &AudioChannel,
     ) -> ArrangementHandle {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
         let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
@@ -94,7 +98,7 @@ impl AudioOutput {
         arrangement_handle
     }
 
-    fn stop(&mut self, channel_id: ChannelId) {
+    fn stop(&mut self, channel_id: AudioChannel) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for mut instance in instances.drain(..) {
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
@@ -104,7 +108,7 @@ impl AudioOutput {
         }
     }
 
-    fn pause(&mut self, channel_id: ChannelId) {
+    fn pause(&mut self, channel_id: AudioChannel) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
@@ -114,7 +118,7 @@ impl AudioOutput {
         }
     }
 
-    fn resume(&mut self, channel_id: ChannelId) {
+    fn resume(&mut self, channel_id: AudioChannel) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
@@ -124,7 +128,7 @@ impl AudioOutput {
         }
     }
 
-    fn set_volume(&mut self, channel_id: ChannelId, volume: f64) {
+    fn set_volume(&mut self, channel_id: AudioChannel, volume: f64) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.set_volume(volume) {
@@ -141,7 +145,7 @@ impl AudioOutput {
         }
     }
 
-    fn set_panning(&mut self, channel_id: ChannelId, panning: f64) {
+    fn set_panning(&mut self, channel_id: AudioChannel, panning: f64) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.set_panning(panning) {
@@ -158,7 +162,7 @@ impl AudioOutput {
         }
     }
 
-    fn set_pitch(&mut self, channel_id: ChannelId, pitch: f64) {
+    fn set_pitch(&mut self, channel_id: AudioChannel, pitch: f64) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.set_pitch(pitch) {

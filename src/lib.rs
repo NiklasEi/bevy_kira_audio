@@ -1,3 +1,30 @@
+//! # Bevy Kira audio
+//!
+//! This crate is an audio plugin for the game engine Bevy. It uses the library
+//! Kira to play audio and offers an API to control running audio.
+//!
+//! See the repository <https://github.com/NiklasEi/bevy_kira_audio/> for additional
+//! documentation and usage examples.
+//! ```edition2018
+//! # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
+//! # use bevy::prelude::*;
+//! fn main() {
+//!    let mut app = App::build();
+//!    app
+//!         .add_plugins(DefaultPlugins)
+//!         .add_plugin(AudioPlugin)
+//!         .add_startup_system(start_background_audio.system());
+//!    app.run();
+//! }
+//!
+//! fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+//!     audio.play_looped(asset_server.load("background_audio.mp3"));
+//! }
+//! ```
+
+#![forbid(unsafe_code)]
+#![deny(missing_docs, unused_imports)]
+
 use bevy::prelude::*;
 
 pub use audio::Audio;
@@ -10,7 +37,7 @@ mod source;
 
 use crate::audio_output::{play_queued_audio_system, AudioOutput};
 
-pub use channel::ChannelId;
+pub use channel::AudioChannel;
 
 #[cfg(feature = "flac")]
 use crate::source::FlacLoader;
@@ -21,6 +48,26 @@ use crate::source::OggLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
 
+/// A Bevy plugin to add audio functionallity
+///
+/// Add this plugin to your Bevy app to get access to
+/// the Audio resource
+/// ```edition2018
+/// # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
+/// # use bevy::prelude::*;
+/// fn main() {
+///    let mut app = App::build();
+///    app
+///         .add_plugins(DefaultPlugins)
+///         .add_plugin(AudioPlugin)
+///         .add_startup_system(start_background_audio.system());
+///    app.run();
+/// }
+///
+/// fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+///     audio.play_looped(asset_server.load("background_audio.mp3"));
+/// }
+/// ```
 #[derive(Default)]
 pub struct AudioPlugin;
 
