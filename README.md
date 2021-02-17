@@ -34,6 +34,9 @@ fn my_audio_system(
     - Chrome: an interaction with the website is required before the AudioContext is started (e.g. a button click). Currently, the plugin cannot restart the AudioContext after an interaction.
 - [x] pause/resume and stop tracks
 - [x] play a track on repeat
+- [x] control volume
+- [ ] control pitch
+- [ ] control panning
 - [ ] get the current status of a track (time elapsed/left)?
 
 ## License

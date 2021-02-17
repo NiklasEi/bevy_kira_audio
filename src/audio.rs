@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 
 pub enum AudioCommands {
     Play(PlayAudioSettings),
+    SetVolume(f32),
     Stop,
     Pause,
     Resume,
@@ -61,6 +62,12 @@ impl Audio {
             .push_front((AudioCommands::Resume, ChannelId::default()));
     }
 
+    pub fn set_volume(&self, volume: f32) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::SetVolume(volume), ChannelId::default()));
+    }
+
     pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: &ChannelId) {
         self.commands.write().push_front((
             AudioCommands::Play(PlayAudioSettings {
@@ -101,5 +108,11 @@ impl Audio {
         self.commands
             .write()
             .push_front((AudioCommands::Resume, channel_id.clone()));
+    }
+
+    pub fn set_volume_in_channel(&self, volume: f32, channel_id: &ChannelId) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::SetVolume(volume), channel_id.clone()));
     }
 }

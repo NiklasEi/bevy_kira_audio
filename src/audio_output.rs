@@ -15,7 +15,8 @@ pub struct AudioOutput {
     manager: AudioManager,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
-    channels: HashMap<ChannelId, Vec<InstanceHandle>>,
+    instances: HashMap<ChannelId, Vec<InstanceHandle>>,
+    channels: HashMap<ChannelId, ChannelState>,
 }
 
 impl Default for AudioOutput {
@@ -24,6 +25,7 @@ impl Default for AudioOutput {
             manager: AudioManager::new(AudioManagerSettings::default()).unwrap(),
             sounds: HashMap::default(),
             arrangements: HashMap::default(),
+            instances: HashMap::default(),
             channels: HashMap::default(),
         }
     }
@@ -51,11 +53,17 @@ impl AudioOutput {
             println!("Failed to play arrangement: {:?}", error);
             return;
         }
-        let instance_handle = play_result.unwrap();
-        if let Some(instance_handles) = self.channels.get_mut(&channel) {
+        let mut instance_handle = play_result.unwrap();
+        if let Some(channel_state) = self.channels.get(&channel) {
+            if let Err(error) = instance_handle.set_volume(channel_state.volume) {
+                println!("Failed to set volume for instance: {:?}", error);
+            }
+        }
+        if let Some(instance_handles) = self.instances.get_mut(&channel) {
             instance_handles.push(instance_handle);
         } else {
-            self.channels.insert(channel.clone(), vec![instance_handle]);
+            self.instances
+                .insert(channel.clone(), vec![instance_handle]);
         }
     }
 
@@ -81,7 +89,7 @@ impl AudioOutput {
     }
 
     fn stop(&mut self, channel_id: ChannelId) {
-        if let Some(instances) = self.channels.get_mut(&channel_id) {
+        if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     println!("Failed to stop instance: {:?}", error);
@@ -91,7 +99,7 @@ impl AudioOutput {
     }
 
     fn pause(&mut self, channel_id: ChannelId) {
-        if let Some(instances) = self.channels.get_mut(&channel_id) {
+        if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
                     println!("Failed to pause instance: {:?}", error);
@@ -101,12 +109,29 @@ impl AudioOutput {
     }
 
     fn resume(&mut self, channel_id: ChannelId) {
-        if let Some(instances) = self.channels.get_mut(&channel_id) {
+        if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
                     println!("Failed to resume instance: {:?}", error);
                 }
             }
+        }
+    }
+
+    fn set_volume(&mut self, channel_id: ChannelId, volume: f64) {
+        if let Some(instances) = self.instances.get_mut(&channel_id) {
+            for instance in instances.iter_mut() {
+                if let Err(error) = instance.set_volume(volume) {
+                    println!("Failed to set volume for instance: {:?}", error);
+                }
+            }
+        }
+        if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
+            channel_state.volume = volume;
+        } else {
+            let mut channel_state = ChannelState::default();
+            channel_state.volume = volume;
+            self.channels.insert(channel_id, channel_state);
         }
     }
 
@@ -153,10 +178,29 @@ impl AudioOutput {
                 AudioCommands::Resume => {
                     self.resume(channel_id);
                 }
+                AudioCommands::SetVolume(volume) => {
+                    self.set_volume(channel_id, *volume as f64);
+                }
             }
             i += 1;
         }
         self.manager.free_unused_resources();
+    }
+}
+
+struct ChannelState {
+    volume: f64,
+    // pitch: f64,
+    // panning: f64
+}
+
+impl Default for ChannelState {
+    fn default() -> Self {
+        ChannelState {
+            volume: 1.0,
+            // pitch: 1.0,
+            // panning: 0.5
+        }
     }
 }
 

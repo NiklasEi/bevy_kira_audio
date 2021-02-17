@@ -20,6 +20,7 @@ fn main() {
         .add_system(stop_button.system())
         .add_system(start_loop.system())
         .add_system(update_buttons.system())
+        .add_system(control_volume.system())
         .add_system(play_single_sound.system())
         .add_system(play_pause_button.system());
 
@@ -131,6 +132,27 @@ fn play_single_sound(
     }
 }
 
+fn control_volume(
+    audio: Res<Audio>,
+    mut audio_state: ResMut<AudioState>,
+    mut interaction_query: Query<
+        (&Interaction, &Channel, &ChangeVolumeButton),
+        Mutated<Interaction>,
+    >,
+) {
+    for (interaction, channel, volume) in interaction_query.iter_mut() {
+        let mut channel_audio_state = audio_state.channels.get_mut(&channel.channel).unwrap();
+        if interaction == &Interaction::Clicked {
+            if volume.louder {
+                channel_audio_state.volume += 0.1;
+            } else {
+                channel_audio_state.volume -= 0.1;
+            }
+            audio.set_volume_in_channel(channel_audio_state.volume, &channel.channel);
+        }
+    }
+}
+
 fn update_buttons(
     audio_state: Res<AudioState>,
     button_materials: Res<ButtonMaterials>,
@@ -146,6 +168,7 @@ fn update_buttons(
         (&Interaction, &mut Handle<ColorMaterial>, &Channel),
         With<PlaySingleSound>,
     >,
+    mut volume: Query<(&Interaction, &mut Handle<ColorMaterial>), With<ChangeVolumeButton>>,
     mut stop: Query<(&Interaction, &mut Handle<ColorMaterial>, &Channel), With<StopButton>>,
     mut play_pause_text: Query<(&Channel, &mut Text)>,
 ) {
@@ -209,6 +232,13 @@ fn update_buttons(
             }
         }
     }
+    for (interaction, mut material) in volume.iter_mut() {
+        *material = if interaction == &Interaction::Hovered {
+            button_materials.hovered.clone()
+        } else {
+            button_materials.normal.clone()
+        }
+    }
 }
 
 struct PlayPauseButton;
@@ -216,6 +246,10 @@ struct PlayPauseButton;
 struct PlaySingleSound;
 
 struct StartLoopButton;
+
+struct ChangeVolumeButton {
+    louder: bool,
+}
 
 struct StopButton;
 
@@ -234,11 +268,13 @@ struct ChannelAudioState {
     stopped: bool,
     paused: bool,
     loop_started: bool,
+    volume: f32,
 }
 
 impl Default for ChannelAudioState {
     fn default() -> Self {
         ChannelAudioState {
+            volume: 1.0,
             stopped: true,
             loop_started: false,
             paused: false,
@@ -330,7 +366,7 @@ fn set_up_ui(
                         parent
                             .spawn(NodeBundle {
                                 style: Style {
-                                    size: Size::new(Val::Percent(25.), Val::Percent(100.)),
+                                    size: Size::new(Val::Px(120.0), Val::Percent(100.)),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
                                     ..Default::default()
@@ -354,32 +390,74 @@ fn set_up_ui(
                         spawn_button(
                             parent,
                             channel,
-                            "Play sound",
-                            &button_materials,
+                            "Sound",
+                            button_materials.disabled.clone(),
                             PlaySingleSound,
                             font.clone(),
                         );
                         spawn_button(
                             parent,
                             channel,
-                            "Start loop",
-                            &button_materials,
+                            "Loop",
+                            button_materials.disabled.clone(),
                             StartLoopButton,
+                            font.clone(),
+                        );
+                        parent
+                            .spawn(ButtonBundle {
+                                style: Style {
+                                    size: Size::new(Val::Px(100.0), Val::Px(65.0)),
+                                    margin: Rect::all(Val::Auto),
+                                    justify_content: JustifyContent::Center,
+                                    align_items: AlignItems::Center,
+                                    ..Default::default()
+                                },
+                                material: button_materials.disabled.clone(),
+                                ..Default::default()
+                            })
+                            .with(PlayPauseButton)
+                            .with(Channel {
+                                channel: channel.clone(),
+                            })
+                            .with_children(|parent| {
+                                parent
+                                    .spawn(TextBundle {
+                                        text: Text {
+                                            value: "Pause".to_owned(),
+                                            font: font.clone(),
+                                            style: TextStyle {
+                                                font_size: 20.0,
+                                                color: Color::rgb(0.9, 0.9, 0.9),
+                                                ..Default::default()
+                                            },
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .with(Channel {
+                                        channel: channel.clone(),
+                                    });
+                            });
+                        spawn_button(
+                            parent,
+                            channel,
+                            "Vol. up",
+                            button_materials.normal.clone(),
+                            ChangeVolumeButton { louder: true },
                             font.clone(),
                         );
                         spawn_button(
                             parent,
                             channel,
-                            "Pause",
-                            &button_materials,
-                            PlayPauseButton,
+                            "Vol. down",
+                            button_materials.normal.clone(),
+                            ChangeVolumeButton { louder: false },
                             font.clone(),
                         );
                         spawn_button(
                             parent,
                             channel,
                             "Stop",
-                            &button_materials,
+                            button_materials.disabled.clone(),
                             StopButton,
                             font.clone(),
                         );
@@ -392,20 +470,20 @@ fn spawn_button<T: 'static + Send + Sync>(
     parent: &mut ChildBuilder,
     channel: &ChannelId,
     text: &str,
-    button_materials: &ButtonMaterials,
+    material: Handle<ColorMaterial>,
     marker: T,
     font: Handle<Font>,
 ) {
     parent
         .spawn(ButtonBundle {
             style: Style {
-                size: Size::new(Val::Px(120.0), Val::Px(65.0)),
+                size: Size::new(Val::Px(100.0), Val::Px(65.0)),
                 margin: Rect::all(Val::Auto),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            material: button_materials.disabled.clone(),
+            material,
             ..Default::default()
         })
         .with(marker)
