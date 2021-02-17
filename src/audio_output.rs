@@ -58,6 +58,12 @@ impl AudioOutput {
             if let Err(error) = instance_handle.set_volume(channel_state.volume) {
                 println!("Failed to set volume for instance: {:?}", error);
             }
+            if let Err(error) = instance_handle.set_pitch(channel_state.pitch) {
+                println!("Failed to set volume for instance: {:?}", error);
+            }
+            if let Err(error) = instance_handle.set_panning(channel_state.panning) {
+                println!("Failed to set volume for instance: {:?}", error);
+            }
         }
         if let Some(instance_handles) = self.instances.get_mut(&channel) {
             instance_handles.push(instance_handle);
@@ -90,7 +96,7 @@ impl AudioOutput {
 
     fn stop(&mut self, channel_id: ChannelId) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
-            for instance in instances.iter_mut() {
+            for mut instance in instances.drain(..) {
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     println!("Failed to stop instance: {:?}", error);
                 }
@@ -135,7 +141,41 @@ impl AudioOutput {
         }
     }
 
-    pub fn run_queued_audio_commands(
+    fn set_panning(&mut self, channel_id: ChannelId, panning: f64) {
+        if let Some(instances) = self.instances.get_mut(&channel_id) {
+            for instance in instances.iter_mut() {
+                if let Err(error) = instance.set_panning(panning) {
+                    println!("Failed to set panning for instance: {:?}", error);
+                }
+            }
+        }
+        if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
+            channel_state.panning = panning;
+        } else {
+            let mut channel_state = ChannelState::default();
+            channel_state.panning = panning;
+            self.channels.insert(channel_id, channel_state);
+        }
+    }
+
+    fn set_pitch(&mut self, channel_id: ChannelId, pitch: f64) {
+        if let Some(instances) = self.instances.get_mut(&channel_id) {
+            for instance in instances.iter_mut() {
+                if let Err(error) = instance.set_pitch(pitch) {
+                    println!("Failed to set pitch for instance: {:?}", error);
+                }
+            }
+        }
+        if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
+            channel_state.pitch = pitch;
+        } else {
+            let mut channel_state = ChannelState::default();
+            channel_state.pitch = pitch;
+            self.channels.insert(channel_id, channel_state);
+        }
+    }
+
+    pub(crate) fn run_queued_audio_commands(
         &mut self,
         audio_sources: &Assets<AudioSource>,
         audio: &mut Audio,
@@ -181,25 +221,30 @@ impl AudioOutput {
                 AudioCommands::SetVolume(volume) => {
                     self.set_volume(channel_id, *volume as f64);
                 }
+                AudioCommands::SetPanning(panning) => {
+                    self.set_panning(channel_id, *panning as f64);
+                }
+                AudioCommands::SetPitch(pitch) => {
+                    self.set_pitch(channel_id, *pitch as f64);
+                }
             }
             i += 1;
         }
-        self.manager.free_unused_resources();
     }
 }
 
 struct ChannelState {
     volume: f64,
-    // pitch: f64,
-    // panning: f64
+    pitch: f64,
+    panning: f64,
 }
 
 impl Default for ChannelState {
     fn default() -> Self {
         ChannelState {
             volume: 1.0,
-            // pitch: 1.0,
-            // panning: 0.5
+            pitch: 1.0,
+            panning: 0.5,
         }
     }
 }

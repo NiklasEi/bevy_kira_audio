@@ -7,6 +7,8 @@ use std::collections::VecDeque;
 pub enum AudioCommands {
     Play(PlayAudioSettings),
     SetVolume(f32),
+    SetPanning(f32),
+    SetPitch(f32),
     Stop,
     Pause,
     Resume,
@@ -68,6 +70,18 @@ impl Audio {
             .push_front((AudioCommands::SetVolume(volume), ChannelId::default()));
     }
 
+    pub fn set_panning(&self, panning: f32) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::SetPanning(panning), ChannelId::default()));
+    }
+
+    pub fn set_pitch(&self, pitch: f32) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::SetPitch(pitch), ChannelId::default()));
+    }
+
     pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: &ChannelId) {
         self.commands.write().push_front((
             AudioCommands::Play(PlayAudioSettings {
@@ -114,5 +128,17 @@ impl Audio {
         self.commands
             .write()
             .push_front((AudioCommands::SetVolume(volume), channel_id.clone()));
+    }
+
+    pub fn set_panning_in_channel(&self, panning: f32, channel_id: &ChannelId) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::SetPanning(panning), channel_id.clone()));
+    }
+
+    pub fn set_pitch_in_channel(&self, pitch: f32, channel_id: &ChannelId) {
+        self.commands
+            .write()
+            .push_front((AudioCommands::SetPitch(pitch), channel_id.clone()));
     }
 }

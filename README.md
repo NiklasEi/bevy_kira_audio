@@ -35,8 +35,8 @@ fn my_audio_system(
 - [x] pause/resume and stop tracks
 - [x] play a track on repeat
 - [x] control volume
-- [ ] control pitch
-- [ ] control panning
+- [x] control pitch
+- [x] control panning
 - [ ] get the current status of a track (time elapsed/left)?
 
 ## License
