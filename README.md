@@ -1,5 +1,9 @@
 # Bevy Kira audio
 
+[![Crates.io](https://img.shields.io/crates/v/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/NiklasEi/bevy_kira_audio/blob/main/LICENSE.md)
+[![Crates.io](https://img.shields.io/crates/d/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
+
 This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal would be to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `.ogg`, `.mp3`, `.flac`, and `.wav` formats and supports web builds for everything except for `mp3`.
 
 I am using [Oicana][oicana] as "guinea pig project" and will keep it's [game audio plugin][oicana-audio] up to date with this crate. You can also check out the examples directory in this repository for a display of this plugin's functionality.
