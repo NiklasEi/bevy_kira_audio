@@ -73,7 +73,7 @@ pub struct AudioPlugin;
 
 impl Plugin for AudioPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.init_thread_local_resource::<AudioOutput>()
+        app.init_non_send_resource::<AudioOutput>()
             .add_asset::<AudioSource>();
 
         #[cfg(feature = "mp3")]
@@ -85,7 +85,9 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "flac")]
         app.init_asset_loader::<FlacLoader>();
 
-        app.init_resource::<Audio>()
-            .add_system_to_stage(stage::POST_UPDATE, play_queued_audio_system.system());
+        app.init_resource::<Audio>().add_system_to_stage(
+            CoreStage::PostUpdate,
+            play_queued_audio_system.exclusive_system(),
+        );
     }
 }
