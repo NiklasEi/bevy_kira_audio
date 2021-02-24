@@ -5,8 +5,8 @@ use std::collections::HashMap;
 
 fn main() {
     let mut app = App::build();
-    app.add_resource(Msaa { samples: 4 })
-        .add_resource(WindowDescriptor {
+    app.insert_resource(Msaa { samples: 4 })
+        .insert_resource(WindowDescriptor {
             width: 800.,
             height: 600.,
             title: "Kira audio example".to_string(),
@@ -213,7 +213,7 @@ fn update_buttons(
         };
         for (text_button, mut text) in play_pause_text.iter_mut() {
             if text_button.channel == button.channel {
-                text.value = if audio_state.paused {
+                text.sections.first_mut().unwrap().value = if audio_state.paused {
                     "Play".to_owned()
                 } else {
                     "Pause".to_owned()
@@ -340,7 +340,7 @@ fn set_up_ui(
 ) {
     let font = asset_server.load("fonts/monogram.ttf");
     commands
-        .spawn(CameraUiBundle::default())
+        .spawn(UiCameraBundle::default())
         .spawn(NodeBundle {
             style: Style {
                 display: Display::Flex,
@@ -376,13 +376,15 @@ fn set_up_ui(
                             .with_children(|parent| {
                                 parent.spawn(TextBundle {
                                     text: Text {
-                                        value: format!("Channel {}", 3 - channel_index),
-                                        font: font.clone(),
-                                        style: TextStyle {
-                                            font_size: 20.0,
-                                            color: Color::rgb(0.2, 0.2, 0.2),
-                                            ..Default::default()
-                                        },
+                                        sections: vec![TextSection {
+                                            value: format!("Channel {}", 3 - channel_index),
+                                            style: TextStyle {
+                                                font_size: 20.0,
+                                                color: Color::rgb(0.2, 0.2, 0.2),
+                                                font: font.clone(),
+                                            },
+                                        }],
+                                        alignment: Default::default(),
                                     },
                                     ..Default::default()
                                 });
@@ -423,13 +425,15 @@ fn set_up_ui(
                                 parent
                                     .spawn(TextBundle {
                                         text: Text {
-                                            value: "Pause".to_owned(),
-                                            font: font.clone(),
-                                            style: TextStyle {
-                                                font_size: 20.0,
-                                                color: Color::rgb(0.9, 0.9, 0.9),
-                                                ..Default::default()
-                                            },
+                                            sections: vec![TextSection {
+                                                value: "Pause".to_owned(),
+                                                style: TextStyle {
+                                                    font_size: 20.0,
+                                                    color: Color::rgb(0.9, 0.9, 0.9),
+                                                    font: font.clone(),
+                                                },
+                                            }],
+                                            alignment: Default::default(),
                                         },
                                         ..Default::default()
                                     })
@@ -493,13 +497,15 @@ fn spawn_button<T: 'static + Send + Sync>(
         .with_children(|parent| {
             parent.spawn(TextBundle {
                 text: Text {
-                    value: text.to_string(),
-                    font,
-                    style: TextStyle {
-                        font_size: 20.0,
-                        color: Color::rgb(0.9, 0.9, 0.9),
-                        ..Default::default()
-                    },
+                    sections: vec![TextSection {
+                        value: text.to_string(),
+                        style: TextStyle {
+                            font_size: 20.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                            font: font.clone(),
+                        },
+                    }],
+                    alignment: Default::default(),
                 },
                 ..Default::default()
             });
