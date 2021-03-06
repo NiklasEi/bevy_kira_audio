@@ -253,10 +253,12 @@ impl Default for ChannelState {
     }
 }
 
-pub fn play_queued_audio_system(_world: &mut World, resources: &mut Resources) {
-    let mut audio_output = resources.get_non_send_mut::<AudioOutput>().unwrap();
-    let mut audio = resources.get_mut::<Audio>().unwrap();
-    if let Some(audio_sources) = resources.get::<Assets<AudioSource>>() {
+pub fn play_queued_audio_system(world: &mut World) {
+    let world = world.cell();
+
+    let mut audio_output = world.get_non_send_mut::<AudioOutput>().unwrap();
+    let mut audio = world.get_resource_mut::<Audio>().unwrap();
+    if let Some(audio_sources) = world.get_resource::<Assets<AudioSource>>() {
         audio_output.run_queued_audio_commands(&*audio_sources, &mut *audio);
-    }
+    };
 }
