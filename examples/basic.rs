@@ -256,6 +256,7 @@ fn update_stop_buttons(
 }
 
 fn update_volume_buttons(
+    button_materials: Res<ButtonMaterials>,
     mut volume: Query<(&Interaction, &mut Handle<ColorMaterial>), With<ChangeVolumeButton>>,
 ) {
     for (interaction, mut material) in volume.iter_mut() {
