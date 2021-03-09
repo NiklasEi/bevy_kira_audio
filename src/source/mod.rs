@@ -13,7 +13,7 @@ pub use wav_loader::WavLoader;
 
 /// A source of audio data
 #[derive(Debug, Clone, TypeUuid)]
-#[uuid = "7a14806a-672b-443b-8d16-4f18afefa463"]
+#[uuid = "6a9fc4ca-b5b5-94d6-613c-522e2d9fe86d"]
 pub struct AudioSource {
     pub(crate) sound: Sound,
 }
