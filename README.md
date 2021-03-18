@@ -43,6 +43,15 @@ fn my_audio_system(
 - [x] control panning
 - [ ] get the current status of a track (time elapsed/left)?
 
+## Compatible Bevy versions
+
+The main branch should be up to date with the latest Bevy release. The branch `bevy_main` is tracking `bevy/main`.
+
+Compatibility:
+| `bevy` | `bevy_kira_audio` |
+| :-- | :--  |
+| `0.4` | `0.3.0`|
+
 ## License
 
 This crate is distributed under the terms of the [MIT license](LICENSE.md).
