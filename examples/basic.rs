@@ -46,7 +46,7 @@ fn play_pause_button(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<PlayPauseButton>),
+        (Changed<Interaction>, With<PlayPauseButton>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -73,7 +73,7 @@ fn stop_button(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<StopButton>),
+        (Changed<Interaction>, With<StopButton>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -96,7 +96,7 @@ fn start_loop(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<StartLoopButton>),
+        (Changed<Interaction>, With<StartLoopButton>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -120,7 +120,7 @@ fn play_single_sound(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<PlaySingleSound>),
+        (Changed<Interaction>, With<PlaySingleSound>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -141,7 +141,7 @@ fn control_volume(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel, &ChangeVolumeButton),
-        Mutated<Interaction>,
+        Changed<Interaction>,
     >,
 ) {
     for (interaction, channel, volume) in interaction_query.iter_mut() {
@@ -366,9 +366,9 @@ fn set_up_ui(
     button_materials: Res<ButtonMaterials>,
 ) {
     let font = asset_server.load("fonts/monogram.ttf");
+    commands.spawn_bundle(UiCameraBundle::default());
     commands
-        .spawn(UiCameraBundle::default())
-        .spawn(NodeBundle {
+        .spawn_bundle(NodeBundle {
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Column,
@@ -380,7 +380,7 @@ fn set_up_ui(
         .with_children(|parent| {
             for (channel_index, (channel, _state)) in audio_state.channels.iter().enumerate() {
                 parent
-                    .spawn(NodeBundle {
+                    .spawn_bundle(NodeBundle {
                         style: Style {
                             display: Display::Flex,
                             flex_direction: FlexDirection::Row,
@@ -391,7 +391,7 @@ fn set_up_ui(
                     })
                     .with_children(|parent| {
                         parent
-                            .spawn(NodeBundle {
+                            .spawn_bundle(NodeBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(120.0), Val::Percent(100.)),
                                     justify_content: JustifyContent::Center,
@@ -401,7 +401,7 @@ fn set_up_ui(
                                 ..Default::default()
                             })
                             .with_children(|parent| {
-                                parent.spawn(TextBundle {
+                                parent.spawn_bundle(TextBundle {
                                     text: Text {
                                         sections: vec![TextSection {
                                             value: format!("Channel {}", 3 - channel_index),
@@ -433,7 +433,7 @@ fn set_up_ui(
                             font.clone(),
                         );
                         parent
-                            .spawn(ButtonBundle {
+                            .spawn_bundle(ButtonBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(100.0), Val::Px(65.0)),
                                     margin: Rect::all(Val::Auto),
@@ -444,13 +444,13 @@ fn set_up_ui(
                                 material: button_materials.disabled.clone(),
                                 ..Default::default()
                             })
-                            .with(PlayPauseButton)
-                            .with(Channel {
+                            .insert(PlayPauseButton)
+                            .insert(Channel {
                                 channel: channel.clone(),
                             })
                             .with_children(|parent| {
                                 parent
-                                    .spawn(TextBundle {
+                                    .spawn_bundle(TextBundle {
                                         text: Text {
                                             sections: vec![TextSection {
                                                 value: "Pause".to_owned(),
@@ -464,7 +464,7 @@ fn set_up_ui(
                                         },
                                         ..Default::default()
                                     })
-                                    .with(Channel {
+                                    .insert(Channel {
                                         channel: channel.clone(),
                                     });
                             });
@@ -506,7 +506,7 @@ fn spawn_button<T: 'static + Send + Sync>(
     font: Handle<Font>,
 ) {
     parent
-        .spawn(ButtonBundle {
+        .spawn_bundle(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Px(100.0), Val::Px(65.0)),
                 margin: Rect::all(Val::Auto),
@@ -517,12 +517,12 @@ fn spawn_button<T: 'static + Send + Sync>(
             material,
             ..Default::default()
         })
-        .with(marker)
-        .with(Channel {
+        .insert(marker)
+        .insert(Channel {
             channel: channel.clone(),
         })
         .with_children(|parent| {
-            parent.spawn(TextBundle {
+            parent.spawn_bundle(TextBundle {
                 text: Text {
                     sections: vec![TextSection {
                         value: text.to_string(),
