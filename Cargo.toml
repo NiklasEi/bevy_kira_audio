@@ -30,8 +30,8 @@ example = [
 
 [dependencies]
 # bevy
-bevy = { git = "https://github.com/bevyengine/bevy/", rev = "10ef750899f19faf7edd7edc356da12e7a7abb82", default-features = false }
-bevy_reflect = { git = "https://github.com/bevyengine/bevy/", rev = "10ef750899f19faf7edd7edc356da12e7a7abb82", default-features = false }
+bevy = { git = "https://github.com/bevyengine/bevy/", rev = "7a511394ac6c4f90b5398ab6333f1bd4fd665613", default-features = false }
+bevy_reflect = { git = "https://github.com/bevyengine/bevy/", rev = "7a511394ac6c4f90b5398ab6333f1bd4fd665613", default-features = false }
 
 # other
 anyhow = "1.0"
