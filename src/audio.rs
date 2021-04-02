@@ -8,7 +8,7 @@ pub enum AudioCommands {
     Play(PlayAudioSettings),
     SetVolume(f32),
     SetPanning(f32),
-    SetPitch(f32),
+    SetPlaybackRate(f32),
     Stop,
     Pause,
     Resume,
@@ -163,7 +163,7 @@ impl Audio {
             .push_front((AudioCommands::SetPanning(panning), AudioChannel::default()));
     }
 
-    /// Set pitch for the default channel
+    /// Set playback rate for the default channel
     ///
     /// The default value is 1
     ///
@@ -172,13 +172,14 @@ impl Audio {
     /// # use bevy_kira_audio::Audio;
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_pitch(2.0);
+    ///     audio.set_playback_rate(2.0);
     /// }
     /// ```
-    pub fn set_pitch(&self, pitch: f32) {
-        self.commands
-            .write()
-            .push_front((AudioCommands::SetPitch(pitch), AudioChannel::default()));
+    pub fn set_playback_rate(&self, playback_rate: f32) {
+        self.commands.write().push_front((
+            AudioCommands::SetPlaybackRate(playback_rate),
+            AudioChannel::default(),
+        ));
     }
 
     /// Play audio in the given channel
@@ -311,7 +312,7 @@ impl Audio {
             .push_front((AudioCommands::SetPanning(panning), channel_id.clone()));
     }
 
-    /// Set pitch for the given channel
+    /// Set playback rate for the given channel
     ///
     /// The default value is 1
     ///
@@ -320,12 +321,13 @@ impl Audio {
     /// # use bevy_kira_audio::{Audio, AudioChannel};
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_pitch_in_channel(2.0, &AudioChannel::new("my-channel".to_owned()));
+    ///     audio.set_playback_rate_in_channel(2.0, &AudioChannel::new("my-channel".to_owned()));
     /// }
     /// ```
-    pub fn set_pitch_in_channel(&self, pitch: f32, channel_id: &AudioChannel) {
-        self.commands
-            .write()
-            .push_front((AudioCommands::SetPitch(pitch), channel_id.clone()));
+    pub fn set_playback_rate_in_channel(&self, playback_rate: f32, channel_id: &AudioChannel) {
+        self.commands.write().push_front((
+            AudioCommands::SetPlaybackRate(playback_rate),
+            channel_id.clone(),
+        ));
     }
 }
