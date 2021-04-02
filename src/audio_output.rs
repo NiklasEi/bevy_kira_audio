@@ -22,7 +22,8 @@ pub struct AudioOutput {
 impl Default for AudioOutput {
     fn default() -> Self {
         Self {
-            manager: AudioManager::new(AudioManagerSettings::default()).expect("Failed to initialize AudioManager"),
+            manager: AudioManager::new(AudioManagerSettings::default())
+                .expect("Failed to initialize AudioManager"),
             sounds: HashMap::default(),
             arrangements: HashMap::default(),
             instances: HashMap::default(),
@@ -42,7 +43,10 @@ impl AudioOutput {
         }
 
         let sound = audio_source.sound.clone();
-        let handle = self.manager.add_sound(sound).expect("Failed to add sound to the AudioManager");
+        let handle = self
+            .manager
+            .add_sound(sound)
+            .expect("Failed to add sound to the AudioManager");
         self.sounds.insert(audio_source_handle, handle.clone());
         handle
     }
@@ -80,7 +84,10 @@ impl AudioOutput {
     fn play(&mut self, sound_handle: &SoundHandle, channel: &AudioChannel) -> ArrangementHandle {
         let mut arrangement = Arrangement::new(ArrangementSettings::new().cooldown(0.0));
         arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
-        let arrangement_handle = self.manager.add_arrangement(arrangement).expect("Failed to add arrangement to the AudioManager");
+        let arrangement_handle = self
+            .manager
+            .add_arrangement(arrangement)
+            .expect("Failed to add arrangement to the AudioManager");
 
         self.play_arrangement(arrangement_handle.clone(), channel);
         arrangement_handle
@@ -92,7 +99,10 @@ impl AudioOutput {
         channel: &AudioChannel,
     ) -> ArrangementHandle {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
-        let arrangement_handle = self.manager.add_arrangement(arrangement).expect("Failed to add arrangement to the AudioManager");
+        let arrangement_handle = self
+            .manager
+            .add_arrangement(arrangement)
+            .expect("Failed to add arrangement to the AudioManager");
 
         self.play_arrangement(arrangement_handle.clone(), channel);
         arrangement_handle
@@ -139,8 +149,10 @@ impl AudioOutput {
         if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
             channel_state.volume = volume;
         } else {
-            let mut channel_state = ChannelState::default();
-            channel_state.volume = volume;
+            let channel_state = ChannelState {
+                volume,
+                ..Default::default()
+            };
             self.channels.insert(channel_id, channel_state);
         }
     }
@@ -156,8 +168,10 @@ impl AudioOutput {
         if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
             channel_state.panning = panning;
         } else {
-            let mut channel_state = ChannelState::default();
-            channel_state.panning = panning;
+            let channel_state = ChannelState {
+                panning,
+                ..Default::default()
+            };
             self.channels.insert(channel_id, channel_state);
         }
     }
@@ -173,8 +187,10 @@ impl AudioOutput {
         if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
             channel_state.playback_rate = playback_rate;
         } else {
-            let mut channel_state = ChannelState::default();
-            channel_state.playback_rate = playback_rate;
+            let channel_state = ChannelState {
+                playback_rate,
+                ..Default::default()
+            };
             self.channels.insert(channel_id, channel_state);
         }
     }
