@@ -39,9 +39,19 @@ fn my_audio_system(
 - [x] pause/resume and stop tracks
 - [x] play a track on repeat
 - [x] control volume
-- [x] control pitch
+- [x] control playback rate
+- [ ] control pitch (no change in playback rate)
 - [x] control panning
 - [ ] get the current status of a track (time elapsed/left)?
+
+## Compatible Bevy versions
+
+The main branch should be up to date with the latest Bevy release. The branch `bevy_main` is tracking `bevy/main`.
+
+Compatibility:
+| `bevy` | `bevy_kira_audio` |
+| :-- | :--  |
+| `0.4` | `0.3.0`|
 
 ## License
 

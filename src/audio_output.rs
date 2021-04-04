@@ -22,7 +22,8 @@ pub struct AudioOutput {
 impl Default for AudioOutput {
     fn default() -> Self {
         Self {
-            manager: AudioManager::new(AudioManagerSettings::default()).unwrap(),
+            manager: AudioManager::new(AudioManagerSettings::default())
+                .expect("Failed to initialize AudioManager"),
             sounds: HashMap::default(),
             arrangements: HashMap::default(),
             instances: HashMap::default(),
@@ -42,7 +43,10 @@ impl AudioOutput {
         }
 
         let sound = audio_source.sound.clone();
-        let handle = self.manager.add_sound(sound).unwrap();
+        let handle = self
+            .manager
+            .add_sound(sound)
+            .expect("Failed to add sound to the AudioManager");
         self.sounds.insert(audio_source_handle, handle.clone());
         handle
     }
@@ -62,11 +66,11 @@ impl AudioOutput {
             if let Err(error) = instance_handle.set_volume(channel_state.volume) {
                 println!("Failed to set volume for instance: {:?}", error);
             }
-            if let Err(error) = instance_handle.set_pitch(channel_state.pitch) {
-                println!("Failed to set volume for instance: {:?}", error);
+            if let Err(error) = instance_handle.set_playback_rate(channel_state.playback_rate) {
+                println!("Failed to set playback rate for instance: {:?}", error);
             }
             if let Err(error) = instance_handle.set_panning(channel_state.panning) {
-                println!("Failed to set volume for instance: {:?}", error);
+                println!("Failed to set panning for instance: {:?}", error);
             }
         }
         if let Some(instance_handles) = self.instances.get_mut(&channel) {
@@ -80,7 +84,10 @@ impl AudioOutput {
     fn play(&mut self, sound_handle: &SoundHandle, channel: &AudioChannel) -> ArrangementHandle {
         let mut arrangement = Arrangement::new(ArrangementSettings::new().cooldown(0.0));
         arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
-        let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
+        let arrangement_handle = self
+            .manager
+            .add_arrangement(arrangement)
+            .expect("Failed to add arrangement to the AudioManager");
 
         self.play_arrangement(arrangement_handle.clone(), channel);
         arrangement_handle
@@ -92,7 +99,10 @@ impl AudioOutput {
         channel: &AudioChannel,
     ) -> ArrangementHandle {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
-        let arrangement_handle = self.manager.add_arrangement(arrangement).unwrap();
+        let arrangement_handle = self
+            .manager
+            .add_arrangement(arrangement)
+            .expect("Failed to add arrangement to the AudioManager");
 
         self.play_arrangement(arrangement_handle.clone(), channel);
         arrangement_handle
@@ -139,8 +149,10 @@ impl AudioOutput {
         if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
             channel_state.volume = volume;
         } else {
-            let mut channel_state = ChannelState::default();
-            channel_state.volume = volume;
+            let channel_state = ChannelState {
+                volume,
+                ..Default::default()
+            };
             self.channels.insert(channel_id, channel_state);
         }
     }
@@ -156,25 +168,29 @@ impl AudioOutput {
         if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
             channel_state.panning = panning;
         } else {
-            let mut channel_state = ChannelState::default();
-            channel_state.panning = panning;
+            let channel_state = ChannelState {
+                panning,
+                ..Default::default()
+            };
             self.channels.insert(channel_id, channel_state);
         }
     }
 
-    fn set_pitch(&mut self, channel_id: AudioChannel, pitch: f64) {
+    fn set_playback_rate(&mut self, channel_id: AudioChannel, playback_rate: f64) {
         if let Some(instances) = self.instances.get_mut(&channel_id) {
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.set_pitch(pitch) {
-                    println!("Failed to set pitch for instance: {:?}", error);
+                if let Err(error) = instance.set_playback_rate(playback_rate) {
+                    println!("Failed to set playback rate for instance: {:?}", error);
                 }
             }
         }
         if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
-            channel_state.pitch = pitch;
+            channel_state.playback_rate = playback_rate;
         } else {
-            let mut channel_state = ChannelState::default();
-            channel_state.pitch = pitch;
+            let channel_state = ChannelState {
+                playback_rate,
+                ..Default::default()
+            };
             self.channels.insert(channel_id, channel_state);
         }
     }
@@ -228,8 +244,8 @@ impl AudioOutput {
                 AudioCommands::SetPanning(panning) => {
                     self.set_panning(channel_id, *panning as f64);
                 }
-                AudioCommands::SetPitch(pitch) => {
-                    self.set_pitch(channel_id, *pitch as f64);
+                AudioCommands::SetPlaybackRate(playback_rate) => {
+                    self.set_playback_rate(channel_id, *playback_rate as f64);
                 }
             }
             i += 1;
@@ -239,7 +255,7 @@ impl AudioOutput {
 
 struct ChannelState {
     volume: f64,
-    pitch: f64,
+    playback_rate: f64,
     panning: f64,
 }
 
@@ -247,16 +263,18 @@ impl Default for ChannelState {
     fn default() -> Self {
         ChannelState {
             volume: 1.0,
-            pitch: 1.0,
+            playback_rate: 1.0,
             panning: 0.5,
         }
     }
 }
 
-pub fn play_queued_audio_system(_world: &mut World, resources: &mut Resources) {
-    let mut audio_output = resources.get_thread_local_mut::<AudioOutput>().unwrap();
-    let mut audio = resources.get_mut::<Audio>().unwrap();
-    if let Some(audio_sources) = resources.get::<Assets<AudioSource>>() {
+pub fn play_queued_audio_system(world: &mut World) {
+    let world = world.cell();
+
+    let mut audio_output = world.get_non_send_mut::<AudioOutput>().unwrap();
+    let mut audio = world.get_resource_mut::<Audio>().unwrap();
+    if let Some(audio_sources) = world.get_resource::<Assets<AudioSource>>() {
         audio_output.run_queued_audio_commands(&*audio_sources, &mut *audio);
-    }
+    };
 }

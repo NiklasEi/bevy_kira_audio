@@ -5,8 +5,8 @@ use std::collections::HashMap;
 
 fn main() {
     let mut app = App::build();
-    app.add_resource(Msaa { samples: 4 })
-        .add_resource(WindowDescriptor {
+    app.insert_resource(Msaa { samples: 4 })
+        .insert_resource(WindowDescriptor {
             width: 800.,
             height: 600.,
             title: "Kira audio example".to_string(),
@@ -19,7 +19,11 @@ fn main() {
         .add_system(check_audio_loading.system())
         .add_system(stop_button.system())
         .add_system(start_loop.system())
-        .add_system(update_buttons.system())
+        .add_system(update_start_loop_buttons.system())
+        .add_system(update_play_pause_buttons.system())
+        .add_system(update_play_single_sound_buttons.system())
+        .add_system(update_stop_buttons.system())
+        .add_system(update_volume_buttons.system())
         .add_system(control_volume.system())
         .add_system(play_single_sound.system())
         .add_system(play_pause_button.system());
@@ -42,7 +46,7 @@ fn play_pause_button(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<PlayPauseButton>),
+        (Changed<Interaction>, With<PlayPauseButton>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -69,7 +73,7 @@ fn stop_button(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<StopButton>),
+        (Changed<Interaction>, With<StopButton>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -92,7 +96,7 @@ fn start_loop(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<StartLoopButton>),
+        (Changed<Interaction>, With<StartLoopButton>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -116,7 +120,7 @@ fn play_single_sound(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel),
-        (Mutated<Interaction>, With<PlaySingleSound>),
+        (Changed<Interaction>, With<PlaySingleSound>),
     >,
 ) {
     if !audio_state.audio_loaded {
@@ -137,7 +141,7 @@ fn control_volume(
     mut audio_state: ResMut<AudioState>,
     mut interaction_query: Query<
         (&Interaction, &Channel, &ChangeVolumeButton),
-        Mutated<Interaction>,
+        Changed<Interaction>,
     >,
 ) {
     for (interaction, channel, volume) in interaction_query.iter_mut() {
@@ -153,24 +157,13 @@ fn control_volume(
     }
 }
 
-fn update_buttons(
+fn update_start_loop_buttons(
     audio_state: Res<AudioState>,
     button_materials: Res<ButtonMaterials>,
     mut start_loop: Query<
         (&Interaction, &mut Handle<ColorMaterial>, &Channel),
         With<StartLoopButton>,
     >,
-    mut play_pause: Query<
-        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
-        With<PlayPauseButton>,
-    >,
-    mut play_single_sound: Query<
-        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
-        With<PlaySingleSound>,
-    >,
-    mut volume: Query<(&Interaction, &mut Handle<ColorMaterial>), With<ChangeVolumeButton>>,
-    mut stop: Query<(&Interaction, &mut Handle<ColorMaterial>, &Channel), With<StopButton>>,
-    mut play_pause_text: Query<(&Channel, &mut Text)>,
 ) {
     for (interaction, mut material, button) in start_loop.iter_mut() {
         *material = if !audio_state
@@ -189,17 +182,17 @@ fn update_buttons(
             button_materials.disabled.clone()
         }
     }
-    for (interaction, mut material, _button) in play_single_sound.iter_mut() {
-        *material = if audio_state.audio_loaded {
-            if interaction == &Interaction::Hovered {
-                button_materials.hovered.clone()
-            } else {
-                button_materials.normal.clone()
-            }
-        } else {
-            button_materials.disabled.clone()
-        }
-    }
+}
+
+fn update_play_pause_buttons(
+    audio_state: Res<AudioState>,
+    button_materials: Res<ButtonMaterials>,
+    mut play_pause: Query<
+        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
+        With<PlayPauseButton>,
+    >,
+    mut play_pause_text: Query<(&Channel, &mut Text)>,
+) {
     for (interaction, mut material, button) in play_pause.iter_mut() {
         let audio_state = audio_state.channels.get(&button.channel).unwrap();
         *material = if audio_state.stopped {
@@ -213,7 +206,7 @@ fn update_buttons(
         };
         for (text_button, mut text) in play_pause_text.iter_mut() {
             if text_button.channel == button.channel {
-                text.value = if audio_state.paused {
+                text.sections.first_mut().unwrap().value = if audio_state.paused {
                     "Play".to_owned()
                 } else {
                     "Pause".to_owned()
@@ -221,6 +214,34 @@ fn update_buttons(
             }
         }
     }
+}
+
+fn update_play_single_sound_buttons(
+    audio_state: Res<AudioState>,
+    button_materials: Res<ButtonMaterials>,
+    mut play_single_sound: Query<
+        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
+        With<PlaySingleSound>,
+    >,
+) {
+    for (interaction, mut material, _button) in play_single_sound.iter_mut() {
+        *material = if audio_state.audio_loaded {
+            if interaction == &Interaction::Hovered {
+                button_materials.hovered.clone()
+            } else {
+                button_materials.normal.clone()
+            }
+        } else {
+            button_materials.disabled.clone()
+        }
+    }
+}
+
+fn update_stop_buttons(
+    audio_state: Res<AudioState>,
+    button_materials: Res<ButtonMaterials>,
+    mut stop: Query<(&Interaction, &mut Handle<ColorMaterial>, &Channel), With<StopButton>>,
+) {
     for (interaction, mut material, button) in stop.iter_mut() {
         *material = if audio_state.channels.get(&button.channel).unwrap().stopped {
             button_materials.disabled.clone()
@@ -232,6 +253,12 @@ fn update_buttons(
             }
         }
     }
+}
+
+fn update_volume_buttons(
+    button_materials: Res<ButtonMaterials>,
+    mut volume: Query<(&Interaction, &mut Handle<ColorMaterial>), With<ChangeVolumeButton>>,
+) {
     for (interaction, mut material) in volume.iter_mut() {
         *material = if interaction == &Interaction::Hovered {
             button_materials.hovered.clone()
@@ -288,9 +315,9 @@ struct ButtonMaterials {
     disabled: Handle<ColorMaterial>,
 }
 
-impl FromResources for ButtonMaterials {
-    fn from_resources(resources: &Resources) -> Self {
-        let mut materials = resources.get_mut::<Assets<ColorMaterial>>().unwrap();
+impl FromWorld for ButtonMaterials {
+    fn from_world(world: &mut World) -> Self {
+        let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
         ButtonMaterials {
             normal: materials.add(Color::rgb(0.15, 0.15, 0.15).into()),
             hovered: materials.add(Color::rgb(0.25, 0.25, 0.25).into()),
@@ -300,7 +327,7 @@ impl FromResources for ButtonMaterials {
 }
 
 fn prepare_audio_and_ui(
-    commands: &mut Commands,
+    mut commands: Commands,
     asset_server: ResMut<AssetServer>,
     button_materials: Res<ButtonMaterials>,
 ) {
@@ -327,7 +354,7 @@ fn prepare_audio_and_ui(
         sound_handle,
     };
 
-    set_up_ui(commands, asset_server, &audio_state, button_materials);
+    set_up_ui(&mut commands, asset_server, &audio_state, button_materials);
 
     commands.insert_resource(audio_state);
 }
@@ -339,9 +366,9 @@ fn set_up_ui(
     button_materials: Res<ButtonMaterials>,
 ) {
     let font = asset_server.load("fonts/monogram.ttf");
+    commands.spawn_bundle(UiCameraBundle::default());
     commands
-        .spawn(CameraUiBundle::default())
-        .spawn(NodeBundle {
+        .spawn_bundle(NodeBundle {
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Column,
@@ -353,7 +380,7 @@ fn set_up_ui(
         .with_children(|parent| {
             for (channel_index, (channel, _state)) in audio_state.channels.iter().enumerate() {
                 parent
-                    .spawn(NodeBundle {
+                    .spawn_bundle(NodeBundle {
                         style: Style {
                             display: Display::Flex,
                             flex_direction: FlexDirection::Row,
@@ -364,7 +391,7 @@ fn set_up_ui(
                     })
                     .with_children(|parent| {
                         parent
-                            .spawn(NodeBundle {
+                            .spawn_bundle(NodeBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(120.0), Val::Percent(100.)),
                                     justify_content: JustifyContent::Center,
@@ -374,15 +401,17 @@ fn set_up_ui(
                                 ..Default::default()
                             })
                             .with_children(|parent| {
-                                parent.spawn(TextBundle {
+                                parent.spawn_bundle(TextBundle {
                                     text: Text {
-                                        value: format!("Channel {}", 3 - channel_index),
-                                        font: font.clone(),
-                                        style: TextStyle {
-                                            font_size: 20.0,
-                                            color: Color::rgb(0.2, 0.2, 0.2),
-                                            ..Default::default()
-                                        },
+                                        sections: vec![TextSection {
+                                            value: format!("Channel {}", 3 - channel_index),
+                                            style: TextStyle {
+                                                font_size: 20.0,
+                                                color: Color::rgb(0.2, 0.2, 0.2),
+                                                font: font.clone(),
+                                            },
+                                        }],
+                                        alignment: Default::default(),
                                     },
                                     ..Default::default()
                                 });
@@ -404,7 +433,7 @@ fn set_up_ui(
                             font.clone(),
                         );
                         parent
-                            .spawn(ButtonBundle {
+                            .spawn_bundle(ButtonBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(100.0), Val::Px(65.0)),
                                     margin: Rect::all(Val::Auto),
@@ -415,25 +444,27 @@ fn set_up_ui(
                                 material: button_materials.disabled.clone(),
                                 ..Default::default()
                             })
-                            .with(PlayPauseButton)
-                            .with(Channel {
+                            .insert(PlayPauseButton)
+                            .insert(Channel {
                                 channel: channel.clone(),
                             })
                             .with_children(|parent| {
                                 parent
-                                    .spawn(TextBundle {
+                                    .spawn_bundle(TextBundle {
                                         text: Text {
-                                            value: "Pause".to_owned(),
-                                            font: font.clone(),
-                                            style: TextStyle {
-                                                font_size: 20.0,
-                                                color: Color::rgb(0.9, 0.9, 0.9),
-                                                ..Default::default()
-                                            },
+                                            sections: vec![TextSection {
+                                                value: "Pause".to_owned(),
+                                                style: TextStyle {
+                                                    font_size: 20.0,
+                                                    color: Color::rgb(0.9, 0.9, 0.9),
+                                                    font: font.clone(),
+                                                },
+                                            }],
+                                            alignment: Default::default(),
                                         },
                                         ..Default::default()
                                     })
-                                    .with(Channel {
+                                    .insert(Channel {
                                         channel: channel.clone(),
                                     });
                             });
@@ -475,7 +506,7 @@ fn spawn_button<T: 'static + Send + Sync>(
     font: Handle<Font>,
 ) {
     parent
-        .spawn(ButtonBundle {
+        .spawn_bundle(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Px(100.0), Val::Px(65.0)),
                 margin: Rect::all(Val::Auto),
@@ -486,20 +517,22 @@ fn spawn_button<T: 'static + Send + Sync>(
             material,
             ..Default::default()
         })
-        .with(marker)
-        .with(Channel {
+        .insert(marker)
+        .insert(Channel {
             channel: channel.clone(),
         })
         .with_children(|parent| {
-            parent.spawn(TextBundle {
+            parent.spawn_bundle(TextBundle {
                 text: Text {
-                    value: text.to_string(),
-                    font,
-                    style: TextStyle {
-                        font_size: 20.0,
-                        color: Color::rgb(0.9, 0.9, 0.9),
-                        ..Default::default()
-                    },
+                    sections: vec![TextSection {
+                        value: text.to_string(),
+                        style: TextStyle {
+                            font_size: 20.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                            font: font.clone(),
+                        },
+                    }],
+                    alignment: Default::default(),
                 },
                 ..Default::default()
             });

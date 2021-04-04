@@ -1,7 +1,7 @@
 /// A channel to play audio in
 ///
 /// You can play audio in this channel and controll
-/// properties like the volume, pitch or panning
+/// properties like the volume, playback rate or panning
 /// ```edition2018
 /// # use bevy_kira_audio::{AudioChannel, Audio};
 /// # use bevy::prelude::*;
