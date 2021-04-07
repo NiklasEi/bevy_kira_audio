@@ -6,7 +6,7 @@
 
 This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal would be to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `.ogg`, `.mp3`, `.flac`, and `.wav` formats and supports web builds for everything except for `mp3`.
 
-I am using [Oicana][oicana] as "guinea pig project" and will keep it's [game audio plugin][oicana-audio] up to date with this crate. You can also check out the examples directory in this repository for a display of this plugin's functionality.
+You can check out the examples directory in this repository for a display of this plugin's functionality.
 
 ## Usage
 To initialize the corresponding `AssetLoaders`, use at least one of the features `ogg`, `mp3`, `wav`, or `flac`. The following example assumes that `bevy_kira_audio/ogg` is used.
@@ -46,12 +46,13 @@ fn my_audio_system(
 
 ## Compatible Bevy versions
 
-The main branch should be up to date with the latest Bevy release. The branch `bevy_main` is tracking `bevy/main`.
+The main branch is up to date with the latest Bevy release.
 
-Compatibility:
+Compatibility of published `bevy_kira_audio` versions:
 | `bevy` | `bevy_kira_audio` |
 | :-- | :--  |
-| `0.4` | `0.3.0`|
+| `0.5.0` | `0.4.0`|
+| `0.4.0` | `0.3.0`|
 
 ## License
 
