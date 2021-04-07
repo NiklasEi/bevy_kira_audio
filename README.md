@@ -49,10 +49,10 @@ fn my_audio_system(
 The main branch is up to date with the latest Bevy release.
 
 Compatibility of published `bevy_kira_audio` versions:
-| `bevy` | `bevy_kira_audio` |
+| `bevy_kira_audio` | `bevy` |
 | :-- | :--  |
-| `0.5.0` | `0.4.0`|
-| `0.4.0` | `0.3.0`|
+| `0.4.0` | `0.5.0` |
+| `0.3.0` | `0.4.0` |
 
 ## License
 
