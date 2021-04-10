@@ -65,6 +65,6 @@ impl AssetLoader for OggLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        &["ogg", "oga"]
+        &["ogg", "oga", "spx"]
     }
 }
