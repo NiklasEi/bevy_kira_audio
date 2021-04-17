@@ -4,12 +4,12 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/NiklasEi/bevy_kira_audio/blob/main/LICENSE.md)
 [![Crates.io](https://img.shields.io/crates/d/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
 
-This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal would be to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `.ogg`, `.mp3`, `.flac`, and `.wav` formats and supports web builds for everything except for `mp3`.
+This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds for everything except `mp3`.
 
-You can check out the examples directory in this repository for a display of this plugin's functionality.
+You can check out the `examples` directory in this repository for a display of this plugin's functionality.
 
 ## Usage
-To initialize the corresponding `AssetLoaders`, use at least one of the features `ogg`, `mp3`, `wav`, or `flac`. The following example assumes that `bevy_kira_audio/ogg` is used.
+To initialize the corresponding `AssetLoaders`, use at least one of the features `ogg`, `mp3`, `wav`, or `flac`. The following example assumes that the feature `bevy_kira_audio/ogg` is enabled.
 
 ```rust
 use bevy_kira_audio::{Audio, AudioPlugin};
@@ -33,9 +33,9 @@ fn my_audio_system(
   - [x] `wav`
   - [x] `flac`
 - [x] web support
-  - The features `ogg`, `flac` and `wav` can be build for WASM. There are some differences between browsers:
-    - Firefox: The audio might sound distorted (trying to figure out why)
-    - Chrome: an interaction with the website is required before the AudioContext is started (e.g. a button click). Currently, the plugin cannot restart the AudioContext after an interaction.
+  - The features `ogg`, `flac` and `wav` can be build for WASM and used in web builds. There are some differences between browsers:
+    - Chrome requires an interaction with the website to play audio (e.g. a button click). This issue can be resolved with [a script][audio-context-resuming] in your `index.html` file ([usage example][bevy-game-template-audio-context-resuming]).
+    - Firefox: The audio might sound distorted (this could be related to overall performance; see [issue #9][issue-9])
 - [x] pause/resume and stop tracks
 - [x] play a track on repeat
 - [x] control volume
@@ -69,3 +69,6 @@ Assets in the examples might be distributed under different terms. See the [read
 [rodio]: https://github.com/RustAudio/rodio
 [oicana]: https://github.com/NiklasEi/oicana
 [oicana-audio]: https://github.com/NiklasEi/oicana/blob/master/crates/oicana_plugin/src/audio.rs
+[issue-9]: https://github.com/NiklasEi/bevy_kira_audio/issues/9
+[audio-context-resuming]: https://developers.google.com/web/updates/2018/11/web-audio-autoplay#moving-forward
+[bevy-game-template-audio-context-resuming]: https://github.com/NiklasEi/bevy_game_template/blob/main/index.html#L27-L90
