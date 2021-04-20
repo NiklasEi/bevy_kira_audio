@@ -21,8 +21,8 @@ wav = ["kira/wav"]
 
 [dependencies]
 # bevy
-bevy = { version = "0.5.0", default-features = false }
-bevy_reflect = { version = "0.5.0", default-features = false }
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "4a477e762dbe881430385559456b4140881b6f92", default-features = false }
+bevy_reflect = { git = "https://github.com/bevyengine/bevy", rev = "4a477e762dbe881430385559456b4140881b6f92", default-features = false }
 
 # other
 anyhow = "1.0"
