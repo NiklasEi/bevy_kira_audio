@@ -197,12 +197,10 @@ fn update_play_pause_buttons(
         let audio_state = audio_state.channels.get(&button.channel).unwrap();
         *material = if audio_state.stopped {
             button_materials.disabled.clone()
+        } else if interaction == &Interaction::Hovered {
+            button_materials.hovered.clone()
         } else {
-            if interaction == &Interaction::Hovered {
-                button_materials.hovered.clone()
-            } else {
-                button_materials.normal.clone()
-            }
+            button_materials.normal.clone()
         };
         for (text_button, mut text) in play_pause_text.iter_mut() {
             if text_button.channel == button.channel {
@@ -245,12 +243,10 @@ fn update_stop_buttons(
     for (interaction, mut material, button) in stop.iter_mut() {
         *material = if audio_state.channels.get(&button.channel).unwrap().stopped {
             button_materials.disabled.clone()
+        } else if interaction == &Interaction::Hovered {
+            button_materials.hovered.clone()
         } else {
-            if interaction == &Interaction::Hovered {
-                button_materials.hovered.clone()
-            } else {
-                button_materials.normal.clone()
-            }
+            button_materials.normal.clone()
         }
     }
 }

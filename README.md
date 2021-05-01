@@ -58,8 +58,6 @@ Compatibility of published `bevy_kira_audio` versions:
 
 This crate is distributed under the terms of the [MIT license](LICENSE.md).
 
-Substantial parts of the asset loaders were taken from [Kira][kira] ([MIT license][kira-license] `Copyright 2020 Andrew Minnich`).
-
 Assets in the examples might be distributed under different terms. See the [readme](examples/README.md#credits) in the `examples` directory.
 
 
