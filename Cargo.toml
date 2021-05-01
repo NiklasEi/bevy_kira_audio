@@ -20,14 +20,6 @@ mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 flac = ["kira/flac"]
 wav = ["kira/wav"]
-example = [
-    "bevy/bevy_gltf",
-    "bevy/bevy_winit",
-    "bevy/render",
-    "bevy/png",
-    "bevy/bevy_wgpu",
-    "ogg"
-]
 
 [dependencies]
 # bevy
@@ -41,8 +33,9 @@ parking_lot = "0.11.0"
 
 [dev-dependencies]
 winit = "0.24.0"
+bevy = { version = "0.5.0", features = ["bevy_gltf", "bevy_winit", "render", "bevy_wgpu"] }
 
 [[example]]
 name = "basic"
 path = "examples/basic.rs"
-required-features = ["example"]
+required-features = ["ogg"]
