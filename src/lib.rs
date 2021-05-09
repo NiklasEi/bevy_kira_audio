@@ -85,7 +85,8 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "flac")]
         app.init_asset_loader::<FlacLoader>();
 
-        app.init_resource::<Audio>().add_system_to_stage(
+        app.init_resource::<Audio>()
+            .add_system_to_stage(
             CoreStage::PostUpdate,
             play_queued_audio_system.exclusive_system(),
         );

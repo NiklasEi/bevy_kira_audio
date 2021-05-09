@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 fn main() {
     let mut app = App::build();
-    app.insert_resource(Msaa { samples: 4 })
+    app
         .insert_resource(WindowDescriptor {
             width: 800.,
             height: 600.,
