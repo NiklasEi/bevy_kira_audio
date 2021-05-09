@@ -3,13 +3,38 @@ use bevy::prelude::*;
 
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
+use crate::AudioStream;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
 use kira::instance::handle::InstanceHandle;
 use kira::instance::{PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings};
 use kira::manager::{AudioManager, AudioManagerSettings};
+use kira::mixer::TrackIndex;
 use kira::sound::handle::SoundHandle;
+use kira::Frame;
 use std::collections::HashMap;
+use std::fmt::Debug;
+
+#[derive(Debug)]
+struct InternalAudioStream {
+    input: &'static mut Box<dyn AudioStream>,
+}
+
+unsafe impl Send for InternalAudioStream {}
+
+impl InternalAudioStream {
+    fn new(incoming_stream: &'static mut Box<dyn AudioStream>) -> Self {
+        Self {
+            input: incoming_stream,
+        }
+    }
+}
+
+impl kira::audio_stream::AudioStream for InternalAudioStream {
+    fn next(&mut self, dt: f64) -> Frame {
+        self.input.next(dt).into()
+    }
+}
 
 pub struct AudioOutput {
     manager: AudioManager,
@@ -17,8 +42,10 @@ pub struct AudioOutput {
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
     channels: HashMap<AudioChannel, ChannelState>,
+    stream: Option<Box<dyn AudioStream>>,
 }
 
+/// Output
 impl Default for AudioOutput {
     fn default() -> Self {
         Self {
@@ -28,6 +55,7 @@ impl Default for AudioOutput {
             arrangements: HashMap::default(),
             instances: HashMap::default(),
             channels: HashMap::default(),
+            stream: None,
         }
     }
 }
@@ -228,6 +256,10 @@ impl AudioOutput {
                         // audio source hasn't loaded yet. Add it back to the queue
                         commands.push_front((audio_command, channel_id));
                     }
+                }
+                AudioCommands::Stream(stream) => {
+                    let internal_stream = InternalAudioStream::new(*stream);
+                    self.manager.add_stream(internal_stream, TrackIndex::Main);
                 }
                 AudioCommands::Stop => {
                     self.stop(channel_id);

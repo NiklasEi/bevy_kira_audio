@@ -39,3 +39,7 @@ bevy = { version = "0.5.0", features = ["bevy_gltf", "bevy_winit", "render", "be
 name = "basic"
 path = "examples/basic.rs"
 required-features = ["ogg"]
+
+[[example]]
+name = "stream"
+path = "examples/stream.rs"

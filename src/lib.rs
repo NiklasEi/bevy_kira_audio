@@ -22,20 +22,23 @@
 //! }
 //! ```
 
-#![forbid(unsafe_code)]
-#![deny(missing_docs, unused_imports)]
+// #![forbid(unsafe_code)]
+#![deny(unused_imports)]
 
 use bevy::prelude::*;
 
 pub use audio::Audio;
+pub use audio_output::AudioOutput;
 pub use source::AudioSource;
+pub use stream::{AudioStream, Frame};
 
 mod audio;
 mod audio_output;
 mod channel;
 mod source;
+mod stream;
 
-use crate::audio_output::{play_queued_audio_system, AudioOutput};
+use crate::audio_output::play_queued_audio_system;
 
 pub use channel::AudioChannel;
 
@@ -85,8 +88,7 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "flac")]
         app.init_asset_loader::<FlacLoader>();
 
-        app.init_resource::<Audio>()
-            .add_system_to_stage(
+        app.init_resource::<Audio>().add_system_to_stage(
             CoreStage::PostUpdate,
             play_queued_audio_system.exclusive_system(),
         );
