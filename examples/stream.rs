@@ -1,10 +1,11 @@
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioOutput, AudioPlugin, AudioStream, Frame};
+use bevy_kira_audio::{AudioPlugin, AudioStream, AudioStreamPlugin, Frame, StreamedAudio};
 
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
+        .add_plugin(AudioStreamPlugin::<SineStream>::default())
         .add_startup_system(start_stream.system())
         .run();
 }
@@ -13,7 +14,7 @@ fn main() {
 const A: f64 = 440.0;
 const FREQ: f64 = 44_000.0;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct SineStream {
     t: f64,
 }
@@ -24,10 +25,13 @@ impl AudioStream for SineStream {
         self.t += increment;
 
         let sample: f64 = self.t.sin();
-        Frame::from_mono(sample as f32)
+        Frame {
+            left: sample as f32,
+            right: sample as f32,
+        }
     }
 }
 
-fn start_stream(audio: Res<Audio>) {
-    audio.stream(Box::new(SineStream { t: 0.0 }));
+fn start_stream(audio: Res<StreamedAudio<SineStream>>) {
+    audio.stream(SineStream { t: 0.0 });
 }

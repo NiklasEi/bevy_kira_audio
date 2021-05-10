@@ -22,15 +22,17 @@
 //! }
 //! ```
 
-// #![forbid(unsafe_code)]
+#![forbid(unsafe_code)]
+// ToDo: re-deny 'missing_docs' before merging support for audio streams
 #![deny(unused_imports)]
 
 use bevy::prelude::*;
 
 pub use audio::Audio;
 pub use audio_output::AudioOutput;
+pub use channel::AudioChannel;
 pub use source::AudioSource;
-pub use stream::{AudioStream, Frame};
+pub use stream::{AudioStream, Frame, StreamedAudio};
 
 mod audio;
 mod audio_output;
@@ -38,9 +40,7 @@ mod channel;
 mod source;
 mod stream;
 
-use crate::audio_output::play_queued_audio_system;
-
-pub use channel::AudioChannel;
+use crate::audio_output::{play_queued_audio_system, stream_audio_system};
 
 #[cfg(feature = "flac")]
 use crate::source::FlacLoader;
@@ -50,6 +50,7 @@ use crate::source::Mp3Loader;
 use crate::source::OggLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
+use std::marker::PhantomData;
 
 /// A Bevy plugin to add audio functionallity
 ///
@@ -91,6 +92,23 @@ impl Plugin for AudioPlugin {
         app.init_resource::<Audio>().add_system_to_stage(
             CoreStage::PostUpdate,
             play_queued_audio_system.exclusive_system(),
+        );
+    }
+}
+
+#[derive(Default)]
+pub struct AudioStreamPlugin<T: AudioStream> {
+    _marker: PhantomData<T>,
+}
+
+impl<T> Plugin for AudioStreamPlugin<T>
+where
+    T: AudioStream,
+{
+    fn build(&self, app: &mut AppBuilder) {
+        app.init_resource::<StreamedAudio<T>>().add_system_to_stage(
+            CoreStage::PostUpdate,
+            stream_audio_system::<T>.exclusive_system(),
         );
     }
 }

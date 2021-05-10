@@ -1,14 +1,11 @@
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
-use crate::AudioStream;
 use bevy::prelude::Handle;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 
 pub enum AudioCommands {
     Play(PlayAudioSettings),
-    // ToDo could I already convert to InternalAudioStream in the stream fn below?
-    Stream(&'static mut Box<dyn AudioStream>),
     SetVolume(f32),
     SetPanning(f32),
     SetPlaybackRate(f32),
@@ -58,12 +55,6 @@ impl Audio {
             }),
             AudioChannel::default(),
         ));
-    }
-
-    pub fn stream(&self, mut stream: Box<dyn AudioStream>) {
-        self.commands
-            .write()
-            .push_front((AudioCommands::Stream(&mut stream), AudioChannel::default()));
     }
 
     /// Play looped audio in the default channel

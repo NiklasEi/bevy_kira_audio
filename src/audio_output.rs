@@ -3,6 +3,7 @@ use bevy::prelude::*;
 
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
+use crate::stream::{InternalAudioStream, StreamedAudio};
 use crate::AudioStream;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
@@ -11,30 +12,7 @@ use kira::instance::{PauseInstanceSettings, ResumeInstanceSettings, StopInstance
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::mixer::TrackIndex;
 use kira::sound::handle::SoundHandle;
-use kira::Frame;
 use std::collections::HashMap;
-use std::fmt::Debug;
-
-#[derive(Debug)]
-struct InternalAudioStream {
-    input: &'static mut Box<dyn AudioStream>,
-}
-
-unsafe impl Send for InternalAudioStream {}
-
-impl InternalAudioStream {
-    fn new(incoming_stream: &'static mut Box<dyn AudioStream>) -> Self {
-        Self {
-            input: incoming_stream,
-        }
-    }
-}
-
-impl kira::audio_stream::AudioStream for InternalAudioStream {
-    fn next(&mut self, dt: f64) -> Frame {
-        self.input.next(dt).into()
-    }
-}
 
 pub struct AudioOutput {
     manager: AudioManager,
@@ -42,7 +20,6 @@ pub struct AudioOutput {
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
     channels: HashMap<AudioChannel, ChannelState>,
-    stream: Option<Box<dyn AudioStream>>,
 }
 
 /// Output
@@ -55,7 +32,6 @@ impl Default for AudioOutput {
             arrangements: HashMap::default(),
             instances: HashMap::default(),
             channels: HashMap::default(),
-            stream: None,
         }
     }
 }
@@ -257,10 +233,6 @@ impl AudioOutput {
                         commands.push_front((audio_command, channel_id));
                     }
                 }
-                AudioCommands::Stream(stream) => {
-                    let internal_stream = InternalAudioStream::new(*stream);
-                    self.manager.add_stream(internal_stream, TrackIndex::Main);
-                }
                 AudioCommands::Stop => {
                     self.stop(channel_id);
                 }
@@ -280,6 +252,21 @@ impl AudioOutput {
                     self.set_playback_rate(channel_id, *playback_rate as f64);
                 }
             }
+            i += 1;
+        }
+    }
+
+    pub(crate) fn stream_audio<T: AudioStream>(&mut self, audio: &mut StreamedAudio<T>) {
+        let mut commands = audio.commands.write();
+        let len = commands.len();
+        let mut i = 0;
+        while i < len {
+            // ToDo play in channel
+            let (stream, _channel_id) = commands.pop_back().unwrap();
+            let audio_stream = InternalAudioStream::new(stream);
+            self.manager
+                .add_stream(audio_stream, TrackIndex::Main)
+                .expect("Failed to play audio stream");
             i += 1;
         }
     }
@@ -309,4 +296,13 @@ pub fn play_queued_audio_system(world: &mut World) {
     if let Some(audio_sources) = world.get_resource::<Assets<AudioSource>>() {
         audio_output.run_queued_audio_commands(&*audio_sources, &mut *audio);
     };
+}
+
+pub fn stream_audio_system<T: AudioStream>(world: &mut World) {
+    let world = world.cell();
+
+    let mut audio_output = world.get_non_send_mut::<AudioOutput>().unwrap();
+    let mut audio = world.get_resource_mut::<StreamedAudio<T>>().unwrap();
+
+    audio_output.stream_audio(&mut *audio);
 }
