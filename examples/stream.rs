@@ -19,14 +19,8 @@ struct SineStream {
 
 impl AudioStream for SineStream {
     fn next(&mut self, _: f64) -> Frame {
-        let increment = 2.0 * std::f64::consts::PI * self.note / self.frequency;
-        self.t += increment;
-
-        let sample: f64 = self.t.sin();
-        Frame {
-            left: sample as f32,
-            right: sample as f32,
-        }
+        self.t += 2.0 * std::f64::consts::PI * self.note / self.frequency;
+        Frame::from_mono(self.t.sin() as f32)
     }
 }
 
