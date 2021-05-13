@@ -3,10 +3,11 @@ use bevy::prelude::*;
 
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
-use crate::stream::{InternalAudioStream, StreamedAudio};
+use crate::stream::{InternalAudioStream, StreamCommands, StreamedAudio};
 use crate::AudioStream;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
+use kira::audio_stream::AudioStreamId;
 use kira::instance::handle::InstanceHandle;
 use kira::instance::{PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings};
 use kira::manager::{AudioManager, AudioManagerSettings};
@@ -18,6 +19,7 @@ pub struct AudioOutput {
     manager: AudioManager,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
+    streams: HashMap<AudioChannel, Vec<AudioStreamId>>,
     instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
     channels: HashMap<AudioChannel, ChannelState>,
 }
@@ -30,6 +32,7 @@ impl Default for AudioOutput {
                 .expect("Failed to initialize AudioManager"),
             sounds: HashMap::default(),
             arrangements: HashMap::default(),
+            streams: HashMap::default(),
             instances: HashMap::default(),
             channels: HashMap::default(),
         }
@@ -112,8 +115,8 @@ impl AudioOutput {
         arrangement_handle
     }
 
-    fn stop(&mut self, channel_id: AudioChannel) {
-        if let Some(instances) = self.instances.get_mut(&channel_id) {
+    fn stop(&mut self, channel: AudioChannel) {
+        if let Some(instances) = self.instances.get_mut(&channel) {
             for mut instance in instances.drain(..) {
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     println!("Failed to stop instance: {:?}", error);
@@ -122,8 +125,8 @@ impl AudioOutput {
         }
     }
 
-    fn pause(&mut self, channel_id: AudioChannel) {
-        if let Some(instances) = self.instances.get_mut(&channel_id) {
+    fn pause(&mut self, channel: AudioChannel) {
+        if let Some(instances) = self.instances.get_mut(&channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
                     println!("Failed to pause instance: {:?}", error);
@@ -132,8 +135,8 @@ impl AudioOutput {
         }
     }
 
-    fn resume(&mut self, channel_id: AudioChannel) {
-        if let Some(instances) = self.instances.get_mut(&channel_id) {
+    fn resume(&mut self, channel: AudioChannel) {
+        if let Some(instances) = self.instances.get_mut(&channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
                     println!("Failed to resume instance: {:?}", error);
@@ -142,60 +145,60 @@ impl AudioOutput {
         }
     }
 
-    fn set_volume(&mut self, channel_id: AudioChannel, volume: f64) {
-        if let Some(instances) = self.instances.get_mut(&channel_id) {
+    fn set_volume(&mut self, channel: AudioChannel, volume: f64) {
+        if let Some(instances) = self.instances.get_mut(&channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.set_volume(volume) {
                     println!("Failed to set volume for instance: {:?}", error);
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
+        if let Some(mut channel_state) = self.channels.get_mut(&channel) {
             channel_state.volume = volume;
         } else {
             let channel_state = ChannelState {
                 volume,
                 ..Default::default()
             };
-            self.channels.insert(channel_id, channel_state);
+            self.channels.insert(channel, channel_state);
         }
     }
 
-    fn set_panning(&mut self, channel_id: AudioChannel, panning: f64) {
-        if let Some(instances) = self.instances.get_mut(&channel_id) {
+    fn set_panning(&mut self, channel: AudioChannel, panning: f64) {
+        if let Some(instances) = self.instances.get_mut(&channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.set_panning(panning) {
                     println!("Failed to set panning for instance: {:?}", error);
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
+        if let Some(mut channel_state) = self.channels.get_mut(&channel) {
             channel_state.panning = panning;
         } else {
             let channel_state = ChannelState {
                 panning,
                 ..Default::default()
             };
-            self.channels.insert(channel_id, channel_state);
+            self.channels.insert(channel, channel_state);
         }
     }
 
-    fn set_playback_rate(&mut self, channel_id: AudioChannel, playback_rate: f64) {
-        if let Some(instances) = self.instances.get_mut(&channel_id) {
+    fn set_playback_rate(&mut self, channel: AudioChannel, playback_rate: f64) {
+        if let Some(instances) = self.instances.get_mut(&channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.set_playback_rate(playback_rate) {
                     println!("Failed to set playback rate for instance: {:?}", error);
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(&channel_id) {
+        if let Some(mut channel_state) = self.channels.get_mut(&channel) {
             channel_state.playback_rate = playback_rate;
         } else {
             let channel_state = ChannelState {
                 playback_rate,
                 ..Default::default()
             };
-            self.channels.insert(channel_id, channel_state);
+            self.channels.insert(channel, channel_state);
         }
     }
 
@@ -208,51 +211,77 @@ impl AudioOutput {
         let len = commands.len();
         let mut i = 0;
         while i < len {
-            let (audio_command, channel_id) = commands.pop_back().unwrap();
+            let (audio_command, channel) = commands.pop_back().unwrap();
             match &audio_command {
                 AudioCommands::Play(play_settings) => {
                     if let Some(audio_source) = audio_sources.get(&play_settings.source) {
-                        let sound_handle =
-                            self.get_or_create_sound(audio_source, play_settings.source.clone());
                         if self.arrangements.contains_key(play_settings) {
                             self.play_arrangement(
                                 self.arrangements.get(play_settings).unwrap().clone(),
-                                &channel_id,
+                                &channel,
                             );
                         } else {
+                            let sound_handle = self
+                                .get_or_create_sound(audio_source, play_settings.source.clone());
                             let arrangement_handle = if play_settings.looped {
-                                self.play_looped(&sound_handle, &channel_id)
+                                self.play_looped(&sound_handle, &channel)
                             } else {
-                                self.play(&sound_handle, &channel_id)
+                                self.play(&sound_handle, &channel)
                             };
                             self.arrangements
                                 .insert(play_settings.clone(), arrangement_handle);
                         }
                     } else {
                         // audio source hasn't loaded yet. Add it back to the queue
-                        commands.push_front((audio_command, channel_id));
+                        commands.push_front((audio_command, channel));
                     }
                 }
                 AudioCommands::Stop => {
-                    self.stop(channel_id);
+                    self.stop(channel);
                 }
                 AudioCommands::Pause => {
-                    self.pause(channel_id);
+                    self.pause(channel);
                 }
                 AudioCommands::Resume => {
-                    self.resume(channel_id);
+                    self.resume(channel);
                 }
                 AudioCommands::SetVolume(volume) => {
-                    self.set_volume(channel_id, *volume as f64);
+                    self.set_volume(channel, *volume as f64);
                 }
                 AudioCommands::SetPanning(panning) => {
-                    self.set_panning(channel_id, *panning as f64);
+                    self.set_panning(channel, *panning as f64);
                 }
                 AudioCommands::SetPlaybackRate(playback_rate) => {
-                    self.set_playback_rate(channel_id, *playback_rate as f64);
+                    self.set_playback_rate(channel, *playback_rate as f64);
                 }
             }
             i += 1;
+        }
+    }
+
+    fn start_stream<T: kira::audio_stream::AudioStream>(
+        &mut self,
+        stream: T,
+        channel: AudioChannel,
+    ) {
+        let stream_id = self
+            .manager
+            .add_stream(stream, TrackIndex::Main)
+            .expect("Failed to play audio stream");
+        if let Some(stream_ids) = self.streams.get_mut(&channel) {
+            stream_ids.push(stream_id);
+        } else {
+            self.streams.insert(channel.clone(), vec![stream_id]);
+        }
+    }
+
+    fn stop_streams(&mut self, channel: AudioChannel) {
+        if let Some(stream_ids) = self.streams.get_mut(&channel) {
+            for stream_id in stream_ids.drain(..) {
+                if let Err(error) = self.manager.remove_stream(stream_id) {
+                    println!("Failed to stop stream: {:?}", error);
+                }
+            }
         }
     }
 
@@ -261,12 +290,14 @@ impl AudioOutput {
         let len = commands.len();
         let mut i = 0;
         while i < len {
-            // ToDo play in channel
-            let (stream, _channel_id) = commands.pop_back().unwrap();
-            let audio_stream = InternalAudioStream::new(stream);
-            self.manager
-                .add_stream(audio_stream, TrackIndex::Main)
-                .expect("Failed to play audio stream");
+            let (stream, channel) = commands.pop_back().unwrap();
+            match stream {
+                StreamCommands::Play(stream) => {
+                    let audio_stream = InternalAudioStream::new(stream);
+                    self.start_stream(audio_stream, channel);
+                }
+                StreamCommands::Stop => self.stop_streams(channel),
+            }
             i += 1;
         }
     }

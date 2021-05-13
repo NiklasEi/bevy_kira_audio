@@ -23,8 +23,7 @@
 //! ```
 
 #![forbid(unsafe_code)]
-// ToDo: re-deny 'missing_docs' before merging support for audio streams
-#![deny(unused_imports)]
+#![warn(unused_imports, missing_docs)]
 
 use bevy::prelude::*;
 

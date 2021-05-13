@@ -10,18 +10,16 @@ fn main() {
         .run();
 }
 
-// the note A
-const A: f64 = 440.0;
-const FREQ: f64 = 44_000.0;
-
 #[derive(Debug, Default)]
 struct SineStream {
     t: f64,
+    note: f64,
+    frequency: f64,
 }
 
 impl AudioStream for SineStream {
     fn next(&mut self, _: f64) -> Frame {
-        let increment = 2.0 * std::f64::consts::PI * A / FREQ;
+        let increment = 2.0 * std::f64::consts::PI * self.note / self.frequency;
         self.t += increment;
 
         let sample: f64 = self.t.sin();
@@ -33,5 +31,9 @@ impl AudioStream for SineStream {
 }
 
 fn start_stream(audio: Res<StreamedAudio<SineStream>>) {
-    audio.stream(SineStream { t: 0.0 });
+    audio.stream(SineStream {
+        t: 0.0,
+        note: 440.0,
+        frequency: 44_000.0,
+    });
 }
