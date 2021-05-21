@@ -15,6 +15,10 @@ use kira::mixer::TrackIndex;
 use kira::sound::handle::SoundHandle;
 use std::collections::HashMap;
 
+/// Non-send resource that acts as audio output
+///
+/// This struct holds the [kira::manager::AudioManager] to play audio through. It also
+/// keeps track of all audio instance handles and which sounds are playing in which channel.
 pub struct AudioOutput {
     manager: AudioManager,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
@@ -24,7 +28,6 @@ pub struct AudioOutput {
     channels: HashMap<AudioChannel, ChannelState>,
 }
 
-/// Output
 impl Default for AudioOutput {
     fn default() -> Self {
         Self {

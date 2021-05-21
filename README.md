@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/NiklasEi/bevy_kira_audio/blob/main/LICENSE.md)
 [![Crates.io](https://img.shields.io/crates/d/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
 
-This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds for everything except `mp3`.
+This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The end goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds for everything except `mp3`. It also supports streaming of generated audio.
 
 You can check out the `examples` directory in this repository for a display of this plugin's functionality.
 
@@ -12,17 +12,20 @@ You can check out the `examples` directory in this repository for a display of t
 To initialize the corresponding `AssetLoaders`, use at least one of the features `ogg`, `mp3`, `wav`, or `flac`. The following example assumes that the feature `bevy_kira_audio/ogg` is enabled.
 
 ```rust
-use bevy_kira_audio::{Audio, AudioPlugin};
+use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
+use bevy::prelude::*;
 
-// in your game's AppBuilder:
-// app.add_plugin(AudioPlugin)
+fn main() {
+   let mut app = App::build();
+   app
+        .add_plugins(DefaultPlugins)
+        .add_plugin(AudioPlugin)
+        .add_startup_system(start_background_audio.system());
+   app.run();
+}
 
-fn my_audio_system(
-    asset_server: Res<AssetServer>,
-    audio: Res<Audio>,
-) {
-    let music_handle = asset_server.get_handle("sounds/music.ogg");
-    audio.play(music_handle);
+fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    audio.play_looped(asset_server.load("background_audio.ogg"));
 }
 ```
 
@@ -43,6 +46,7 @@ fn my_audio_system(
 - [ ] control pitch (no change in playback rate)
 - [x] control panning
 - [ ] get the current status of a track (time elapsed/left)?
+- [x] audio streaming
 
 ## Compatible Bevy versions
 
@@ -51,7 +55,7 @@ The main branch is up to date with the latest Bevy release. The branch `bevy_mai
 Compatibility of published `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
 | :-- | :--  |
-| `0.4.0` | `0.5.0` |
+| `0.4.0` - `0.5.0` | `0.5.0` |
 | `0.3.0` | `0.4.0` |
 
 ## License
