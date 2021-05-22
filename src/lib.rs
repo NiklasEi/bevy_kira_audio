@@ -1,10 +1,8 @@
-//! # Bevy Kira audio
+//! Audio plugin for the game engine Bevy
 //!
-//! This crate is an audio plugin for the game engine Bevy. It uses the library
-//! Kira to play audio and offers an API to control running audio.
+//! It uses the library Kira to play audio and offers an API to control running game audio
+//! via Bevy's ECS.
 //!
-//! See the repository <https://github.com/NiklasEi/bevy_kira_audio/> for additional
-//! documentation and usage examples.
 //! ```edition2018
 //! # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
 //! # use bevy::prelude::*;

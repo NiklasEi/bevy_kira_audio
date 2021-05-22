@@ -7,13 +7,11 @@ license = "MIT"
 description = "Bevy plugin for dynamic audio"
 repository = "https://github.com/NiklasEi/bevy_kira_audio"
 homepage = "https://github.com/NiklasEi/bevy_kira_audio"
-documentation = "https://github.com/NiklasEi/bevy_kira_audio"
+documentation = "https://docs.rs/bevy_kira_audio"
 keywords = ["bevy", "gamedev", "audio", "music"]
 categories = ["game-development", "multimedia::audio"]
 readme = "./README.md"
 resolver = "2"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 mp3 = ["kira/mp3"]
