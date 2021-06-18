@@ -9,7 +9,9 @@ use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
 use kira::audio_stream::AudioStreamId;
 use kira::instance::handle::InstanceHandle;
-use kira::instance::{PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings};
+use kira::instance::{
+    InstanceState, PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings,
+};
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::mixer::TrackIndex;
 use kira::sound::handle::SoundHandle;
@@ -25,6 +27,7 @@ pub struct AudioOutput {
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     streams: HashMap<AudioChannel, Vec<AudioStreamId>>,
+    // ToDo: remove stopped instances
     instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
     channels: HashMap<AudioChannel, ChannelState>,
 }
@@ -121,13 +124,15 @@ impl AudioOutput {
     }
 
     fn stop(&mut self, channel: &AudioChannel) -> AudioCommandResult {
-        let mut result = AudioCommandResult::Ok;
         if let Some(instances) = self.instances.get_mut(channel) {
-            for mut instance in instances.drain(..) {
-                // ToDo: doesn't this remove all instances even if we want to retry the command in the next frame?
+            while instances.len() > 0 {
+                let mut instance = instances.remove(0);
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     match error {
-                        CommandError::CommandQueueFull => result = AudioCommandResult::Retry,
+                        CommandError::CommandQueueFull => {
+                            instances.push(instance);
+                            return AudioCommandResult::Retry;
+                        }
                         _ => {
                             println!("Failed to stop instance: {:?}", error);
                         }
@@ -136,14 +141,16 @@ impl AudioOutput {
             }
         }
 
-        result
+        AudioCommandResult::Ok
     }
 
     fn pause(&mut self, channel: &AudioChannel) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
-                    println!("Failed to pause instance: {:?}", error);
+                if InstanceState::Playing == instance.state() {
+                    if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
+                        println!("Failed to pause instance: {:?}", error);
+                    }
                 }
             }
         }
@@ -152,8 +159,10 @@ impl AudioOutput {
     fn resume(&mut self, channel: &AudioChannel) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
-                    println!("Failed to resume instance: {:?}", error);
+                if let InstanceState::Paused(_position) = instance.state() {
+                    if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
+                        println!("Failed to resume instance: {:?}", error);
+                    }
                 }
             }
         }
