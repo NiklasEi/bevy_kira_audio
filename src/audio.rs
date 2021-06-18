@@ -4,7 +4,7 @@ use bevy::prelude::Handle;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 
-pub enum AudioCommands {
+pub enum AudioCommand {
     Play(PlayAudioSettings),
     SetVolume(f32),
     SetPanning(f32),
@@ -12,6 +12,11 @@ pub enum AudioCommands {
     Stop,
     Pause,
     Resume,
+}
+
+pub enum AudioCommandResult {
+    Ok,
+    Retry,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -33,7 +38,7 @@ pub struct PlayAudioSettings {
 /// ```
 #[derive(Default)]
 pub struct Audio {
-    pub(crate) commands: RwLock<VecDeque<(AudioCommands, AudioChannel)>>,
+    pub(crate) commands: RwLock<VecDeque<(AudioCommand, AudioChannel)>>,
 }
 
 impl Audio {
@@ -49,7 +54,7 @@ impl Audio {
     /// ```
     pub fn play(&self, audio_source: Handle<AudioSource>) {
         self.commands.write().push_front((
-            AudioCommands::Play(PlayAudioSettings {
+            AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: false,
             }),
@@ -69,7 +74,7 @@ impl Audio {
     /// ```
     pub fn play_looped(&self, audio_source: Handle<AudioSource>) {
         self.commands.write().push_front((
-            AudioCommands::Play(PlayAudioSettings {
+            AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: true,
             }),
@@ -90,7 +95,7 @@ impl Audio {
     pub fn stop(&self) {
         self.commands
             .write()
-            .push_front((AudioCommands::Stop, AudioChannel::default()));
+            .push_front((AudioCommand::Stop, AudioChannel::default()));
     }
 
     /// Pause all audio in the default channel
@@ -106,7 +111,7 @@ impl Audio {
     pub fn pause(&self) {
         self.commands
             .write()
-            .push_front((AudioCommands::Pause, AudioChannel::default()));
+            .push_front((AudioCommand::Pause, AudioChannel::default()));
     }
 
     /// Resume all audio in the default channel
@@ -122,7 +127,7 @@ impl Audio {
     pub fn resume(&self) {
         self.commands
             .write()
-            .push_front((AudioCommands::Resume, AudioChannel::default()));
+            .push_front((AudioCommand::Resume, AudioChannel::default()));
     }
 
     /// Set the volume for the default channel
@@ -140,7 +145,7 @@ impl Audio {
     pub fn set_volume(&self, volume: f32) {
         self.commands
             .write()
-            .push_front((AudioCommands::SetVolume(volume), AudioChannel::default()));
+            .push_front((AudioCommand::SetVolume(volume), AudioChannel::default()));
     }
 
     /// Set panning for the default channel
@@ -160,7 +165,7 @@ impl Audio {
     pub fn set_panning(&self, panning: f32) {
         self.commands
             .write()
-            .push_front((AudioCommands::SetPanning(panning), AudioChannel::default()));
+            .push_front((AudioCommand::SetPanning(panning), AudioChannel::default()));
     }
 
     /// Set playback rate for the default channel
@@ -177,7 +182,7 @@ impl Audio {
     /// ```
     pub fn set_playback_rate(&self, playback_rate: f32) {
         self.commands.write().push_front((
-            AudioCommands::SetPlaybackRate(playback_rate),
+            AudioCommand::SetPlaybackRate(playback_rate),
             AudioChannel::default(),
         ));
     }
@@ -194,7 +199,7 @@ impl Audio {
     /// ```
     pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: &AudioChannel) {
         self.commands.write().push_front((
-            AudioCommands::Play(PlayAudioSettings {
+            AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: false,
             }),
@@ -218,7 +223,7 @@ impl Audio {
         channel_id: &AudioChannel,
     ) {
         self.commands.write().push_front((
-            AudioCommands::Play(PlayAudioSettings {
+            AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
                 looped: true,
             }),
@@ -239,7 +244,7 @@ impl Audio {
     pub fn stop_channel(&self, channel_id: &AudioChannel) {
         self.commands
             .write()
-            .push_front((AudioCommands::Stop, channel_id.clone()));
+            .push_front((AudioCommand::Stop, channel_id.clone()));
     }
 
     /// Pause audio in the given channel
@@ -255,7 +260,7 @@ impl Audio {
     pub fn pause_channel(&self, channel_id: &AudioChannel) {
         self.commands
             .write()
-            .push_front((AudioCommands::Pause, channel_id.clone()));
+            .push_front((AudioCommand::Pause, channel_id.clone()));
     }
 
     /// Resume audio in the given channel
@@ -271,7 +276,7 @@ impl Audio {
     pub fn resume_channel(&self, channel_id: &AudioChannel) {
         self.commands
             .write()
-            .push_front((AudioCommands::Resume, channel_id.clone()));
+            .push_front((AudioCommand::Resume, channel_id.clone()));
     }
 
     /// Set the volume for the given channel
@@ -289,7 +294,7 @@ impl Audio {
     pub fn set_volume_in_channel(&self, volume: f32, channel_id: &AudioChannel) {
         self.commands
             .write()
-            .push_front((AudioCommands::SetVolume(volume), channel_id.clone()));
+            .push_front((AudioCommand::SetVolume(volume), channel_id.clone()));
     }
 
     /// Set panning for the given channel
@@ -309,7 +314,7 @@ impl Audio {
     pub fn set_panning_in_channel(&self, panning: f32, channel_id: &AudioChannel) {
         self.commands
             .write()
-            .push_front((AudioCommands::SetPanning(panning), channel_id.clone()));
+            .push_front((AudioCommand::SetPanning(panning), channel_id.clone()));
     }
 
     /// Set playback rate for the given channel
@@ -326,7 +331,7 @@ impl Audio {
     /// ```
     pub fn set_playback_rate_in_channel(&self, playback_rate: f32, channel_id: &AudioChannel) {
         self.commands.write().push_front((
-            AudioCommands::SetPlaybackRate(playback_rate),
+            AudioCommand::SetPlaybackRate(playback_rate),
             channel_id.clone(),
         ));
     }
