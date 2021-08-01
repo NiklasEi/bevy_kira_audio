@@ -298,6 +298,12 @@ impl AudioOutput {
         }
     }
 
+    pub(crate) fn cleanup_stopped_instances(&mut self) {
+        for (_, instances) in self.instances.iter_mut() {
+            instances.retain(|instance| instance.state() != InstanceState::Stopped);
+        }
+    }
+
     fn start_stream<T: kira::audio_stream::AudioStream>(
         &mut self,
         stream: T,
@@ -365,6 +371,7 @@ pub fn play_queued_audio_system(world: &mut World) {
     let mut audio = world.get_resource_mut::<Audio>().unwrap();
     if let Some(audio_sources) = world.get_resource::<Assets<AudioSource>>() {
         audio_output.run_queued_audio_commands(&*audio_sources, &mut *audio);
+        audio_output.cleanup_stopped_instances();
     };
 }
 
