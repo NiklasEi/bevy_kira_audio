@@ -21,8 +21,8 @@ wav = ["kira/wav"]
 
 [dependencies]
 # bevy
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "17bd3f954f00008363c4f8e51b4b64388366310c", default-features = false }
-bevy_reflect = { git = "https://github.com/bevyengine/bevy", rev = "17bd3f954f00008363c4f8e51b4b64388366310c", default-features = false }
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "43d99bb583866c1adb4aa88f19b88637df0a7f33", default-features = false }
+bevy_reflect = { git = "https://github.com/bevyengine/bevy", rev = "43d99bb583866c1adb4aa88f19b88637df0a7f33", default-features = false }
 
 # other
 anyhow = "1.0"
@@ -31,7 +31,7 @@ parking_lot = "0.11.0"
 
 [dev-dependencies]
 winit = "0.24.0"
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "17bd3f954f00008363c4f8e51b4b64388366310c", features = ["bevy_gltf", "bevy_winit", "render", "bevy_wgpu"] }
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "43d99bb583866c1adb4aa88f19b88637df0a7f33", features = ["bevy_gltf", "bevy_winit", "render", "bevy_wgpu"] }
 
 [[example]]
 name = "basic"
