@@ -62,7 +62,7 @@ Compatibility of published `bevy_kira_audio` versions:
 | `0.4` - `0.5` | `0.5` |
 | `0.3` | `0.4` |
 
-### License
+## License
 
 Licensed under either of
 
@@ -73,7 +73,7 @@ at your option.
 
 Assets in the examples might be distributed under different terms. See the [readme](examples/README.md#credits) in the `examples` directory.
 
-### Contribution
+## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
