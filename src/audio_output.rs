@@ -27,7 +27,6 @@ pub struct AudioOutput {
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     streams: HashMap<AudioChannel, Vec<AudioStreamId>>,
-    // ToDo: remove stopped instances
     instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
     channels: HashMap<AudioChannel, ChannelState>,
 }
