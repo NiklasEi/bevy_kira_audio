@@ -25,11 +25,11 @@ impl Frame {
     }
 }
 
-impl Into<kira::Frame> for Frame {
-    fn into(self) -> kira::Frame {
+impl From<Frame> for kira::Frame {
+    fn from(frame: Frame) -> Self {
         kira::Frame {
-            left: self.left,
-            right: self.right,
+            left: frame.left,
+            right: frame.right,
         }
     }
 }

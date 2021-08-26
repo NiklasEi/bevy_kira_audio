@@ -1,5 +1,6 @@
 use crate::audio::{Audio, AudioCommand, AudioCommandResult, PlayAudioSettings};
 use bevy::prelude::*;
+use bevy_utils::tracing::warn;
 
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
@@ -23,7 +24,7 @@ use std::collections::HashMap;
 /// This struct holds the [kira::manager::AudioManager] to play audio through. It also
 /// keeps track of all audio instance handles and which sounds are playing in which channel.
 pub struct AudioOutput {
-    manager: AudioManager,
+    manager: Option<AudioManager>,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     streams: HashMap<AudioChannel, Vec<AudioStreamId>>,
@@ -33,9 +34,13 @@ pub struct AudioOutput {
 
 impl Default for AudioOutput {
     fn default() -> Self {
+        let manager = AudioManager::new(AudioManagerSettings::default());
+        if let Err(ref setup_error) = manager {
+            warn!("Failed to setup audio: {:?}", setup_error);
+        }
+
         Self {
-            manager: AudioManager::new(AudioManagerSettings::default())
-                .expect("Failed to initialize AudioManager"),
+            manager: manager.ok(),
             sounds: HashMap::default(),
             arrangements: HashMap::default(),
             streams: HashMap::default(),
@@ -46,7 +51,7 @@ impl Default for AudioOutput {
 }
 
 impl AudioOutput {
-    fn get_or_create_sound(
+    fn create_or_get_sound(
         &mut self,
         audio_source: &AudioSource,
         audio_source_handle: Handle<AudioSource>,
@@ -56,8 +61,8 @@ impl AudioOutput {
         }
 
         let sound = audio_source.sound.clone();
-        let handle = self
-            .manager
+        let manager = self.manager.as_mut().unwrap();
+        let handle = manager
             .add_sound(sound)
             .expect("Failed to add sound to the AudioManager");
         self.sounds.insert(audio_source_handle, handle.clone());
@@ -80,7 +85,7 @@ impl AudioOutput {
             };
         }
         let mut instance_handle = play_result.unwrap();
-        if let Some(channel_state) = self.channels.get(&channel) {
+        if let Some(channel_state) = self.channels.get(channel) {
             if let Err(error) = instance_handle.set_volume(channel_state.volume) {
                 println!("Failed to set volume for instance: {:?}", error);
             }
@@ -91,7 +96,7 @@ impl AudioOutput {
                 println!("Failed to set panning for instance: {:?}", error);
             }
         }
-        if let Some(instance_handles) = self.instances.get_mut(&channel) {
+        if let Some(instance_handles) = self.instances.get_mut(channel) {
             instance_handles.push(instance_handle);
         } else {
             self.instances
@@ -104,27 +109,23 @@ impl AudioOutput {
     fn create_arrangement(&mut self, sound_handle: &SoundHandle) -> ArrangementHandle {
         let mut arrangement = Arrangement::new(ArrangementSettings::new().cooldown(0.0));
         arrangement.add_clip(SoundClip::new(sound_handle, 0.0));
-        let arrangement_handle = self
-            .manager
+        let manager = self.manager.as_mut().unwrap();
+        manager
             .add_arrangement(arrangement)
-            .expect("Failed to add arrangement to the AudioManager");
-
-        arrangement_handle
+            .expect("Failed to add arrangement to the AudioManager")
     }
 
     fn create_looped_arrangement(&mut self, sound_handle: &SoundHandle) -> ArrangementHandle {
         let arrangement = Arrangement::new_loop(sound_handle, Default::default());
-        let arrangement_handle = self
-            .manager
+        let manager = self.manager.as_mut().unwrap();
+        manager
             .add_arrangement(arrangement)
-            .expect("Failed to add arrangement to the AudioManager");
-
-        arrangement_handle
+            .expect("Failed to add arrangement to the AudioManager")
     }
 
     fn stop(&mut self, channel: &AudioChannel) -> AudioCommandResult {
         if let Some(instances) = self.instances.get_mut(channel) {
-            while instances.len() > 0 {
+            while !instances.is_empty() {
                 let mut instance = instances.remove(0);
                 if let Err(error) = instance.stop(StopInstanceSettings::default()) {
                     match error {
@@ -236,7 +237,7 @@ impl AudioOutput {
                 channel,
             )
         } else {
-            let sound_handle = self.get_or_create_sound(audio_source, play_settings.source.clone());
+            let sound_handle = self.create_or_get_sound(audio_source, play_settings.source.clone());
             let arrangement_handle = if play_settings.looped {
                 self.create_looped_arrangement(&sound_handle)
             } else {
@@ -253,6 +254,9 @@ impl AudioOutput {
         audio_sources: &Assets<AudioSource>,
         audio: &mut Audio,
     ) {
+        if self.manager.is_none() {
+            return;
+        }
         let mut commands = audio.commands.write();
         let len = commands.len();
         let mut i = 0;
@@ -289,9 +293,8 @@ impl AudioOutput {
                     AudioCommandResult::Ok
                 }
             };
-            match result {
-                AudioCommandResult::Retry => commands.push_front((audio_command, channel)),
-                _ => (),
+            if let AudioCommandResult::Retry = result {
+                commands.push_front((audio_command, channel))
             }
             i += 1;
         }
@@ -308,8 +311,8 @@ impl AudioOutput {
         stream: T,
         channel: AudioChannel,
     ) {
-        let stream_id = self
-            .manager
+        let manager = self.manager.as_mut().unwrap();
+        let stream_id = manager
             .add_stream(stream, TrackIndex::Main)
             .expect("Failed to play audio stream");
         if let Some(stream_ids) = self.streams.get_mut(&channel) {
@@ -321,8 +324,9 @@ impl AudioOutput {
 
     fn stop_streams(&mut self, channel: AudioChannel) {
         if let Some(stream_ids) = self.streams.get_mut(&channel) {
+            let manager = self.manager.as_mut().unwrap();
             for stream_id in stream_ids.drain(..) {
-                if let Err(error) = self.manager.remove_stream(stream_id) {
+                if let Err(error) = manager.remove_stream(stream_id) {
                     println!("Failed to stop stream: {:?}", error);
                 }
             }
@@ -330,6 +334,9 @@ impl AudioOutput {
     }
 
     pub(crate) fn stream_audio<T: AudioStream>(&mut self, audio: &mut StreamedAudio<T>) {
+        if self.manager.is_none() {
+            return;
+        }
         let mut commands = audio.commands.write();
         let len = commands.len();
         let mut i = 0;
