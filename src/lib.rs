@@ -50,6 +50,8 @@ use crate::source::FlacLoader;
 use crate::source::Mp3Loader;
 #[cfg(feature = "ogg")]
 use crate::source::OggLoader;
+#[cfg(feature = "spec")]
+use crate::source::SpecLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
 use bevy::prelude::{AddAsset, AppBuilder, CoreStage, IntoExclusiveSystem, Plugin};
@@ -99,6 +101,8 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<WavLoader>();
         #[cfg(feature = "flac")]
         app.init_asset_loader::<FlacLoader>();
+        #[cfg(feature = "spec")]
+        app.init_asset_loader::<SpecLoader>();
 
         app.init_resource::<Audio>().add_system_to_stage(
             CoreStage::PostUpdate,
