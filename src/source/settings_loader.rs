@@ -1,26 +1,31 @@
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 use std::{io::Cursor, path::PathBuf};
 
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 use bevy_utils::BoxedFuture;
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 use kira::sound::{error::SoundFromFileError, Sound, SoundSettings};
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 use serde::Deserialize;
 
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 use crate::AudioSource;
 
 #[derive(Default)]
-pub struct SpecLoader;
+pub struct SettingsLoader;
 
-/// Kira sound settigns specification
+#[cfg(feature = "settings_loader")]
+fn default_settings_value() -> f64 {
+    f64::MIN
+}
+
+/// Kira sound settings specification
 ///
 /// This is used when loading from a *.{wav,mp3,ogg,flac}.ron file to override
 /// the default `kira::SoundSettings`.
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
 #[derive(Deserialize)]
 struct SoundSettingsSpec {
     /// Location of the sound file.
@@ -33,7 +38,8 @@ struct SoundSettingsSpec {
     /// This is useful to avoid situations where the same sound
     /// is played multiple times at the exact same point in time,
     /// resulting in the sound being louder than normal.
-    cooldown: Option<f64>,
+    #[serde(default = "default_settings_value")]
+    cooldown: f64,
 
     /// How long the sound is musically.
     ///
@@ -45,23 +51,34 @@ struct SoundSettingsSpec {
     ///
     /// If set, the semantic duration of the sound will be
     /// used as the default end point when looping the sound.
-    semantic_duration: Option<f64>,
+    #[serde(default = "default_settings_value")]
+    semantic_duration: f64,
 
     /// Whether the sound should be looped by default, and if so,
     /// the point an instance should jump back to when it reaches
     /// the end.
-    default_loop_start: Option<f64>,
+    #[serde(default = "default_settings_value")]
+    default_loop_start: f64,
 }
 
-#[cfg(feature = "spec")]
+#[cfg(feature = "settings_loader")]
+fn positive_or_none(value: f64) -> Option<f64> {
+    if value >= 0. {
+        Some(value)
+    } else {
+        None
+    }
+}
+
+#[cfg(feature = "settings_loader")]
 fn load_sound(
     bytes: Vec<u8>,
     sound_settings: SoundSettingsSpec,
 ) -> Result<Sound, SoundFromFileError> {
     let settings = SoundSettings {
-        cooldown: sound_settings.cooldown,
-        semantic_duration: sound_settings.semantic_duration,
-        default_loop_start: sound_settings.default_loop_start,
+        cooldown: positive_or_none(sound_settings.cooldown),
+        semantic_duration: positive_or_none(sound_settings.semantic_duration),
+        default_loop_start: positive_or_none(sound_settings.default_loop_start),
 
         ..SoundSettings::default()
     };
@@ -83,8 +100,8 @@ fn load_sound(
     Err(SoundFromFileError::UnsupportedAudioFileFormat)
 }
 
-#[cfg(feature = "spec")]
-impl AssetLoader for SpecLoader {
+#[cfg(feature = "settings_loader")]
+impl AssetLoader for SettingsLoader {
     fn load<'a>(
         &'a self,
         bytes: &'a [u8],

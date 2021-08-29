@@ -17,7 +17,7 @@ resolver = "2"
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 flac = ["kira/flac"]
-spec = ["ron", "serde"]
+settings_loader = ["ron", "serde"]
 wav = ["kira/wav"]
 
 [dependencies]
@@ -49,4 +49,4 @@ path = "examples/stream.rs"
 [[example]]
 name = "semantic_duration"
 path = "examples/semantic_duration.rs"
-required-features = ["ogg", "spec"]
+required-features = ["ogg", "settings_loader"]
