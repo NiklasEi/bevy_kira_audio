@@ -31,16 +31,6 @@ struct SoundSettingsSpec {
     /// Location of the sound file.
     file: PathBuf,
 
-    /// Whether the sound should have a "cool off" period after playing
-    /// before it can be played again, and if so, the duration
-    /// of that cool off period.
-    ///
-    /// This is useful to avoid situations where the same sound
-    /// is played multiple times at the exact same point in time,
-    /// resulting in the sound being louder than normal.
-    #[serde(default = "default_settings_value")]
-    cooldown: f64,
-
     /// How long the sound is musically.
     ///
     /// For example, a recording of a 2-bar drum fill
@@ -53,12 +43,6 @@ struct SoundSettingsSpec {
     /// used as the default end point when looping the sound.
     #[serde(default = "default_settings_value")]
     semantic_duration: f64,
-
-    /// Whether the sound should be looped by default, and if so,
-    /// the point an instance should jump back to when it reaches
-    /// the end.
-    #[serde(default = "default_settings_value")]
-    default_loop_start: f64,
 }
 
 #[cfg(feature = "settings_loader")]
@@ -76,9 +60,7 @@ fn load_sound(
     sound_settings: SoundSettingsSpec,
 ) -> Result<Sound, SoundFromFileError> {
     let settings = SoundSettings {
-        cooldown: positive_or_none(sound_settings.cooldown),
         semantic_duration: positive_or_none(sound_settings.semantic_duration),
-        default_loop_start: positive_or_none(sound_settings.default_loop_start),
 
         ..SoundSettings::default()
     };
