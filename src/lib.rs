@@ -6,11 +6,15 @@
 //! ```edition2018
 //! # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
 //! # use bevy::prelude::*;
+//! # use bevy::asset::AssetPlugin;
+//! # use bevy::app::AppExit;
 //! fn main() {
 //!    let mut app = App::new();
 //!    app
-//!         .add_plugins(DefaultPlugins)
+//!         .add_plugins(MinimalPlugins)
+//!         .add_plugin(AssetPlugin)
 //!         .add_plugin(AudioPlugin)
+//! #       .add_system(stop.system())
 //!         .add_startup_system(start_background_audio.system());
 //!    app.run();
 //! }
@@ -18,6 +22,10 @@
 //! fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 //!     audio.play_looped(asset_server.load("background_audio.mp3"));
 //! }
+//!
+//! # fn stop(mut events: EventWriter<AppExit>) {
+//! #     events.send(AppExit)
+//! # }
 //! ```
 
 #![forbid(unsafe_code)]
@@ -42,6 +50,8 @@ use crate::source::FlacLoader;
 use crate::source::Mp3Loader;
 #[cfg(feature = "ogg")]
 use crate::source::OggLoader;
+#[cfg(feature = "settings_loader")]
+use crate::source::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
 use bevy::prelude::{AddAsset, App, CoreStage, IntoExclusiveSystem, Plugin};
@@ -54,11 +64,15 @@ use std::marker::PhantomData;
 /// ```edition2018
 /// # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
 /// # use bevy::prelude::*;
+/// # use bevy::asset::AssetPlugin;
+/// # use bevy::app::AppExit;
 /// fn main() {
 ///    let mut app = App::new();
 ///    app
-///         .add_plugins(DefaultPlugins)
+///         .add_plugins(MinimalPlugins)
+///         .add_plugin(AssetPlugin)
 ///         .add_plugin(AudioPlugin)
+/// #       .add_system(stop.system())
 ///         .add_startup_system(start_background_audio.system());
 ///    app.run();
 /// }
@@ -66,6 +80,10 @@ use std::marker::PhantomData;
 /// fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 ///     audio.play_looped(asset_server.load("background_audio.mp3"));
 /// }
+///
+/// # fn stop(mut events: EventWriter<AppExit>) {
+/// #     events.send(AppExit)
+/// # }
 /// ```
 #[derive(Default)]
 pub struct AudioPlugin;
@@ -83,6 +101,8 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<WavLoader>();
         #[cfg(feature = "flac")]
         app.init_asset_loader::<FlacLoader>();
+        #[cfg(feature = "settings_loader")]
+        app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<Audio>().add_system_to_stage(
             CoreStage::PostUpdate,
@@ -97,11 +117,15 @@ impl Plugin for AudioPlugin {
 /// ```edition2018
 /// # use bevy_kira_audio::{AudioStream, Frame, StreamedAudio, AudioChannel, Audio, AudioPlugin, AudioStreamPlugin};
 /// # use bevy::prelude::*;
+/// # use bevy::asset::AssetPlugin;
+/// # use bevy::app::AppExit;
 /// fn main() {
 ///    let mut app = App::new();
 ///    app
-///         .add_plugins(DefaultPlugins)
+///         .add_plugins(MinimalPlugins)
+///         .add_plugin(AssetPlugin)
 ///         .add_plugin(AudioPlugin)
+/// #       .add_system(stop.system())
 ///         .add_plugin(AudioStreamPlugin::<SineStream>::default())
 ///         .add_startup_system(start_stream.system());
 ///    app.run();
@@ -134,6 +158,10 @@ impl Plugin for AudioPlugin {
 ///        frequency: 44_000.0,
 ///    });
 ///}
+///
+/// # fn stop(mut events: EventWriter<AppExit>) {
+/// #     events.send(AppExit)
+/// # }
 /// ```
 #[derive(Default)]
 pub struct AudioStreamPlugin<T: AudioStream> {

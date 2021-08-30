@@ -1,0 +1,6 @@
+(
+    file: "sounds/semantic_duration.ogg",
+
+    // Semantic loop is 4 seconds long.
+    semantic_duration: 4.
+)
