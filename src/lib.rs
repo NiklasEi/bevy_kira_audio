@@ -7,7 +7,7 @@
 //! # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
 //! # use bevy::prelude::*;
 //! fn main() {
-//!    let mut app = App::build();
+//!    let mut app = App::new();
 //!    app
 //!         .add_plugins(DefaultPlugins)
 //!         .add_plugin(AudioPlugin)
@@ -55,7 +55,7 @@ use std::marker::PhantomData;
 /// # use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
 /// # use bevy::prelude::*;
 /// fn main() {
-///    let mut app = App::build();
+///    let mut app = App::new();
 ///    app
 ///         .add_plugins(DefaultPlugins)
 ///         .add_plugin(AudioPlugin)
@@ -98,7 +98,7 @@ impl Plugin for AudioPlugin {
 /// # use bevy_kira_audio::{AudioStream, Frame, StreamedAudio, AudioChannel, Audio, AudioPlugin, AudioStreamPlugin};
 /// # use bevy::prelude::*;
 /// fn main() {
-///    let mut app = App::build();
+///    let mut app = App::new();
 ///    app
 ///         .add_plugins(DefaultPlugins)
 ///         .add_plugin(AudioPlugin)

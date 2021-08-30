@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_kira_audio::{AudioPlugin, AudioStream, AudioStreamPlugin, Frame, StreamedAudio};
 
 fn main() {
-    App::build()
+    App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .add_plugin(AudioStreamPlugin::<SineStream>::default())

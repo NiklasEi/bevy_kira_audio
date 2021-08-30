@@ -4,7 +4,7 @@ use bevy_kira_audio::{Audio, AudioChannel, AudioPlugin, AudioSource};
 use std::collections::HashMap;
 
 fn main() {
-    let mut app = App::build();
+    let mut app = App::new();
     app.insert_resource(WindowDescriptor {
         width: 800.,
         height: 600.,
