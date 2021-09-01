@@ -22,6 +22,7 @@ pub enum AudioCommandResult {
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct PlayAudioSettings {
     pub source: Handle<AudioSource>,
+    pub intro_source: Option<Handle<AudioSource>>,
     pub looped: bool,
 }
 
@@ -56,6 +57,7 @@ impl Audio {
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
+                intro_source: None,
                 looped: false,
             }),
             AudioChannel::default(),
@@ -76,6 +78,32 @@ impl Audio {
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
+                intro_source: None,
+                looped: true,
+            }),
+            AudioChannel::default(),
+        ));
+    }
+
+    /// Play looped audio in the default channel with an intro
+    ///
+    /// ```edition2018
+    /// # use bevy::prelude::*;
+    /// # use bevy_kira_audio::Audio;
+    ///
+    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    ///     audio.play_looped_with_intro(asset_server.load("intro.mp3"), asset_server.load("audio.mp3"));
+    /// }
+    /// ```
+    pub fn play_looped_with_intro(
+        &self,
+        intro_audio_source: Handle<AudioSource>,
+        looped_audio_source: Handle<AudioSource>,
+    ) {
+        self.commands.write().push_front((
+            AudioCommand::Play(PlayAudioSettings {
+                source: looped_audio_source,
+                intro_source: Some(intro_audio_source),
                 looped: true,
             }),
             AudioChannel::default(),
@@ -201,6 +229,7 @@ impl Audio {
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
+                intro_source: None,
                 looped: false,
             }),
             channel_id.clone(),
@@ -225,6 +254,36 @@ impl Audio {
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioSettings {
                 source: audio_source,
+                intro_source: None,
+                looped: true,
+            }),
+            channel_id.clone(),
+        ));
+    }
+
+    /// Play looped audio in the given channel with an intro
+    ///
+    /// ```edition2018
+    /// # use bevy::prelude::*;
+    /// # use bevy_kira_audio::{Audio, AudioChannel};
+    ///
+    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    ///     audio.play_looped_with_intro_in_channel(
+    ///         asset_server.load("intro.mp3"),
+    ///         asset_server.load("audio.mp3"),
+    ///         &AudioChannel::new("my-channel".to_owned()));
+    /// }
+    /// ```
+    pub fn play_looped_with_intro_in_channel(
+        &self,
+        intro_audio_source: Handle<AudioSource>,
+        looped_audio_source: Handle<AudioSource>,
+        channel_id: &AudioChannel,
+    ) {
+        self.commands.write().push_front((
+            AudioCommand::Play(PlayAudioSettings {
+                source: looped_audio_source,
+                intro_source: Some(intro_audio_source),
                 looped: true,
             }),
             channel_id.clone(),

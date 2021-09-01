@@ -123,6 +123,22 @@ impl AudioOutput {
             .expect("Failed to add arrangement to the AudioManager")
     }
 
+    fn create_looped_arrangement_with_intro(
+        &mut self,
+        intro_sound_handle: &SoundHandle,
+        loop_sound_handle: &SoundHandle,
+    ) -> ArrangementHandle {
+        let arrangement = Arrangement::new_loop_with_intro(
+            intro_sound_handle,
+            loop_sound_handle,
+            Default::default(),
+        );
+        let manager = self.manager.as_mut().unwrap();
+        manager
+            .add_arrangement(arrangement)
+            .expect("Failed to add arrangement to the AudioManager")
+    }
+
     fn stop(&mut self, channel: &AudioChannel) -> AudioCommandResult {
         if let Some(instances) = self.instances.get_mut(channel) {
             while !instances.is_empty() {
@@ -230,6 +246,7 @@ impl AudioOutput {
         channel: &AudioChannel,
         play_settings: &PlayAudioSettings,
         audio_source: &AudioSource,
+        intro_audio_source: Option<&AudioSource>,
     ) -> AudioCommandResult {
         if self.arrangements.contains_key(play_settings) {
             self.play_arrangement(
@@ -238,11 +255,19 @@ impl AudioOutput {
             )
         } else {
             let sound_handle = self.create_or_get_sound(audio_source, play_settings.source.clone());
-            let arrangement_handle = if play_settings.looped {
-                self.create_looped_arrangement(&sound_handle)
-            } else {
-                self.create_arrangement(&sound_handle)
+            let intro_handle = intro_audio_source
+                .zip(play_settings.intro_source.as_ref())
+                .map(|(audio_source, handle)| {
+                    self.create_or_get_sound(audio_source, handle.clone())
+                });
+            let arrangement_handle = match (play_settings.looped, intro_handle) {
+                (true, Some(intro_source)) => {
+                    self.create_looped_arrangement_with_intro(&intro_source, &sound_handle)
+                }
+                (true, None) => self.create_looped_arrangement(&sound_handle),
+                (false, _) => self.create_arrangement(&sound_handle),
             };
+
             self.arrangements
                 .insert(play_settings.clone(), arrangement_handle.clone());
             self.play_arrangement(arrangement_handle, channel)
@@ -264,8 +289,17 @@ impl AudioOutput {
             let (audio_command, channel) = commands.pop_back().unwrap();
             let result = match &audio_command {
                 AudioCommand::Play(play_settings) => {
+                    let intro_audio = play_settings
+                        .intro_source
+                        .as_ref()
+                        .and_then(|source| audio_sources.get(source));
                     if let Some(audio_source) = audio_sources.get(&play_settings.source) {
-                        self.play(&channel, play_settings, audio_source)
+                        if intro_audio.is_some() == play_settings.intro_source.is_some() {
+                            self.play(&channel, play_settings, audio_source, intro_audio)
+                        } else {
+                            // Intro audio source hasn't loaded yet. Add it back to the queue
+                            AudioCommandResult::Retry
+                        }
                     } else {
                         // audio source hasn't loaded yet. Add it back to the queue
                         AudioCommandResult::Retry
