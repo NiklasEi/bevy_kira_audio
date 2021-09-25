@@ -104,10 +104,8 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
-        app.init_resource::<Audio>().add_system_to_stage(
-            CoreStage::PostUpdate,
-            play_queued_audio_system.exclusive_system(),
-        );
+        app.init_resource::<Audio>()
+            .add_system_to_stage(CoreStage::PostUpdate, play_queued_audio_system);
     }
 }
 
