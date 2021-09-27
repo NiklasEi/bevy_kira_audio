@@ -54,7 +54,7 @@ use crate::source::OggLoader;
 use crate::source::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
-use bevy::prelude::{AddAsset, App, CoreStage, IntoExclusiveSystem, Plugin};
+use bevy::prelude::{AddAsset, App, CoreStage, Plugin};
 use std::marker::PhantomData;
 
 /// A Bevy plugin to add audio functionallity
@@ -171,9 +171,7 @@ where
     T: AudioStream,
 {
     fn build(&self, app: &mut App) {
-        app.init_resource::<StreamedAudio<T>>().add_system_to_stage(
-            CoreStage::PostUpdate,
-            stream_audio_system::<T>.exclusive_system(),
-        );
+        app.init_resource::<StreamedAudio<T>>()
+            .add_system_to_stage(CoreStage::PostUpdate, stream_audio_system::<T>);
     }
 }

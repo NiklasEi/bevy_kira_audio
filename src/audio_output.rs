@@ -415,11 +415,9 @@ pub fn play_queued_audio_system(
     };
 }
 
-pub fn stream_audio_system<T: AudioStream>(world: &mut World) {
-    let world = world.cell();
-
-    let mut audio_output = world.get_non_send_mut::<AudioOutput>().unwrap();
-    let mut audio = world.get_resource_mut::<StreamedAudio<T>>().unwrap();
-
+pub fn stream_audio_system<T: AudioStream>(
+    mut audio_output: NonSendMut<AudioOutput>,
+    mut audio: ResMut<StreamedAudio<T>>,
+) {
     audio_output.stream_audio(&mut *audio);
 }
