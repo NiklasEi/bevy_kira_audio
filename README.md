@@ -52,6 +52,8 @@ fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 - [ ] get the current status of a track (time elapsed/left)?
 - [x] audio streaming
 
+Currently, sound settings are hard to control and usually your audio files get loaded with the default. With the feature `settings_loader` it is possible to define an audio asset with non-default semantic duration. The [semantic_duration](examples/semantic_duration.rs) example demonstrates loading and playing such an asset. More options will likely be supported in the future.
+
 ## Compatible Bevy versions
 
 The main branch is up to date with the latest Bevy release. The branch `bevy_main` tracks the `main` branch of Bevy.
