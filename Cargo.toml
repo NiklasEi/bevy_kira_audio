@@ -15,9 +15,9 @@ resolver = "2"
 
 [features]
 default = ["ogg"]
+flac = ["kira/flac"]
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
-flac = ["kira/flac"]
 settings_loader = ["ron", "serde"]
 wav = ["kira/wav"]
 
