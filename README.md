@@ -11,9 +11,10 @@ You can check out the `examples` directory in this repository for a display of t
 
 ## Usage
 
-*Note: `bevy_audio` is enabled by default and not compatible with this audio plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `mp3` feature.*
+*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `mp3` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.5.0/Cargo.toml#L23-L34) for a list of all default features of version `0.5.0` and list them manually in your Cargo file excluding the ones you do not want.*
 
-To initialize the corresponding `AssetLoaders`, use at least one of the features `bevy_kira_audio/ogg` (enabled by default), `bevy_kira_audio/mp3`, `bevy_kira_audio/wav`, or `bevy_kira_audio/flac`. The following example assumes that the feature `bevy_kira_audio/ogg` is enabled.
+
+To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
 
 ```rust
 use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
