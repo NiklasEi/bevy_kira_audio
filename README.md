@@ -57,13 +57,15 @@ Currently, sound settings are hard to control and usually your audio files get l
 
 ## Compatible Bevy versions
 
-The main branch is up to date with the latest Bevy release. The branch `bevy_main` tracks the `main` branch of Bevy.
+The main branch is compatible with the latest Bevy release, while the branch `bevy_main` tracks the `main` branch of Bevy.
 
-Compatibility of published `bevy_kira_audio` versions:
+Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
-| :-- | :--  |
-| `0.4` - `0.5` | `0.5` |
-| `0.3` | `0.4` |
+| :--               | :--    |
+| `0.4` - `0.6`     | `0.5`  |
+| `0.3`             | `0.4`  |
+| `main`            | `0.5`  |
+| `bevy_main`       | `main` |
 
 ## License
 
