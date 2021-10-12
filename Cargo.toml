@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -14,6 +14,7 @@ readme = "./README.md"
 resolver = "2"
 
 [features]
+default = ["ogg"]
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 flac = ["kira/flac"]
