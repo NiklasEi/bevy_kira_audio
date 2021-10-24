@@ -54,7 +54,7 @@ use crate::source::OggLoader;
 use crate::source::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
-use bevy::prelude::{AddAsset, AppBuilder, CoreStage, IntoExclusiveSystem, Plugin};
+use bevy::prelude::{AddAsset, App, CoreStage, IntoExclusiveSystem, Plugin};
 use std::marker::PhantomData;
 
 #[cfg(all(
@@ -97,7 +97,7 @@ compile_error!("You need to enable at least one of the bevy_kira_audio features 
 pub struct AudioPlugin;
 
 impl Plugin for AudioPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.init_non_send_resource::<AudioOutput>()
             .add_asset::<AudioSource>();
 
@@ -180,7 +180,7 @@ impl<T> Plugin for AudioStreamPlugin<T>
 where
     T: AudioStream,
 {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.init_resource::<StreamedAudio<T>>().add_system_to_stage(
             CoreStage::PostUpdate,
             stream_audio_system::<T>.exclusive_system(),
