@@ -263,18 +263,24 @@ fn update_volume_buttons(
     }
 }
 
+#[derive(Component)]
 struct PlayPauseButton;
 
+#[derive(Component)]
 struct PlaySingleSound;
 
+#[derive(Component)]
 struct StartLoopButton;
 
+#[derive(Component)]
 struct ChangeVolumeButton {
     louder: bool,
 }
 
+#[derive(Component)]
 struct StopButton;
 
+#[derive(Component)]
 struct Channel {
     channel: AudioChannel,
 }
@@ -492,7 +498,7 @@ fn set_up_ui(
         });
 }
 
-fn spawn_button<T: 'static + Send + Sync>(
+fn spawn_button<T: Component>(
     parent: &mut ChildBuilder,
     channel: &AudioChannel,
     text: &str,
