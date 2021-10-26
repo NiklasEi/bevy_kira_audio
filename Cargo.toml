@@ -2,7 +2,7 @@
 name = "bevy_kira_audio"
 version = "0.6.0"
 authors = ["Niklas Eicker <hello@nikl.me>"]
-edition = "2018"
+edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Bevy plugin for dynamic audio"
 repository = "https://github.com/NiklasEi/bevy_kira_audio"
@@ -11,7 +11,6 @@ documentation = "https://docs.rs/bevy_kira_audio"
 keywords = ["bevy", "gamedev", "audio", "music"]
 categories = ["game-development", "multimedia::audio"]
 readme = "./README.md"
-resolver = "2"
 
 [features]
 default = ["ogg"]
