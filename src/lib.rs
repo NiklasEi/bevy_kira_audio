@@ -183,3 +183,15 @@ where
             .add_system_to_stage(CoreStage::PostUpdate, stream_audio_system::<T>);
     }
 }
+
+#[cfg(doctest)]
+mod test_readme {
+    macro_rules! external_doc_test {
+    ($x:expr) => {
+        #[doc = $x]
+        extern {}
+    };
+  }
+
+    external_doc_test!(include_str!("../README.md"));
+}

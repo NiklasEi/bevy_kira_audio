@@ -16,7 +16,7 @@ You can check out the `examples` directory in this repository for a display of t
 
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
 
-```rust
+```rust no_run
 use bevy_kira_audio::{AudioChannel, Audio, AudioPlugin};
 use bevy::prelude::*;
 
