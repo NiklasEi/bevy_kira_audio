@@ -1,4 +1,4 @@
-use crate::audio::{Audio, AudioCommand, AudioCommandResult, PlayAudioSettings};
+use crate::audio::{Audio, AudioCommand, AudioCommandResult, PlayAudioSettings, InstanceHandlePriv};
 use bevy::prelude::*;
 use bevy_utils::tracing::warn;
 
@@ -9,15 +9,17 @@ use crate::AudioStream;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
 use kira::audio_stream::AudioStreamId;
-use kira::instance::handle::InstanceHandle;
+use kira::instance::handle::InstanceHandle as KiraInstanceHandle;
 use kira::instance::{
-    InstanceState, PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings,
+    InstanceState as KiraInstanceState, PauseInstanceSettings, ResumeInstanceSettings,
+    StopInstanceSettings,
 };
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::mixer::TrackIndex;
 use kira::sound::handle::SoundHandle;
 use kira::CommandError;
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 
 /// Non-send resource that acts as audio output
 ///
@@ -28,8 +30,13 @@ pub struct AudioOutput {
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
     streams: HashMap<AudioChannel, Vec<AudioStreamId>>,
-    instances: HashMap<AudioChannel, Vec<InstanceHandle>>,
+    instances: HashMap<AudioChannel, Vec<InstanceState>>,
     channels: HashMap<AudioChannel, ChannelState>,
+}
+
+struct InstanceState {
+    kira: KiraInstanceHandle,
+    priv_: InstanceHandlePriv,
 }
 
 impl Default for AudioOutput {
@@ -73,6 +80,7 @@ impl AudioOutput {
         &mut self,
         mut arrangement_handle: ArrangementHandle,
         channel: &AudioChannel,
+        instance_priv: InstanceHandlePriv,
     ) -> AudioCommandResult {
         let play_result = arrangement_handle.play(Default::default());
         if let Err(error) = play_result {
@@ -96,11 +104,15 @@ impl AudioOutput {
                 println!("Failed to set panning for instance: {:?}", error);
             }
         }
+        let instance_state = InstanceState {
+            kira: instance_handle,
+            priv_: instance_priv,
+        };
         if let Some(instance_handles) = self.instances.get_mut(channel) {
-            instance_handles.push(instance_handle);
+            instance_handles.push(instance_state);
         } else {
             self.instances
-                .insert(channel.clone(), vec![instance_handle]);
+                .insert(channel.clone(), vec![instance_state]);
         }
 
         AudioCommandResult::Ok
@@ -143,7 +155,7 @@ impl AudioOutput {
         if let Some(instances) = self.instances.get_mut(channel) {
             while !instances.is_empty() {
                 let mut instance = instances.remove(0);
-                if let Err(error) = instance.stop(StopInstanceSettings::default()) {
+                if let Err(error) = instance.kira.stop(StopInstanceSettings::default()) {
                     match error {
                         CommandError::CommandQueueFull => {
                             instances.push(instance);
@@ -163,8 +175,8 @@ impl AudioOutput {
     fn pause(&mut self, channel: &AudioChannel) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if InstanceState::Playing == instance.state() {
-                    if let Err(error) = instance.pause(PauseInstanceSettings::default()) {
+                if KiraInstanceState::Playing == instance.kira.state() {
+                    if let Err(error) = instance.kira.pause(PauseInstanceSettings::default()) {
                         println!("Failed to pause instance: {:?}", error);
                     }
                 }
@@ -175,8 +187,8 @@ impl AudioOutput {
     fn resume(&mut self, channel: &AudioChannel) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if let InstanceState::Paused(_position) = instance.state() {
-                    if let Err(error) = instance.resume(ResumeInstanceSettings::default()) {
+                if let KiraInstanceState::Paused(_position) = instance.kira.state() {
+                    if let Err(error) = instance.kira.resume(ResumeInstanceSettings::default()) {
                         println!("Failed to resume instance: {:?}", error);
                     }
                 }
@@ -187,7 +199,7 @@ impl AudioOutput {
     fn set_volume(&mut self, channel: &AudioChannel, volume: f64) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.set_volume(volume) {
+                if let Err(error) = instance.kira.set_volume(volume) {
                     println!("Failed to set volume for instance: {:?}", error);
                 }
             }
@@ -206,7 +218,7 @@ impl AudioOutput {
     fn set_panning(&mut self, channel: &AudioChannel, panning: f64) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.set_panning(panning) {
+                if let Err(error) = instance.kira.set_panning(panning) {
                     println!("Failed to set panning for instance: {:?}", error);
                 }
             }
@@ -225,7 +237,7 @@ impl AudioOutput {
     fn set_playback_rate(&mut self, channel: &AudioChannel, playback_rate: f64) {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.set_playback_rate(playback_rate) {
+                if let Err(error) = instance.kira.set_playback_rate(playback_rate) {
                     println!("Failed to set playback rate for instance: {:?}", error);
                 }
             }
@@ -247,11 +259,13 @@ impl AudioOutput {
         play_settings: &PlayAudioSettings,
         audio_source: &AudioSource,
         intro_audio_source: Option<&AudioSource>,
+        instance_priv: InstanceHandlePriv,
     ) -> AudioCommandResult {
         if self.arrangements.contains_key(play_settings) {
             self.play_arrangement(
                 self.arrangements.get(play_settings).unwrap().clone(),
                 channel,
+                instance_priv,
             )
         } else {
             let sound_handle = self.create_or_get_sound(audio_source, play_settings.source.clone());
@@ -270,7 +284,7 @@ impl AudioOutput {
 
             self.arrangements
                 .insert(play_settings.clone(), arrangement_handle.clone());
-            self.play_arrangement(arrangement_handle, channel)
+            self.play_arrangement(arrangement_handle, channel, instance_priv)
         }
     }
 
@@ -288,14 +302,15 @@ impl AudioOutput {
         while i < len {
             let (audio_command, channel) = commands.pop_back().unwrap();
             let result = match &audio_command {
-                AudioCommand::Play(play_settings) => {
+                AudioCommand::Play(play_settings, instance_priv) => {
                     let intro_audio = play_settings
                         .intro_source
                         .as_ref()
                         .and_then(|source| audio_sources.get(source));
                     if let Some(audio_source) = audio_sources.get(&play_settings.source) {
                         if intro_audio.is_some() == play_settings.intro_source.is_some() {
-                            self.play(&channel, play_settings, audio_source, intro_audio)
+                            self.play(&channel, play_settings, audio_source, intro_audio,
+                                      instance_priv.clone())
                         } else {
                             // Intro audio source hasn't loaded yet. Add it back to the queue
                             AudioCommandResult::Retry
@@ -336,7 +351,7 @@ impl AudioOutput {
 
     pub(crate) fn cleanup_stopped_instances(&mut self) {
         for (_, instances) in self.instances.iter_mut() {
-            instances.retain(|instance| instance.state() != InstanceState::Stopped);
+            instances.retain(|instance| instance.kira.state() != KiraInstanceState::Stopped);
         }
     }
 
@@ -422,4 +437,17 @@ pub fn stream_audio_system<T: AudioStream>(world: &mut World) {
     let mut audio = world.get_resource_mut::<StreamedAudio<T>>().unwrap();
 
     audio_output.stream_audio(&mut *audio);
+}
+
+pub fn update_instance_positions(world: &mut World) {
+   let world = world.cell();
+
+    let audio_output = world.get_non_send_mut::<AudioOutput>().unwrap();
+
+    for instance_state_vec in audio_output.instances.values() {
+        for instance_state in instance_state_vec.iter() {
+            let pos = instance_state.kira.position();
+            instance_state.priv_.position.store(pos, Ordering::Release);
+        }
+    }
 }
