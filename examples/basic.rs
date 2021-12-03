@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy_kira_audio::{Audio, AudioChannel, AudioPlugin, AudioSource};
