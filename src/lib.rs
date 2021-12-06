@@ -42,8 +42,9 @@ mod channel;
 mod source;
 mod stream;
 
-use crate::audio_output::{play_queued_audio_system, stream_audio_system, AudioOutput,
-                          update_instance_positions};
+use crate::audio_output::{
+    play_queued_audio_system, stream_audio_system, update_instance_positions, AudioOutput,
+};
 
 #[cfg(feature = "flac")]
 use crate::source::FlacLoader;

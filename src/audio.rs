@@ -4,8 +4,8 @@ use atomic::Atomic;
 use bevy::prelude::Handle;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 pub(crate) enum AudioCommand {
     Play(PlayAudioCommandArgs),
@@ -72,10 +72,8 @@ impl InstanceHandle {
             InstanceHandle {
                 position: pos.clone(),
             },
-            InstanceHandlePriv {
-                position: pos,
-            }
-            )
+            InstanceHandlePriv { position: pos },
+        )
     }
 
     /// Return the current playback position in seconds.
@@ -291,7 +289,7 @@ impl Audio {
     pub fn play_in_channel(
         &self,
         audio_source: Handle<AudioSource>,
-        channel_id: &AudioChannel
+        channel_id: &AudioChannel,
     ) -> InstanceHandle {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
@@ -334,7 +332,7 @@ impl Audio {
                     intro_source: None,
                     looped: true,
                 },
-                instance_handle_priv: instance_priv
+                instance_handle_priv: instance_priv,
             }),
             channel_id.clone(),
         ));
@@ -370,7 +368,7 @@ impl Audio {
                     intro_source: Some(intro_audio_source),
                     looped: true,
                 },
-                instance_handle_priv: instance_priv
+                instance_handle_priv: instance_priv,
             }),
             channel_id.clone(),
         ));

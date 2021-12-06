@@ -1,4 +1,6 @@
-use crate::audio::{Audio, AudioCommand, AudioCommandResult, PlayAudioSettings, InstanceHandlePriv};
+use crate::audio::{
+    Audio, AudioCommand, AudioCommandResult, InstanceHandlePriv, PlayAudioSettings,
+};
 use bevy::prelude::*;
 use bevy_utils::tracing::warn;
 
@@ -111,8 +113,7 @@ impl AudioOutput {
         if let Some(instance_handles) = self.instances.get_mut(channel) {
             instance_handles.push(instance_state);
         } else {
-            self.instances
-                .insert(channel.clone(), vec![instance_state]);
+            self.instances.insert(channel.clone(), vec![instance_state]);
         }
 
         AudioCommandResult::Ok
@@ -303,14 +304,20 @@ impl AudioOutput {
             let (audio_command, channel) = commands.pop_back().unwrap();
             let result = match &audio_command {
                 AudioCommand::Play(play_args) => {
-                    let intro_audio = play_args.settings
+                    let intro_audio = play_args
+                        .settings
                         .intro_source
                         .as_ref()
                         .and_then(|source| audio_sources.get(source));
                     if let Some(audio_source) = audio_sources.get(&play_args.settings.source) {
                         if intro_audio.is_some() == play_args.settings.intro_source.is_some() {
-                            self.play(&channel, &play_args.settings, audio_source, intro_audio,
-                                      play_args.instance_handle_priv.clone())
+                            self.play(
+                                &channel,
+                                &play_args.settings,
+                                audio_source,
+                                intro_audio,
+                                play_args.instance_handle_priv.clone(),
+                            )
                         } else {
                             // Intro audio source hasn't loaded yet. Add it back to the queue
                             AudioCommandResult::Retry
