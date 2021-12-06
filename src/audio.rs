@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 pub(crate) enum AudioCommand {
-    Play(PlayAudioSettings, InstanceHandlePriv),
+    Play(PlayAudioCommandArgs),
     SetVolume(f32),
     SetPanning(f32),
     SetPlaybackRate(f32),
@@ -17,13 +17,21 @@ pub(crate) enum AudioCommand {
     Resume,
 }
 
+pub(crate) struct PlayAudioCommandArgs {
+    /// The settings for this Play command.
+    pub(crate) settings: PlayAudioSettings,
+
+    /// The private end of an instance handle to communicate with the consumer.
+    pub(crate) instance_handle_priv: InstanceHandlePriv,
+}
+
 pub enum AudioCommandResult {
     Ok,
     Retry,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-pub struct PlayAudioSettings {
+pub(crate) struct PlayAudioSettings {
     pub source: Handle<AudioSource>,
     pub intro_source: Option<Handle<AudioSource>>,
     pub looped: bool,
@@ -45,6 +53,7 @@ pub struct Audio {
     pub(crate) commands: RwLock<VecDeque<(AudioCommand, AudioChannel)>>,
 }
 
+/// Allows you to interact with a playing sound.
 pub struct InstanceHandle {
     position: Arc<Atomic<f64>>,
 }
@@ -69,6 +78,7 @@ impl InstanceHandle {
             )
     }
 
+    /// Return the current playback position in seconds.
     pub fn position(&self) -> f64 {
         self.position.load(Ordering::Acquire)
     }
@@ -89,11 +99,14 @@ impl Audio {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: false,
-            }, instance_priv),
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: false,
+                },
+                instance_handle_priv: instance_priv,
+            }),
             AudioChannel::default(),
         ));
 
@@ -114,11 +127,14 @@ impl Audio {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: true,
-            }, instance_priv),
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: true,
+                },
+                instance_handle_priv: instance_priv,
+            }),
             AudioChannel::default(),
         ));
 
@@ -143,11 +159,14 @@ impl Audio {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: looped_audio_source,
-                intro_source: Some(intro_audio_source),
-                looped: true,
-            }, instance_priv),
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: looped_audio_source,
+                    intro_source: Some(intro_audio_source),
+                    looped: true,
+                },
+                instance_handle_priv: instance_priv,
+            }),
             AudioChannel::default(),
         ));
 
@@ -277,11 +296,14 @@ impl Audio {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: false,
-            }, instance_priv),
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: false,
+                },
+                instance_handle_priv: instance_priv,
+            }),
             channel_id.clone(),
         ));
 
@@ -306,11 +328,14 @@ impl Audio {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: true,
-            }, instance_priv),
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: true,
+                },
+                instance_handle_priv: instance_priv
+            }),
             channel_id.clone(),
         ));
 
@@ -339,11 +364,14 @@ impl Audio {
         let (instance, instance_priv) = InstanceHandle::new_pair();
 
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: looped_audio_source,
-                intro_source: Some(intro_audio_source),
-                looped: true,
-            }, instance_priv),
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: looped_audio_source,
+                    intro_source: Some(intro_audio_source),
+                    looped: true,
+                },
+                instance_handle_priv: instance_priv
+            }),
             channel_id.clone(),
         ));
 

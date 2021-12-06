@@ -302,15 +302,15 @@ impl AudioOutput {
         while i < len {
             let (audio_command, channel) = commands.pop_back().unwrap();
             let result = match &audio_command {
-                AudioCommand::Play(play_settings, instance_priv) => {
-                    let intro_audio = play_settings
+                AudioCommand::Play(play_args) => {
+                    let intro_audio = play_args.settings
                         .intro_source
                         .as_ref()
                         .and_then(|source| audio_sources.get(source));
-                    if let Some(audio_source) = audio_sources.get(&play_settings.source) {
-                        if intro_audio.is_some() == play_settings.intro_source.is_some() {
-                            self.play(&channel, play_settings, audio_source, intro_audio,
-                                      instance_priv.clone())
+                    if let Some(audio_source) = audio_sources.get(&play_args.settings.source) {
+                        if intro_audio.is_some() == play_args.settings.intro_source.is_some() {
+                            self.play(&channel, &play_args.settings, audio_source, intro_audio,
+                                      play_args.instance_handle_priv.clone())
                         } else {
                             // Intro audio source hasn't loaded yet. Add it back to the queue
                             AudioCommandResult::Retry
@@ -440,7 +440,7 @@ pub fn stream_audio_system<T: AudioStream>(world: &mut World) {
 }
 
 pub fn update_instance_positions(world: &mut World) {
-   let world = world.cell();
+    let world = world.cell();
 
     let audio_output = world.get_non_send_mut::<AudioOutput>().unwrap();
 
