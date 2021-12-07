@@ -1,10 +1,5 @@
 use crate::audio::{
-    Audio,
-    AudioCommand,
-    AudioCommandResult,
-    InstanceHandle,
-    PlayAudioSettings,
-    PlaybackState,
+    Audio, AudioCommand, AudioCommandResult, InstanceHandle, PlayAudioSettings, PlaybackState,
     PlaybackStatus,
 };
 use bevy::prelude::*;
@@ -168,14 +163,14 @@ impl AudioOutput {
                 match instance.kira.stop(StopInstanceSettings::default()) {
                     Ok(()) => {
                         audio_states.remove(&instance.handle);
-                    },
+                    }
                     Err(CommandError::CommandQueueFull) => {
                         instances.push(instance);
                         return AudioCommandResult::Retry;
-                    },
+                    }
                     Err(error) => {
                         println!("Failed to stop instance: {:?}", error);
-                    },
+                    }
                 }
             }
         }
@@ -483,7 +478,9 @@ pub fn update_instance_states_system(world: &mut World) {
                 },
                 position: Some(instance_state.kira.position()),
             };
-            audio.states.insert(instance_state.handle.clone(), playback_state);
+            audio
+                .states
+                .insert(instance_state.handle.clone(), playback_state);
         }
     }
 }

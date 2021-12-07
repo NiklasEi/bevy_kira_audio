@@ -23,10 +23,7 @@ fn start_audio(mut commands: Commands, asset_server: Res<AssetServer>, audio: Re
     commands.insert_resource(LoopAudioInstanceHandle { instance_handle });
 }
 
-fn process_keyboard_input(
-    audio: Res<Audio>,
-    kb: Res<Input<KeyCode>>,
-) {
+fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
     if kb.just_pressed(KeyCode::P) {
         audio.pause();
         println!("Audio paused.");
