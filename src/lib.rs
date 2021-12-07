@@ -31,7 +31,7 @@
 #![forbid(unsafe_code)]
 #![warn(unused_imports, missing_docs)]
 
-pub use audio::{Audio, InstanceHandle};
+pub use audio::{Audio, InstanceHandle, PlaybackStatus, PlaybackState};
 pub use channel::AudioChannel;
 pub use source::AudioSource;
 pub use stream::{AudioStream, Frame, StreamedAudio};

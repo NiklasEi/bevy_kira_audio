@@ -1,5 +1,11 @@
 use crate::audio::{
-    Audio, AudioCommand, AudioCommandResult, InstanceHandle, PlayAudioSettings, PlaybackStatus,
+    Audio,
+    AudioCommand,
+    AudioCommandResult,
+    InstanceHandle,
+    PlayAudioSettings,
+    PlaybackState,
+    PlaybackStatus,
 };
 use bevy::prelude::*;
 use bevy_utils::tracing::warn;
@@ -151,20 +157,25 @@ impl AudioOutput {
             .expect("Failed to add arrangement to the AudioManager")
     }
 
-    fn stop(&mut self, channel: &AudioChannel) -> AudioCommandResult {
+    fn stop(
+        &mut self,
+        channel: &AudioChannel,
+        audio_states: &mut HashMap<InstanceHandle, PlaybackState>,
+    ) -> AudioCommandResult {
         if let Some(instances) = self.instances.get_mut(channel) {
             while !instances.is_empty() {
                 let mut instance = instances.remove(0);
-                if let Err(error) = instance.kira.stop(StopInstanceSettings::default()) {
-                    match error {
-                        CommandError::CommandQueueFull => {
-                            instances.push(instance);
-                            return AudioCommandResult::Retry;
-                        }
-                        _ => {
-                            println!("Failed to stop instance: {:?}", error);
-                        }
-                    }
+                match instance.kira.stop(StopInstanceSettings::default()) {
+                    Ok(()) => {
+                        audio_states.remove(&instance.handle);
+                    },
+                    Err(CommandError::CommandQueueFull) => {
+                        instances.push(instance);
+                        return AudioCommandResult::Retry;
+                    },
+                    Err(error) => {
+                        println!("Failed to stop instance: {:?}", error);
+                    },
                 }
             }
         }
@@ -326,7 +337,7 @@ impl AudioOutput {
                         AudioCommandResult::Retry
                     }
                 }
-                AudioCommand::Stop => self.stop(&channel),
+                AudioCommand::Stop => self.stop(&channel, &mut audio.states),
                 AudioCommand::Pause => {
                     self.pause(&channel);
                     AudioCommandResult::Ok
@@ -366,7 +377,7 @@ impl AudioOutput {
                 retain
             });
             for handle in removed.iter() {
-                audio.statuses.remove(handle);
+                audio.states.remove(handle);
             }
         }
     }
@@ -462,16 +473,17 @@ pub fn update_instance_states_system(world: &mut World) {
     let mut audio = world.get_resource_mut::<Audio>().unwrap();
     for instance_state_vec in audio_output.instances.values() {
         for instance_state in instance_state_vec.iter() {
-            if let Some(mut playback_state) = audio.statuses.get_mut(&instance_state.handle) {
-                playback_state.status = match instance_state.kira.state() {
+            let playback_state = PlaybackState {
+                status: match instance_state.kira.state() {
                     KiraInstanceState::Playing => PlaybackStatus::Playing,
                     KiraInstanceState::Paused(_) => PlaybackStatus::Paused,
                     KiraInstanceState::Stopped => PlaybackStatus::Stopped,
                     KiraInstanceState::Pausing(_) => PlaybackStatus::Pausing,
                     KiraInstanceState::Stopping => PlaybackStatus::Stopping,
-                };
-                playback_state.position = Some(instance_state.kira.position());
-            }
+                },
+                position: Some(instance_state.kira.position()),
+            };
+            audio.states.insert(instance_state.handle.clone(), playback_state);
         }
     }
 }

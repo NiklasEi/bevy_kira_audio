@@ -36,7 +36,7 @@ pub(crate) struct PlayAudioSettings {
 }
 
 /// Allows you to interact with a playing sound.
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct InstanceHandle {
     id: u64,
 }
@@ -51,19 +51,36 @@ impl InstanceHandle {
 }
 
 /// Information about a currently playing sound.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PlaybackState {
     pub(crate) status: PlaybackStatus,
     pub(crate) position: Option<f64>,
 }
 
+impl PlaybackState {
+    /// Return the PlaybackStatus of this instance
+    pub fn status(&self) -> PlaybackStatus {
+        self.status.clone()
+    }
+
+    /// Return the playback position of this instance
+    pub fn position(&self) -> Option<f64> {
+        self.position.clone()
+    }
+}
+
 /// Playback status of a currently playing sound.
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlaybackStatus {
+    /// The instance is playing.
     Playing,
+    /// The instance is paused.
     Paused,
+    /// The instance is stopped and cannot be resumed.
     Stopped,
+    /// The instance is fading out and will be paused when the fadeout is finished.
     Pausing,
+    /// The instance is fading out and will be stopped when the fadeout is finished.
     Stopping,
 }
 
@@ -81,7 +98,7 @@ pub enum PlaybackStatus {
 #[derive(Default)]
 pub struct Audio {
     pub(crate) commands: RwLock<VecDeque<(AudioCommand, AudioChannel)>>,
-    pub(crate) statuses: HashMap<InstanceHandle, PlaybackState>,
+    pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
 }
 
 impl Audio {
@@ -485,7 +502,7 @@ impl Audio {
 
     /// Get state for a playback instance.
     pub fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
-        self.statuses
+        self.states
             .get(&instance_handle)
             .cloned()
             .unwrap_or(PlaybackState {
