@@ -1,11 +1,9 @@
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
-use atomic::Atomic;
 use bevy::prelude::Handle;
 use parking_lot::RwLock;
-use std::collections::VecDeque;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
+use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub(crate) enum AudioCommand {
     Play(PlayAudioCommandArgs),
@@ -21,8 +19,8 @@ pub(crate) struct PlayAudioCommandArgs {
     /// The settings for this Play command.
     pub(crate) settings: PlayAudioSettings,
 
-    /// The private end of an instance handle to communicate with the consumer.
-    pub(crate) instance_handle_priv: InstanceHandlePriv,
+    /// An instance handle to communicate with the consumer.
+    pub(crate) instance_handle: InstanceHandle,
 }
 
 pub enum AudioCommandResult {
@@ -35,6 +33,38 @@ pub(crate) struct PlayAudioSettings {
     pub source: Handle<AudioSource>,
     pub intro_source: Option<Handle<AudioSource>>,
     pub looped: bool,
+}
+
+/// Allows you to interact with a playing sound.
+#[derive(Clone, Eq, Hash, PartialEq)]
+pub struct InstanceHandle {
+    id: u64,
+}
+
+static NEXT_INSTANCE_HANDLE_ID: AtomicU64 = AtomicU64::new(0);
+
+impl InstanceHandle {
+    fn new() -> InstanceHandle {
+        let id = NEXT_INSTANCE_HANDLE_ID.fetch_add(1, Ordering::SeqCst);
+        InstanceHandle { id }
+    }
+}
+
+/// Information about a currently playing sound.
+#[derive(Clone)]
+pub struct PlaybackState {
+    pub(crate) status: PlaybackStatus,
+    pub(crate) position: Option<f64>,
+}
+
+/// Playback status of a currently playing sound.
+#[derive(Clone)]
+pub enum PlaybackStatus {
+    Playing,
+    Paused,
+    Stopped,
+    Pausing,
+    Stopping,
 }
 
 /// Bevy Audio Resource
@@ -51,35 +81,7 @@ pub(crate) struct PlayAudioSettings {
 #[derive(Default)]
 pub struct Audio {
     pub(crate) commands: RwLock<VecDeque<(AudioCommand, AudioChannel)>>,
-}
-
-/// Allows you to interact with a playing sound.
-pub struct InstanceHandle {
-    position: Arc<Atomic<f64>>,
-}
-
-#[derive(Clone)]
-pub(crate) struct InstanceHandlePriv {
-    pub(crate) position: Arc<Atomic<f64>>,
-}
-
-pub const INSTANCE_HANDLE_POSITION_INVALID: f64 = -1.;
-
-impl InstanceHandle {
-    fn new_pair() -> (InstanceHandle, InstanceHandlePriv) {
-        let pos = Arc::new(Atomic::new(INSTANCE_HANDLE_POSITION_INVALID));
-        (
-            InstanceHandle {
-                position: pos.clone(),
-            },
-            InstanceHandlePriv { position: pos },
-        )
-    }
-
-    /// Return the current playback position in seconds.
-    pub fn position(&self) -> f64 {
-        self.position.load(Ordering::Acquire)
-    }
+    pub(crate) statuses: HashMap<InstanceHandle, PlaybackState>,
 }
 
 impl Audio {
@@ -94,7 +96,7 @@ impl Audio {
     /// }
     /// ```
     pub fn play(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let (instance, instance_priv) = InstanceHandle::new_pair();
+        let instance_handle = InstanceHandle::new();
 
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioCommandArgs {
@@ -103,12 +105,12 @@ impl Audio {
                     intro_source: None,
                     looped: false,
                 },
-                instance_handle_priv: instance_priv,
+                instance_handle: instance_handle.clone(),
             }),
             AudioChannel::default(),
         ));
 
-        instance
+        instance_handle
     }
 
     /// Play looped audio in the default channel
@@ -122,7 +124,7 @@ impl Audio {
     /// }
     /// ```
     pub fn play_looped(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let (instance, instance_priv) = InstanceHandle::new_pair();
+        let instance_handle = InstanceHandle::new();
 
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioCommandArgs {
@@ -131,12 +133,12 @@ impl Audio {
                     intro_source: None,
                     looped: true,
                 },
-                instance_handle_priv: instance_priv,
+                instance_handle: instance_handle.clone(),
             }),
             AudioChannel::default(),
         ));
 
-        instance
+        instance_handle
     }
 
     /// Play looped audio in the default channel with an intro
@@ -154,7 +156,7 @@ impl Audio {
         intro_audio_source: Handle<AudioSource>,
         looped_audio_source: Handle<AudioSource>,
     ) -> InstanceHandle {
-        let (instance, instance_priv) = InstanceHandle::new_pair();
+        let instance_handle = InstanceHandle::new();
 
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioCommandArgs {
@@ -163,12 +165,12 @@ impl Audio {
                     intro_source: Some(intro_audio_source),
                     looped: true,
                 },
-                instance_handle_priv: instance_priv,
+                instance_handle: instance_handle.clone(),
             }),
             AudioChannel::default(),
         ));
 
-        instance
+        instance_handle
     }
 
     /// Stop all audio in the default channel
@@ -291,7 +293,7 @@ impl Audio {
         audio_source: Handle<AudioSource>,
         channel_id: &AudioChannel,
     ) -> InstanceHandle {
-        let (instance, instance_priv) = InstanceHandle::new_pair();
+        let instance_handle = InstanceHandle::new();
 
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioCommandArgs {
@@ -300,12 +302,12 @@ impl Audio {
                     intro_source: None,
                     looped: false,
                 },
-                instance_handle_priv: instance_priv,
+                instance_handle: instance_handle.clone(),
             }),
             channel_id.clone(),
         ));
 
-        instance
+        instance_handle
     }
 
     /// Play looped audio in the given channel
@@ -323,7 +325,7 @@ impl Audio {
         audio_source: Handle<AudioSource>,
         channel_id: &AudioChannel,
     ) -> InstanceHandle {
-        let (instance, instance_priv) = InstanceHandle::new_pair();
+        let instance_handle = InstanceHandle::new();
 
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioCommandArgs {
@@ -332,12 +334,12 @@ impl Audio {
                     intro_source: None,
                     looped: true,
                 },
-                instance_handle_priv: instance_priv,
+                instance_handle: instance_handle.clone(),
             }),
             channel_id.clone(),
         ));
 
-        instance
+        instance_handle
     }
 
     /// Play looped audio in the given channel with an intro
@@ -359,7 +361,7 @@ impl Audio {
         looped_audio_source: Handle<AudioSource>,
         channel_id: &AudioChannel,
     ) -> InstanceHandle {
-        let (instance, instance_priv) = InstanceHandle::new_pair();
+        let instance_handle = InstanceHandle::new();
 
         self.commands.write().push_front((
             AudioCommand::Play(PlayAudioCommandArgs {
@@ -368,12 +370,12 @@ impl Audio {
                     intro_source: Some(intro_audio_source),
                     looped: true,
                 },
-                instance_handle_priv: instance_priv,
+                instance_handle: instance_handle.clone(),
             }),
             channel_id.clone(),
         ));
 
-        instance
+        instance_handle
     }
 
     /// Stop audio in the given channel
@@ -479,5 +481,16 @@ impl Audio {
             AudioCommand::SetPlaybackRate(playback_rate),
             channel_id.clone(),
         ));
+    }
+
+    /// Get state for a playback instance.
+    pub fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
+        self.statuses
+            .get(&instance_handle)
+            .cloned()
+            .unwrap_or(PlaybackState {
+                status: PlaybackStatus::Stopped,
+                position: None,
+            })
     }
 }

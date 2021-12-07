@@ -43,7 +43,7 @@ mod source;
 mod stream;
 
 use crate::audio_output::{
-    play_queued_audio_system, stream_audio_system, update_instance_positions, AudioOutput,
+    play_queued_audio_system, stream_audio_system, update_instance_states_system, AudioOutput,
 };
 
 #[cfg(feature = "flac")]
@@ -121,7 +121,7 @@ impl Plugin for AudioPlugin {
             )
             .add_system_to_stage(
                 CoreStage::PreUpdate,
-                update_instance_positions.exclusive_system(),
+                update_instance_states_system.exclusive_system(),
             );
     }
 }
