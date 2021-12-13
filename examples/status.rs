@@ -19,7 +19,6 @@ fn start_audio(mut commands: Commands, asset_server: Res<AssetServer>, audio: Re
     let asset_handle = asset_server.load("sounds/loop.ogg");
     let instance_handle = audio.play(asset_handle);
     println!("Audio started.");
-    std::thread::sleep(std::time::Duration::from_secs(5));
     commands.insert_resource(LoopAudioInstanceHandle { instance_handle });
 }
 
