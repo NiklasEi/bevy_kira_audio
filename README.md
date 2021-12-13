@@ -50,7 +50,7 @@ fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 - [x] control playback rate
 - [ ] control pitch (no change in playback rate)
 - [x] control panning
-- [ ] get the current status of a track (time elapsed/left)?
+- [x] get the current status and position of a track (see the [`status` example](examples/status.rs))
 - [x] audio streaming
 
 Currently, sound settings are hard to control and usually your audio files get loaded with the default. With the feature `settings_loader` it is possible to define an audio asset with non-default semantic duration. The [semantic_duration](examples/semantic_duration.rs) example demonstrates loading and playing such an asset. More options will likely be supported in the future.
