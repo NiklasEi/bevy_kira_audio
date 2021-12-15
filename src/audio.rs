@@ -2,10 +2,11 @@ use crate::channel::AudioChannel;
 use crate::source::AudioSource;
 use bevy::prelude::Handle;
 use parking_lot::RwLock;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-pub enum AudioCommand {
-    Play(PlayAudioSettings),
+pub(crate) enum AudioCommand {
+    Play(PlayAudioCommandArgs),
     SetVolume(f32),
     SetPanning(f32),
     SetPlaybackRate(f32),
@@ -14,16 +15,73 @@ pub enum AudioCommand {
     Resume,
 }
 
+pub(crate) struct PlayAudioCommandArgs {
+    /// The settings for this Play command.
+    pub(crate) settings: PlayAudioSettings,
+
+    /// An instance handle to communicate with the consumer.
+    pub(crate) instance_handle: InstanceHandle,
+}
+
 pub enum AudioCommandResult {
     Ok,
     Retry,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-pub struct PlayAudioSettings {
+pub(crate) struct PlayAudioSettings {
     pub source: Handle<AudioSource>,
     pub intro_source: Option<Handle<AudioSource>>,
     pub looped: bool,
+}
+
+/// Allows you to interact with a playing sound.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct InstanceHandle {
+    id: u64,
+}
+
+static NEXT_INSTANCE_HANDLE_ID: AtomicU64 = AtomicU64::new(0);
+
+impl InstanceHandle {
+    fn new() -> InstanceHandle {
+        let id = NEXT_INSTANCE_HANDLE_ID.fetch_add(1, Ordering::SeqCst);
+        InstanceHandle { id }
+    }
+}
+
+/// Information about a currently playing sound.
+#[derive(Clone, Debug)]
+pub struct PlaybackState {
+    pub(crate) status: PlaybackStatus,
+    pub(crate) position: Option<f64>,
+}
+
+impl PlaybackState {
+    /// Return the PlaybackStatus of this instance
+    pub fn status(&self) -> PlaybackStatus {
+        self.status.clone()
+    }
+
+    /// Return the playback position of this instance
+    pub fn position(&self) -> Option<f64> {
+        self.position.clone()
+    }
+}
+
+/// Playback status of a currently playing sound.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PlaybackStatus {
+    /// The instance is playing.
+    Playing,
+    /// The instance is paused.
+    Paused,
+    /// The instance is stopped and cannot be resumed.
+    Stopped,
+    /// The instance is fading out and will be paused when the fadeout is finished.
+    Pausing,
+    /// The instance is fading out and will be stopped when the fadeout is finished.
+    Stopping,
 }
 
 /// Bevy Audio Resource
@@ -40,6 +98,7 @@ pub struct PlayAudioSettings {
 #[derive(Default)]
 pub struct Audio {
     pub(crate) commands: RwLock<VecDeque<(AudioCommand, AudioChannel)>>,
+    pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
 }
 
 impl Audio {
@@ -53,15 +112,22 @@ impl Audio {
     ///     audio.play(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    pub fn play(&self, audio_source: Handle<AudioSource>) {
+    pub fn play(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
+        let instance_handle = InstanceHandle::new();
+
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: false,
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: false,
+                },
+                instance_handle: instance_handle.clone(),
             }),
             AudioChannel::default(),
         ));
+
+        instance_handle
     }
 
     /// Play looped audio in the default channel
@@ -74,15 +140,22 @@ impl Audio {
     ///     audio.play_looped(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    pub fn play_looped(&self, audio_source: Handle<AudioSource>) {
+    pub fn play_looped(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
+        let instance_handle = InstanceHandle::new();
+
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: true,
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: true,
+                },
+                instance_handle: instance_handle.clone(),
             }),
             AudioChannel::default(),
         ));
+
+        instance_handle
     }
 
     /// Play looped audio in the default channel with an intro
@@ -99,15 +172,22 @@ impl Audio {
         &self,
         intro_audio_source: Handle<AudioSource>,
         looped_audio_source: Handle<AudioSource>,
-    ) {
+    ) -> InstanceHandle {
+        let instance_handle = InstanceHandle::new();
+
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: looped_audio_source,
-                intro_source: Some(intro_audio_source),
-                looped: true,
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: looped_audio_source,
+                    intro_source: Some(intro_audio_source),
+                    looped: true,
+                },
+                instance_handle: instance_handle.clone(),
             }),
             AudioChannel::default(),
         ));
+
+        instance_handle
     }
 
     /// Stop all audio in the default channel
@@ -225,15 +305,26 @@ impl Audio {
     ///     audio.play_in_channel(asset_server.load("audio.mp3"), &AudioChannel::new("my-channel".to_owned()));
     /// }
     /// ```
-    pub fn play_in_channel(&self, audio_source: Handle<AudioSource>, channel_id: &AudioChannel) {
+    pub fn play_in_channel(
+        &self,
+        audio_source: Handle<AudioSource>,
+        channel_id: &AudioChannel,
+    ) -> InstanceHandle {
+        let instance_handle = InstanceHandle::new();
+
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: false,
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: false,
+                },
+                instance_handle: instance_handle.clone(),
             }),
             channel_id.clone(),
         ));
+
+        instance_handle
     }
 
     /// Play looped audio in the given channel
@@ -250,15 +341,22 @@ impl Audio {
         &self,
         audio_source: Handle<AudioSource>,
         channel_id: &AudioChannel,
-    ) {
+    ) -> InstanceHandle {
+        let instance_handle = InstanceHandle::new();
+
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: audio_source,
-                intro_source: None,
-                looped: true,
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: audio_source,
+                    intro_source: None,
+                    looped: true,
+                },
+                instance_handle: instance_handle.clone(),
             }),
             channel_id.clone(),
         ));
+
+        instance_handle
     }
 
     /// Play looped audio in the given channel with an intro
@@ -279,15 +377,22 @@ impl Audio {
         intro_audio_source: Handle<AudioSource>,
         looped_audio_source: Handle<AudioSource>,
         channel_id: &AudioChannel,
-    ) {
+    ) -> InstanceHandle {
+        let instance_handle = InstanceHandle::new();
+
         self.commands.write().push_front((
-            AudioCommand::Play(PlayAudioSettings {
-                source: looped_audio_source,
-                intro_source: Some(intro_audio_source),
-                looped: true,
+            AudioCommand::Play(PlayAudioCommandArgs {
+                settings: PlayAudioSettings {
+                    source: looped_audio_source,
+                    intro_source: Some(intro_audio_source),
+                    looped: true,
+                },
+                instance_handle: instance_handle.clone(),
             }),
             channel_id.clone(),
         ));
+
+        instance_handle
     }
 
     /// Stop audio in the given channel
@@ -393,5 +498,16 @@ impl Audio {
             AudioCommand::SetPlaybackRate(playback_rate),
             channel_id.clone(),
         ));
+    }
+
+    /// Get state for a playback instance.
+    pub fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
+        self.states
+            .get(&instance_handle)
+            .cloned()
+            .unwrap_or(PlaybackState {
+                status: PlaybackStatus::Stopped,
+                position: None,
+            })
     }
 }
