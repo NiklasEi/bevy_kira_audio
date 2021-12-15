@@ -170,12 +170,12 @@ fn update_start_loop_buttons(
             && audio_state.audio_loaded
         {
             if interaction == &Interaction::Hovered {
-                HOVERED_BUTTON.clone().into()
+                HOVERED_BUTTON.into()
             } else {
-                NORMAL_BUTTON.clone().into()
+                NORMAL_BUTTON.into()
             }
         } else {
-            DISABLED_BUTTON.clone().into()
+            DISABLED_BUTTON.into()
         }
     }
 }
@@ -188,11 +188,11 @@ fn update_play_pause_buttons(
     for (interaction, mut color, button) in play_pause.iter_mut() {
         let audio_state = audio_state.channels.get(&button.channel).unwrap();
         *color = if audio_state.stopped {
-            DISABLED_BUTTON.clone().into()
+            DISABLED_BUTTON.into()
         } else if interaction == &Interaction::Hovered {
-            HOVERED_BUTTON.clone().into()
+            HOVERED_BUTTON.into()
         } else {
-            NORMAL_BUTTON.clone().into()
+            NORMAL_BUTTON.into()
         };
         for (text_button, mut text) in play_pause_text.iter_mut() {
             if text_button.channel == button.channel {
@@ -213,12 +213,12 @@ fn update_play_single_sound_buttons(
     for (interaction, mut material, _button) in play_single_sound.iter_mut() {
         *material = if audio_state.audio_loaded {
             if interaction == &Interaction::Hovered {
-                HOVERED_BUTTON.clone().into()
+                HOVERED_BUTTON.into()
             } else {
-                NORMAL_BUTTON.clone().into()
+                NORMAL_BUTTON.into()
             }
         } else {
-            DISABLED_BUTTON.clone().into()
+            DISABLED_BUTTON.into()
         }
     }
 }
@@ -229,11 +229,11 @@ fn update_stop_buttons(
 ) {
     for (interaction, mut material, button) in stop.iter_mut() {
         *material = if audio_state.channels.get(&button.channel).unwrap().stopped {
-            DISABLED_BUTTON.clone().into()
+            DISABLED_BUTTON.into()
         } else if interaction == &Interaction::Hovered {
-            HOVERED_BUTTON.clone().into()
+            HOVERED_BUTTON.into()
         } else {
-            NORMAL_BUTTON.clone().into()
+            NORMAL_BUTTON.into()
         }
     }
 }
@@ -243,9 +243,9 @@ fn update_volume_buttons(
 ) {
     for (interaction, mut material) in volume.iter_mut() {
         *material = if interaction == &Interaction::Hovered {
-            HOVERED_BUTTON.clone().into()
+            HOVERED_BUTTON.into()
         } else {
-            NORMAL_BUTTON.clone().into()
+            NORMAL_BUTTON.into()
         }
     }
 }
@@ -386,7 +386,7 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_s
                             parent,
                             channel,
                             "Sound",
-                            DISABLED_BUTTON.clone().into(),
+                            DISABLED_BUTTON.into(),
                             PlaySingleSound,
                             font.clone(),
                         );
@@ -394,7 +394,7 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_s
                             parent,
                             channel,
                             "Loop",
-                            DISABLED_BUTTON.clone().into(),
+                            DISABLED_BUTTON.into(),
                             StartLoopButton,
                             font.clone(),
                         );
@@ -407,7 +407,7 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_s
                                     align_items: AlignItems::Center,
                                     ..Default::default()
                                 },
-                                color: DISABLED_BUTTON.clone().into(),
+                                color: DISABLED_BUTTON.into(),
                                 ..Default::default()
                             })
                             .insert(PlayPauseButton)
@@ -438,7 +438,7 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_s
                             parent,
                             channel,
                             "Vol. up",
-                            NORMAL_BUTTON.clone().into(),
+                            NORMAL_BUTTON.into(),
                             ChangeVolumeButton { louder: true },
                             font.clone(),
                         );
@@ -446,7 +446,7 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_s
                             parent,
                             channel,
                             "Vol. down",
-                            NORMAL_BUTTON.clone().into(),
+                            NORMAL_BUTTON.into(),
                             ChangeVolumeButton { louder: false },
                             font.clone(),
                         );
@@ -454,7 +454,7 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_s
                             parent,
                             channel,
                             "Stop",
-                            DISABLED_BUTTON.clone().into(),
+                            DISABLED_BUTTON.into(),
                             StopButton,
                             font.clone(),
                         );
