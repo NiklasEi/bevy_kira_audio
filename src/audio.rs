@@ -65,7 +65,7 @@ impl PlaybackState {
 
     /// Return the playback position of this instance
     pub fn position(&self) -> Option<f64> {
-        self.position.clone()
+        self.position
     }
 }
 

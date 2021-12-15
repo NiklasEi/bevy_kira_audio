@@ -55,10 +55,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            visible: Visible {
-                is_visible: false,
-                is_transparent: true,
-            },
+            color: Color::rgba(0., 0., 0., 0.).into(),
             ..Default::default()
         })
         .with_children(|parent| {
