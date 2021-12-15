@@ -4,7 +4,7 @@ mod ogg_loader;
 mod settings_loader;
 mod wav_loader;
 
-use bevy_reflect::TypeUuid;
+use bevy::reflect::TypeUuid;
 use kira::sound::Sound;
 
 pub use flac_loader::FlacLoader;

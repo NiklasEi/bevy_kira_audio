@@ -3,7 +3,7 @@ use crate::audio::{
     PlaybackStatus,
 };
 use bevy::prelude::*;
-use bevy_utils::tracing::warn;
+use bevy::utils::tracing::warn;
 
 use crate::channel::AudioChannel;
 use crate::source::AudioSource;
