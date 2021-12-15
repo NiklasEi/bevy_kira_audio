@@ -15,7 +15,6 @@ fn main() {
     })
     .add_plugins(DefaultPlugins)
     .add_plugin(AudioPlugin)
-    .init_resource::<ButtonMaterials>()
     .add_startup_system(prepare_audio_and_ui.system())
     .add_system(check_audio_loading.system())
     .add_system(stop_button.system())
@@ -160,14 +159,10 @@ fn control_volume(
 
 fn update_start_loop_buttons(
     audio_state: Res<AudioState>,
-    button_materials: Res<ButtonMaterials>,
-    mut start_loop: Query<
-        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
-        With<StartLoopButton>,
-    >,
+    mut start_loop: Query<(&Interaction, &mut UiColor, &Channel), With<StartLoopButton>>,
 ) {
-    for (interaction, mut material, button) in start_loop.iter_mut() {
-        *material = if !audio_state
+    for (interaction, mut color, button) in start_loop.iter_mut() {
+        *color = if !audio_state
             .channels
             .get(&button.channel)
             .unwrap()
@@ -175,33 +170,29 @@ fn update_start_loop_buttons(
             && audio_state.audio_loaded
         {
             if interaction == &Interaction::Hovered {
-                button_materials.hovered.clone()
+                HOVERED_BUTTON.clone().into()
             } else {
-                button_materials.normal.clone()
+                NORMAL_BUTTON.clone().into()
             }
         } else {
-            button_materials.disabled.clone()
+            DISABLED_BUTTON.clone().into()
         }
     }
 }
 
 fn update_play_pause_buttons(
     audio_state: Res<AudioState>,
-    button_materials: Res<ButtonMaterials>,
-    mut play_pause: Query<
-        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
-        With<PlayPauseButton>,
-    >,
+    mut play_pause: Query<(&Interaction, &mut UiColor, &Channel), With<PlayPauseButton>>,
     mut play_pause_text: Query<(&Channel, &mut Text)>,
 ) {
-    for (interaction, mut material, button) in play_pause.iter_mut() {
+    for (interaction, mut color, button) in play_pause.iter_mut() {
         let audio_state = audio_state.channels.get(&button.channel).unwrap();
-        *material = if audio_state.stopped {
-            button_materials.disabled.clone()
+        *color = if audio_state.stopped {
+            DISABLED_BUTTON.clone().into()
         } else if interaction == &Interaction::Hovered {
-            button_materials.hovered.clone()
+            HOVERED_BUTTON.clone().into()
         } else {
-            button_materials.normal.clone()
+            NORMAL_BUTTON.clone().into()
         };
         for (text_button, mut text) in play_pause_text.iter_mut() {
             if text_button.channel == button.channel {
@@ -217,50 +208,44 @@ fn update_play_pause_buttons(
 
 fn update_play_single_sound_buttons(
     audio_state: Res<AudioState>,
-    button_materials: Res<ButtonMaterials>,
-    mut play_single_sound: Query<
-        (&Interaction, &mut Handle<ColorMaterial>, &Channel),
-        With<PlaySingleSound>,
-    >,
+    mut play_single_sound: Query<(&Interaction, &mut UiColor, &Channel), With<PlaySingleSound>>,
 ) {
     for (interaction, mut material, _button) in play_single_sound.iter_mut() {
         *material = if audio_state.audio_loaded {
             if interaction == &Interaction::Hovered {
-                button_materials.hovered.clone()
+                HOVERED_BUTTON.clone().into()
             } else {
-                button_materials.normal.clone()
+                NORMAL_BUTTON.clone().into()
             }
         } else {
-            button_materials.disabled.clone()
+            DISABLED_BUTTON.clone().into()
         }
     }
 }
 
 fn update_stop_buttons(
     audio_state: Res<AudioState>,
-    button_materials: Res<ButtonMaterials>,
-    mut stop: Query<(&Interaction, &mut Handle<ColorMaterial>, &Channel), With<StopButton>>,
+    mut stop: Query<(&Interaction, &mut UiColor, &Channel), With<StopButton>>,
 ) {
     for (interaction, mut material, button) in stop.iter_mut() {
         *material = if audio_state.channels.get(&button.channel).unwrap().stopped {
-            button_materials.disabled.clone()
+            DISABLED_BUTTON.clone().into()
         } else if interaction == &Interaction::Hovered {
-            button_materials.hovered.clone()
+            HOVERED_BUTTON.clone().into()
         } else {
-            button_materials.normal.clone()
+            NORMAL_BUTTON.clone().into()
         }
     }
 }
 
 fn update_volume_buttons(
-    button_materials: Res<ButtonMaterials>,
-    mut volume: Query<(&Interaction, &mut Handle<ColorMaterial>), With<ChangeVolumeButton>>,
+    mut volume: Query<(&Interaction, &mut UiColor), With<ChangeVolumeButton>>,
 ) {
     for (interaction, mut material) in volume.iter_mut() {
         *material = if interaction == &Interaction::Hovered {
-            button_materials.hovered.clone()
+            HOVERED_BUTTON.clone().into()
         } else {
-            button_materials.normal.clone()
+            NORMAL_BUTTON.clone().into()
         }
     }
 }
@@ -312,28 +297,11 @@ impl Default for ChannelAudioState {
     }
 }
 
-struct ButtonMaterials {
-    normal: Handle<ColorMaterial>,
-    hovered: Handle<ColorMaterial>,
-    disabled: Handle<ColorMaterial>,
-}
+const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+const DISABLED_BUTTON: Color = Color::rgb(0.5, 0.5, 0.5);
 
-impl FromWorld for ButtonMaterials {
-    fn from_world(world: &mut World) -> Self {
-        let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
-        ButtonMaterials {
-            normal: materials.add(Color::rgb(0.15, 0.15, 0.15).into()),
-            hovered: materials.add(Color::rgb(0.25, 0.25, 0.25).into()),
-            disabled: materials.add(Color::rgb(0.5, 0.5, 0.5).into()),
-        }
-    }
-}
-
-fn prepare_audio_and_ui(
-    mut commands: Commands,
-    asset_server: ResMut<AssetServer>,
-    button_materials: Res<ButtonMaterials>,
-) {
+fn prepare_audio_and_ui(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let mut channels = HashMap::new();
     channels.insert(
         AudioChannel::new("first".to_owned()),
@@ -357,17 +325,12 @@ fn prepare_audio_and_ui(
         sound_handle,
     };
 
-    set_up_ui(&mut commands, asset_server, &audio_state, button_materials);
+    set_up_ui(&mut commands, asset_server, &audio_state);
 
     commands.insert_resource(audio_state);
 }
 
-fn set_up_ui(
-    commands: &mut Commands,
-    asset_server: ResMut<AssetServer>,
-    audio_state: &AudioState,
-    button_materials: Res<ButtonMaterials>,
-) {
+fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>, audio_state: &AudioState) {
     let font = asset_server.load("fonts/monogram.ttf");
     commands.spawn_bundle(UiCameraBundle::default());
     commands
@@ -423,7 +386,7 @@ fn set_up_ui(
                             parent,
                             channel,
                             "Sound",
-                            button_materials.disabled.clone(),
+                            DISABLED_BUTTON.clone().into(),
                             PlaySingleSound,
                             font.clone(),
                         );
@@ -431,7 +394,7 @@ fn set_up_ui(
                             parent,
                             channel,
                             "Loop",
-                            button_materials.disabled.clone(),
+                            DISABLED_BUTTON.clone().into(),
                             StartLoopButton,
                             font.clone(),
                         );
@@ -444,7 +407,7 @@ fn set_up_ui(
                                     align_items: AlignItems::Center,
                                     ..Default::default()
                                 },
-                                material: button_materials.disabled.clone(),
+                                color: DISABLED_BUTTON.clone().into(),
                                 ..Default::default()
                             })
                             .insert(PlayPauseButton)
@@ -475,7 +438,7 @@ fn set_up_ui(
                             parent,
                             channel,
                             "Vol. up",
-                            button_materials.normal.clone(),
+                            NORMAL_BUTTON.clone().into(),
                             ChangeVolumeButton { louder: true },
                             font.clone(),
                         );
@@ -483,7 +446,7 @@ fn set_up_ui(
                             parent,
                             channel,
                             "Vol. down",
-                            button_materials.normal.clone(),
+                            NORMAL_BUTTON.clone().into(),
                             ChangeVolumeButton { louder: false },
                             font.clone(),
                         );
@@ -491,7 +454,7 @@ fn set_up_ui(
                             parent,
                             channel,
                             "Stop",
-                            button_materials.disabled.clone(),
+                            DISABLED_BUTTON.clone().into(),
                             StopButton,
                             font.clone(),
                         );
@@ -504,7 +467,7 @@ fn spawn_button<T: Component>(
     parent: &mut ChildBuilder,
     channel: &AudioChannel,
     text: &str,
-    material: Handle<ColorMaterial>,
+    color: UiColor,
     marker: T,
     font: Handle<Font>,
 ) {
@@ -517,7 +480,7 @@ fn spawn_button<T: Component>(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            material,
+            color,
             ..Default::default()
         })
         .insert(marker)
