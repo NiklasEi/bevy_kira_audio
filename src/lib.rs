@@ -31,7 +31,7 @@
 #![forbid(unsafe_code)]
 #![warn(unused_imports, missing_docs)]
 
-pub use audio::Audio;
+pub use audio::{Audio, InstanceHandle, PlaybackState, PlaybackStatus};
 pub use channel::AudioChannel;
 pub use source::AudioSource;
 pub use stream::{AudioStream, Frame, StreamedAudio};
@@ -42,7 +42,9 @@ mod channel;
 mod source;
 mod stream;
 
-use crate::audio_output::{play_queued_audio_system, stream_audio_system, AudioOutput};
+use crate::audio_output::{
+    play_queued_audio_system, stream_audio_system, update_instance_states_system, AudioOutput,
+};
 
 #[cfg(feature = "flac")]
 use crate::source::FlacLoader;
@@ -54,6 +56,7 @@ use crate::source::OggLoader;
 use crate::source::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
+use bevy::ecs::system::IntoExclusiveSystem;
 use bevy::prelude::{AddAsset, App, CoreStage, Plugin};
 use std::marker::PhantomData;
 
@@ -113,7 +116,11 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<Audio>()
-            .add_system_to_stage(CoreStage::PostUpdate, play_queued_audio_system);
+            .add_system_to_stage(CoreStage::PostUpdate, play_queued_audio_system)
+            .add_system_to_stage(
+                CoreStage::PreUpdate,
+                update_instance_states_system.exclusive_system(),
+            );
     }
 }
 
