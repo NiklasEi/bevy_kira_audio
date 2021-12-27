@@ -4,7 +4,7 @@ use std::{io::Cursor, path::PathBuf};
 #[cfg(feature = "settings_loader")]
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
 #[cfg(feature = "settings_loader")]
-use bevy_utils::BoxedFuture;
+use bevy::utils::BoxedFuture;
 #[cfg(feature = "settings_loader")]
 use kira::sound::{error::SoundFromFileError, Sound, SoundSettings};
 #[cfg(feature = "settings_loader")]

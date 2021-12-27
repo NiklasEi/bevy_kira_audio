@@ -510,20 +510,23 @@ impl Audio {
 
     /// Get state for a playback instance.
     pub fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
-        self.states.get(&instance_handle).cloned().unwrap_or(
-            self.commands
-                .read()
-                .iter()
-                .find(|(command, _)| match command {
-                    AudioCommand::Play(PlayAudioCommandArgs {
-                        instance_handle: handle,
-                        settings: _,
-                    }) => handle.id == instance_handle.id,
-                    _ => false,
-                })
-                .map(|_| PlaybackState::Queued)
-                .unwrap_or(PlaybackState::Stopped),
-        )
+        self.states
+            .get(&instance_handle)
+            .cloned()
+            .unwrap_or_else(|| {
+                self.commands
+                    .read()
+                    .iter()
+                    .find(|(command, _)| match command {
+                        AudioCommand::Play(PlayAudioCommandArgs {
+                            instance_handle: handle,
+                            settings: _,
+                        }) => handle.id == instance_handle.id,
+                        _ => false,
+                    })
+                    .map(|_| PlaybackState::Queued)
+                    .unwrap_or(PlaybackState::Stopped)
+            })
     }
 }
 
