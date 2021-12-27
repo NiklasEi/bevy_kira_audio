@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.0
+- The playback position of audio can be requested from the `Audio` resource
+- Update to Rust edition 2021
+
 ## v0.6.0
 - Relicense under dual MIT or Apache-2.0
 - Clean up stopped instances
