@@ -50,38 +50,46 @@ impl InstanceHandle {
     }
 }
 
-/// Information about a currently playing sound.
-#[derive(Clone, Debug)]
-pub struct PlaybackState {
-    pub(crate) status: PlaybackStatus,
-    pub(crate) position: Option<f64>,
-}
-
-impl PlaybackState {
-    /// Return the PlaybackStatus of this instance
-    pub fn status(&self) -> PlaybackStatus {
-        self.status.clone()
-    }
-
-    /// Return the playback position of this instance
-    pub fn position(&self) -> Option<f64> {
-        self.position
-    }
-}
-
 /// Playback status of a currently playing sound.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlaybackStatus {
+#[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
+pub enum PlaybackState {
+    /// The instance is queued
+    Queued,
     /// The instance is playing.
-    Playing,
+    Playing {
+        /// Playback position in seconds
+        position: f64,
+    },
     /// The instance is paused.
-    Paused,
+    Paused {
+        /// Playback position in seconds
+        position: f64,
+    },
     /// The instance is stopped and cannot be resumed.
     Stopped,
     /// The instance is fading out and will be paused when the fadeout is finished.
-    Pausing,
+    Pausing {
+        /// Playback position in seconds
+        position: f64,
+    },
     /// The instance is fading out and will be stopped when the fadeout is finished.
-    Stopping,
+    Stopping {
+        /// Playback position in seconds
+        position: f64,
+    },
+}
+
+impl PlaybackState {
+    /// Get the playback position in seconds
+    pub fn position(&self) -> Option<f64> {
+        match self {
+            PlaybackState::Queued | PlaybackState::Stopped => None,
+            PlaybackState::Playing { position }
+            | PlaybackState::Paused { position }
+            | PlaybackState::Pausing { position }
+            | PlaybackState::Stopping { position } => Some(*position),
+        }
+    }
 }
 
 /// Bevy Audio Resource
@@ -505,9 +513,58 @@ impl Audio {
         self.states
             .get(&instance_handle)
             .cloned()
-            .unwrap_or(PlaybackState {
-                status: PlaybackStatus::Stopped,
-                position: None,
+            .unwrap_or_else(|| {
+                self.commands
+                    .read()
+                    .iter()
+                    .find(|(command, _)| match command {
+                        AudioCommand::Play(PlayAudioCommandArgs {
+                            instance_handle: handle,
+                            settings: _,
+                        }) => handle.id == instance_handle.id,
+                        _ => false,
+                    })
+                    .map(|_| PlaybackState::Queued)
+                    .unwrap_or(PlaybackState::Stopped)
             })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use bevy::asset::HandleId;
+
+    #[test]
+    fn state_is_queued_if_command_is_queued() {
+        let audio = Audio::default();
+        let audio_handle: Handle<AudioSource> =
+            Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
+        let instance_handle = audio.play(audio_handle);
+
+        assert_eq!(audio.state(instance_handle), PlaybackState::Queued);
+    }
+
+    #[test]
+    fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
+        let audio = Audio::default();
+        let instance_handle = InstanceHandle::new();
+
+        assert_eq!(audio.state(instance_handle), PlaybackState::Stopped);
+    }
+
+    #[test]
+    fn state_is_fetched_from_state_map() {
+        let mut audio = Audio::default();
+        let instance_handle = InstanceHandle::new();
+        audio.states.insert(
+            instance_handle.clone(),
+            PlaybackState::Pausing { position: 42. },
+        );
+
+        assert_eq!(
+            audio.state(instance_handle),
+            PlaybackState::Pausing { position: 42. }
+        );
     }
 }
