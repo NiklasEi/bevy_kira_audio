@@ -9,7 +9,7 @@
 //! # use bevy::asset::AssetPlugin;
 //! # use bevy::app::AppExit;
 //! fn main() {
-//!    let mut app = App::build();
+//!    let mut app = App::new();
 //!    app
 //!         .add_plugins(MinimalPlugins)
 //!         .add_plugin(AssetPlugin)
@@ -56,7 +56,8 @@ use crate::source::OggLoader;
 use crate::source::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
-use bevy::prelude::{AddAsset, AppBuilder, CoreStage, IntoExclusiveSystem, Plugin};
+use bevy::ecs::system::IntoExclusiveSystem;
+use bevy::prelude::{AddAsset, App, CoreStage, Plugin};
 use std::marker::PhantomData;
 
 #[cfg(all(
@@ -77,7 +78,7 @@ compile_error!("You need to enable at least one of the bevy_kira_audio features 
 /// # use bevy::asset::AssetPlugin;
 /// # use bevy::app::AppExit;
 /// fn main() {
-///    let mut app = App::build();
+///    let mut app = App::new();
 ///    app
 ///         .add_plugins(MinimalPlugins)
 ///         .add_plugin(AssetPlugin)
@@ -99,7 +100,7 @@ compile_error!("You need to enable at least one of the bevy_kira_audio features 
 pub struct AudioPlugin;
 
 impl Plugin for AudioPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.init_non_send_resource::<AudioOutput>()
             .add_asset::<AudioSource>();
 
@@ -115,10 +116,7 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<Audio>()
-            .add_system_to_stage(
-                CoreStage::PostUpdate,
-                play_queued_audio_system.exclusive_system(),
-            )
+            .add_system_to_stage(CoreStage::PostUpdate, play_queued_audio_system)
             .add_system_to_stage(
                 CoreStage::PreUpdate,
                 update_instance_states_system.exclusive_system(),
@@ -135,7 +133,7 @@ impl Plugin for AudioPlugin {
 /// # use bevy::asset::AssetPlugin;
 /// # use bevy::app::AppExit;
 /// fn main() {
-///    let mut app = App::build();
+///    let mut app = App::new();
 ///    app
 ///         .add_plugins(MinimalPlugins)
 ///         .add_plugin(AssetPlugin)
@@ -187,11 +185,9 @@ impl<T> Plugin for AudioStreamPlugin<T>
 where
     T: AudioStream,
 {
-    fn build(&self, app: &mut AppBuilder) {
-        app.init_resource::<StreamedAudio<T>>().add_system_to_stage(
-            CoreStage::PostUpdate,
-            stream_audio_system::<T>.exclusive_system(),
-        );
+    fn build(&self, app: &mut App) {
+        app.init_resource::<StreamedAudio<T>>()
+            .add_system_to_stage(CoreStage::PostUpdate, stream_audio_system::<T>);
     }
 }
 

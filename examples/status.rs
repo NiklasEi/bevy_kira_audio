@@ -6,13 +6,13 @@ struct LoopAudioInstanceHandle {
 }
 
 fn main() {
-    App::build()
+    App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
-        .add_startup_system(start_audio.system())
-        .add_startup_system(display_help_text.system())
-        .add_system(print_status.system())
-        .add_system(process_keyboard_input.system())
+        .add_startup_system(start_audio)
+        .add_startup_system(display_help_text)
+        .add_system(print_status)
+        .add_system(process_keyboard_input)
         .run();
 }
 
@@ -55,10 +55,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            visible: Visible {
-                is_visible: false,
-                is_transparent: true,
-            },
+            color: Color::rgba(0., 0., 0., 0.).into(),
             ..Default::default()
         })
         .with_children(|parent| {
