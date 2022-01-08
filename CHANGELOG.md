@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.8.0
+- Update to Bevy version 0.6
+
 ## v0.7.0
 - The playback position of audio can be requested from the `Audio` resource
 - Update to Rust edition 2021

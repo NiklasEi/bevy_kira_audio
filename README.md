@@ -11,7 +11,7 @@ You can check out the `examples` directory in this repository for a display of t
 
 ## Usage
 
-*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `mp3` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.5.0/Cargo.toml#L23-L34) for a list of all default features of version `0.5.0` and list them manually in your Cargo file excluding the ones you do not want.*
+*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.6.0/Cargo.toml#L20-L28) for a list of all default features of version `0.6.0` and list them manually in your Cargo file excluding the ones you do not want.*
 
 
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
@@ -61,9 +61,10 @@ The main branch is compatible with the latest Bevy release, while the branch `be
 Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
 | :--               | :--    |
+| `0.8`             | `0.6`  |
 | `0.4` - `0.7`     | `0.5`  |
 | `0.3`             | `0.4`  |
-| `main`            | `0.5`  |
+| `main`            | `0.6`  |
 | `bevy_main`       | `main` |
 
 ## License
