@@ -14,8 +14,8 @@
 //!         .add_plugins(MinimalPlugins)
 //!         .add_plugin(AssetPlugin)
 //!         .add_plugin(AudioPlugin)
-//! #       .add_system(stop.system())
-//!         .add_startup_system(start_background_audio.system());
+//! #       .add_system(stop)
+//!         .add_startup_system(start_background_audio);
 //!    app.run();
 //! }
 //!
@@ -83,8 +83,8 @@ compile_error!("You need to enable at least one of the bevy_kira_audio features 
 ///         .add_plugins(MinimalPlugins)
 ///         .add_plugin(AssetPlugin)
 ///         .add_plugin(AudioPlugin)
-/// #       .add_system(stop.system())
-///         .add_startup_system(start_background_audio.system());
+/// #       .add_system(stop)
+///         .add_startup_system(start_background_audio);
 ///    app.run();
 /// }
 ///
@@ -138,9 +138,9 @@ impl Plugin for AudioPlugin {
 ///         .add_plugins(MinimalPlugins)
 ///         .add_plugin(AssetPlugin)
 ///         .add_plugin(AudioPlugin)
-/// #       .add_system(stop.system())
+/// #       .add_system(stop)
 ///         .add_plugin(AudioStreamPlugin::<SineStream>::default())
-///         .add_startup_system(start_stream.system());
+///         .add_startup_system(start_stream);
 ///    app.run();
 /// }
 ///

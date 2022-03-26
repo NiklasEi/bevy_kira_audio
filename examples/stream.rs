@@ -6,7 +6,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .add_plugin(AudioStreamPlugin::<SineStream>::default())
-        .add_startup_system(start_stream.system())
+        .add_startup_system(start_stream)
         .run();
 }
 

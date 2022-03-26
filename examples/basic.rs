@@ -15,18 +15,18 @@ fn main() {
     })
     .add_plugins(DefaultPlugins)
     .add_plugin(AudioPlugin)
-    .add_startup_system(prepare_audio_and_ui.system())
-    .add_system(check_audio_loading.system())
-    .add_system(stop_button.system())
-    .add_system(start_loop.system())
-    .add_system(update_start_loop_buttons.system())
-    .add_system(update_play_pause_buttons.system())
-    .add_system(update_play_single_sound_buttons.system())
-    .add_system(update_stop_buttons.system())
-    .add_system(update_volume_buttons.system())
-    .add_system(control_volume.system())
-    .add_system(play_single_sound.system())
-    .add_system(play_pause_button.system());
+    .add_startup_system(prepare_audio_and_ui)
+    .add_system(check_audio_loading)
+    .add_system(stop_button)
+    .add_system(start_loop)
+    .add_system(update_start_loop_buttons)
+    .add_system(update_play_pause_buttons)
+    .add_system(update_play_single_sound_buttons)
+    .add_system(update_stop_buttons)
+    .add_system(update_volume_buttons)
+    .add_system(control_volume)
+    .add_system(play_single_sound)
+    .add_system(play_pause_button);
 
     app.run();
 }
