@@ -17,5 +17,6 @@ pub use wav_loader::WavLoader;
 #[derive(Debug, Clone, TypeUuid)]
 #[uuid = "6a9fc4ca-b5b5-94d6-613c-522e2d9fe86d"]
 pub struct AudioSource {
+    /// The Kira sound making up this `AudioSource`
     pub sound: Sound,
 }
