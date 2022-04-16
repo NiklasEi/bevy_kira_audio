@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.9.0-github.bevy-main"
+version = "0.9.0"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -23,7 +23,7 @@ wav = ["kira/wav"]
 
 [dependencies]
 # bevy
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "28ba87e6c8f48a6b41b6743b748a72d41728523c", default-features = false }
+bevy = { version = "0.7", default-features = false }
 # other
 anyhow = "1.0"
 kira = { version = "0.5.2", default-features = false }
@@ -32,7 +32,7 @@ ron = { version = "0.6.2", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "28ba87e6c8f48a6b41b6743b748a72d41728523c", features = ["bevy_gltf", "bevy_winit", "render"] }
+bevy = { version = "0.7", features = ["bevy_gltf", "bevy_winit", "render"] }
 
 [[example]]
 name = "basic"

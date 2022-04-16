@@ -60,11 +60,12 @@ The main branch is compatible with the latest Bevy release, while the branch `be
 
 Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
-| :--               | :--    |
+|  :--              |  :--   |
+| `0.9`             | `0.7`  |
 | `0.8`             | `0.6`  |
 | `0.4` - `0.7`     | `0.5`  |
 | `0.3`             | `0.4`  |
-| `main`            | `0.6`  |
+| `main`            | `0.7`  |
 | `bevy_main`       | `main` |
 
 ## License

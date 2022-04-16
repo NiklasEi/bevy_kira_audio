@@ -8,6 +8,7 @@ use crate::channel::AudioChannel;
 use crate::source::AudioSource;
 use crate::stream::{InternalAudioStream, StreamCommands, StreamedAudio};
 use crate::AudioStream;
+use bevy::ecs::system::SystemState;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
 use kira::audio_stream::AudioStreamId;
@@ -451,10 +452,10 @@ pub fn stream_audio_system<T: AudioStream>(
 }
 
 pub fn update_instance_states_system(world: &mut World) {
-    let world = world.cell();
+    let mut system_state: SystemState<(NonSend<AudioOutput>, ResMut<Audio>)> =
+        SystemState::new(world);
+    let (audio_output, mut audio) = system_state.get_mut(world);
 
-    let audio_output = world.get_non_send::<AudioOutput>().unwrap();
-    let mut audio = world.get_resource_mut::<Audio>().unwrap();
     for instance_state_vec in audio_output.instances.values() {
         for instance_state in instance_state_vec.iter() {
             let position = instance_state.kira.position();
