@@ -1,5 +1,7 @@
 # Changelog
 
+## v0.9.0
+- Update to Bevy version 0.7
 - the sound field in `AudioSource` is now public ([#37](https://github.com/NiklasEi/bevy_kira_audio/pull/37))
 
 ## v0.8.0
