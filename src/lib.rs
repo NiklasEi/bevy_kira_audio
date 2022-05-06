@@ -31,7 +31,7 @@
 #![forbid(unsafe_code)]
 #![warn(unused_imports, missing_docs)]
 
-pub use audio::{Audio, InstanceHandle, PlaybackState};
+pub use audio::{AudioApp, Channel, InstanceHandle, PlaybackState};
 pub use channel::AudioChannel;
 pub use source::AudioSource;
 pub use stream::{AudioStream, Frame, StreamedAudio};
@@ -42,9 +42,7 @@ mod channel;
 mod source;
 mod stream;
 
-use crate::audio_output::{
-    play_queued_audio_system, stream_audio_system, update_instance_states_system, AudioOutput,
-};
+use crate::audio_output::{cleanup_stopped_instances, stream_audio_system, AudioOutput};
 
 #[cfg(feature = "flac")]
 use crate::source::FlacLoader;
@@ -56,8 +54,9 @@ use crate::source::OggLoader;
 use crate::source::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::WavLoader;
-use bevy::ecs::system::IntoExclusiveSystem;
-use bevy::prelude::{AddAsset, App, CoreStage, Plugin};
+use bevy::prelude::{
+    AddAsset, App, CoreStage, ParallelSystemDescriptorCoercion, Plugin, SystemLabel,
+};
 use std::marker::PhantomData;
 
 #[cfg(all(
@@ -115,14 +114,24 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
-        app.init_resource::<Audio>()
-            .add_system_to_stage(CoreStage::PostUpdate, play_queued_audio_system)
-            .add_system_to_stage(
-                CoreStage::PreUpdate,
-                update_instance_states_system.exclusive_system(),
-            );
+        app.add_system_to_stage(
+            CoreStage::PreUpdate,
+            cleanup_stopped_instances.label(AudioSystemLabel::InstanceCleanup),
+        )
+        .add_channel::<Audio>();
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
+pub(crate) enum AudioSystemLabel {
+    InstanceCleanup,
+}
+
+/// The default audio channel
+///
+/// Use it as a [`Channel<Audio>`] resource in your systems.
+/// You can add your own channels via [`add_channel`](audio::AudioApp::add_channel).
+pub struct Audio;
 
 /// A Bevy plugin for streaming of audio
 ///
