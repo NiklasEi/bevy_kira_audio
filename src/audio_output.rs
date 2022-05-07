@@ -5,10 +5,10 @@ use bevy::prelude::*;
 use bevy::utils::tracing::warn;
 use std::any::TypeId;
 
-use crate::channel::AudioChannel;
+use crate::channel::AudioStreamChannel;
 use crate::source::AudioSource;
 use crate::stream::{InternalAudioStream, StreamCommands, StreamedAudio};
-use crate::{AudioStream, Channel};
+use crate::{AudioChannel, AudioStream};
 use bevy::ecs::system::Resource;
 use kira::arrangement::handle::ArrangementHandle;
 use kira::arrangement::{Arrangement, ArrangementSettings, SoundClip};
@@ -32,7 +32,7 @@ pub struct AudioOutput {
     manager: Option<AudioManager>,
     sounds: HashMap<Handle<AudioSource>, SoundHandle>,
     arrangements: HashMap<PlayAudioSettings, ArrangementHandle>,
-    streams: HashMap<AudioChannel, Vec<AudioStreamId>>,
+    streams: HashMap<AudioStreamChannel, Vec<AudioStreamId>>,
     instances: HashMap<TypeId, Vec<InstanceState>>,
     channels: HashMap<TypeId, ChannelState>,
 }
@@ -114,7 +114,7 @@ impl AudioOutput {
         if let Some(instance_states) = self.instances.get_mut(channel) {
             instance_states.push(instance_state);
         } else {
-            self.instances.insert(channel.clone(), vec![instance_state]);
+            self.instances.insert(*channel, vec![instance_state]);
         }
 
         AudioCommandResult::Ok
@@ -210,7 +210,7 @@ impl AudioOutput {
                 volume,
                 ..Default::default()
             };
-            self.channels.insert(channel.clone(), channel_state);
+            self.channels.insert(*channel, channel_state);
         }
     }
 
@@ -229,7 +229,7 @@ impl AudioOutput {
                 panning,
                 ..Default::default()
             };
-            self.channels.insert(channel.clone(), channel_state);
+            self.channels.insert(*channel, channel_state);
         }
     }
 
@@ -248,7 +248,7 @@ impl AudioOutput {
                 playback_rate,
                 ..Default::default()
             };
-            self.channels.insert(channel.clone(), channel_state);
+            self.channels.insert(*channel, channel_state);
         }
     }
 
@@ -290,7 +290,7 @@ impl AudioOutput {
     pub(crate) fn play_channel<T: Resource>(
         &mut self,
         audio_sources: &Assets<AudioSource>,
-        channel: &Channel<T>,
+        channel: &AudioChannel<T>,
     ) {
         if self.manager.is_none() {
             return;
@@ -373,7 +373,7 @@ impl AudioOutput {
     fn start_stream<T: kira::audio_stream::AudioStream>(
         &mut self,
         stream: T,
-        channel: AudioChannel,
+        channel: AudioStreamChannel,
     ) {
         let manager = self.manager.as_mut().unwrap();
         let stream_id = manager
@@ -386,7 +386,7 @@ impl AudioOutput {
         }
     }
 
-    fn stop_streams(&mut self, channel: AudioChannel) {
+    fn stop_streams(&mut self, channel: AudioStreamChannel) {
         if let Some(stream_ids) = self.streams.get_mut(&channel) {
             let manager = self.manager.as_mut().unwrap();
             for stream_id in stream_ids.drain(..) {
@@ -436,7 +436,7 @@ impl Default for ChannelState {
 
 pub(crate) fn play_audio_channel<T: Resource>(
     mut audio_output: NonSendMut<AudioOutput>,
-    channel: Res<Channel<T>>,
+    channel: Res<AudioChannel<T>>,
     audio_sources: Option<Res<Assets<AudioSource>>>,
 ) {
     if let Some(audio_sources) = audio_sources {
@@ -457,7 +457,7 @@ pub(crate) fn stream_audio_system<T: AudioStream>(
 
 pub(crate) fn update_instance_states<T: Resource>(
     audio_output: NonSend<AudioOutput>,
-    mut channel: ResMut<Channel<T>>,
+    mut channel: ResMut<AudioChannel<T>>,
 ) {
     if let Some(instances) = audio_output.instances.get(&TypeId::of::<T>()) {
         for instance_state in instances.iter() {

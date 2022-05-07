@@ -101,30 +101,33 @@ impl PlaybackState {
 /// Extension trait to add new audio channels to the application
 pub trait AudioApp {
     /// Add a new audio channel to the application
-    fn add_channel<T: Resource>(&mut self) -> &mut Self;
+    fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
 }
 
 impl AudioApp for App {
-    fn add_channel<T: Resource>(&mut self) -> &mut Self {
+    fn add_audio_channel<T: Resource>(&mut self) -> &mut Self {
         self.add_system_to_stage(CoreStage::PostUpdate, play_audio_channel::<T>)
             .add_system_to_stage(
                 CoreStage::PreUpdate,
                 update_instance_states::<T>.after(AudioSystemLabel::InstanceCleanup),
             )
-            .insert_resource(Channel::<T>::default())
+            .insert_resource(AudioChannel::<T>::default())
     }
 }
 
-/// Todo
-pub struct Channel<T> {
+/// Channel to play and control audio
+///
+/// Add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// By default, there is only the [`AudioChannel<MainTrack>`] channel.
+pub struct AudioChannel<T> {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
     pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
     _marker: PhantomData<T>,
 }
 
-impl<T> Default for Channel<T> {
+impl<T> Default for AudioChannel<T> {
     fn default() -> Self {
-        Channel::<T> {
+        AudioChannel::<T> {
             commands: Default::default(),
             states: Default::default(),
             _marker: PhantomData::default(),
@@ -132,7 +135,7 @@ impl<T> Default for Channel<T> {
     }
 }
 
-impl<T> Channel<T> {
+impl<T> AudioChannel<T> {
     /// Play audio in the default channel
     ///
     /// ```edition2018
@@ -346,7 +349,7 @@ mod test {
 
     #[test]
     fn state_is_queued_if_command_is_queued() {
-        let audio = Channel::<Audio>::default();
+        let audio = AudioChannel::<Audio>::default();
         let audio_handle: Handle<AudioSource> =
             Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
         let instance_handle = audio.play(audio_handle);
@@ -356,7 +359,7 @@ mod test {
 
     #[test]
     fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
-        let audio = Channel::<Audio>::default();
+        let audio = AudioChannel::<Audio>::default();
         let instance_handle = InstanceHandle::new();
 
         assert_eq!(audio.state(instance_handle), PlaybackState::Stopped);
@@ -364,7 +367,7 @@ mod test {
 
     #[test]
     fn state_is_fetched_from_state_map() {
-        let mut audio = Channel::<Audio>::default();
+        let mut audio = AudioChannel::<Audio>::default();
         let instance_handle = InstanceHandle::new();
         audio.states.insert(
             instance_handle.clone(),
