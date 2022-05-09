@@ -1,22 +1,15 @@
-#[cfg(feature = "settings_loader")]
 use std::{io::Cursor, path::PathBuf};
 
-#[cfg(feature = "settings_loader")]
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
-#[cfg(feature = "settings_loader")]
 use bevy::utils::BoxedFuture;
-#[cfg(feature = "settings_loader")]
 use kira::sound::{error::SoundFromFileError, Sound, SoundSettings};
-#[cfg(feature = "settings_loader")]
 use serde::Deserialize;
 
-#[cfg(feature = "settings_loader")]
 use crate::AudioSource;
 
 #[derive(Default)]
 pub struct SettingsLoader;
 
-#[cfg(feature = "settings_loader")]
 fn default_settings_value() -> f64 {
     f64::MIN
 }
@@ -25,7 +18,6 @@ fn default_settings_value() -> f64 {
 ///
 /// This is used when loading from a *.{wav,mp3,ogg,flac}.ron file to override
 /// the default `kira::SoundSettings`.
-#[cfg(feature = "settings_loader")]
 #[derive(Deserialize)]
 struct SoundSettingsSpec {
     /// Location of the sound file.
@@ -45,7 +37,6 @@ struct SoundSettingsSpec {
     semantic_duration: f64,
 }
 
-#[cfg(feature = "settings_loader")]
 fn positive_or_none(value: f64) -> Option<f64> {
     if value >= 0. {
         Some(value)
@@ -54,7 +45,6 @@ fn positive_or_none(value: f64) -> Option<f64> {
     }
 }
 
-#[cfg(feature = "settings_loader")]
 fn load_sound(
     bytes: Vec<u8>,
     sound_settings: SoundSettingsSpec,
@@ -82,7 +72,6 @@ fn load_sound(
     Err(SoundFromFileError::UnsupportedAudioFileFormat)
 }
 
-#[cfg(feature = "settings_loader")]
 impl AssetLoader for SettingsLoader {
     fn load<'a>(
         &'a self,

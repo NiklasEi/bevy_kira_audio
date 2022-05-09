@@ -117,8 +117,8 @@ impl AudioApp for App {
 
 /// Channel to play and control audio
 ///
-/// Add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
-/// By default, there is only the [`AudioChannel<MainTrack>`] channel.
+/// Add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
+/// By default, there is only the [`AudioChannel<MainTrack>`](crate::Audio) channel.
 pub struct AudioChannel<T> {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
     pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
