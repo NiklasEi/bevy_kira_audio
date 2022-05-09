@@ -59,14 +59,6 @@ use bevy::prelude::{
 };
 use std::marker::PhantomData;
 
-#[cfg(all(
-    not(feature = "ogg"),
-    not(feature = "mp3"),
-    not(feature = "flac"),
-    not(feature = "wav")
-))]
-compile_error!("You need to enable at least one of the bevy_kira_audio features 'ogg', 'mp3', 'flac', or 'wav'");
-
 /// A Bevy plugin for audio
 ///
 /// Add this plugin to your Bevy app to get access to
