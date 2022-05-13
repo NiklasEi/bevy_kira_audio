@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioPlugin};
+use bevy_kira_audio::{Audio, AudioChannel, AudioPlugin};
 
 fn main() {
     App::new()
@@ -9,6 +9,6 @@ fn main() {
         .run();
 }
 
-fn load_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+fn load_audio(asset_server: Res<AssetServer>, audio: Res<AudioChannel<Audio>>) {
     audio.play_looped(asset_server.load("sounds/semantic_duration.ogg.ron"));
 }

@@ -40,10 +40,25 @@ path = "examples/basic.rs"
 required-features = ["ogg"]
 
 [[example]]
-name = "stream"
-path = "examples/stream.rs"
+name = "custom_channel"
+path = "examples/custom_channel.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "multiple_channels"
+path = "examples/multiple_channels.rs"
+required-features = ["ogg"]
 
 [[example]]
 name = "semantic_duration"
 path = "examples/semantic_duration.rs"
 required-features = ["ogg", "settings_loader"]
+
+[[example]]
+name = "status"
+path = "examples/status.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "stream"
+path = "examples/stream.rs"

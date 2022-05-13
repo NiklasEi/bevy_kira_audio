@@ -1,4 +1,4 @@
-use crate::AudioChannel;
+use crate::AudioStreamChannel;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 use std::fmt::Debug;
@@ -100,7 +100,7 @@ pub enum StreamCommands<T: AudioStream> {
 /// }
 /// ```
 pub struct StreamedAudio<T: AudioStream> {
-    pub(crate) commands: RwLock<VecDeque<(StreamCommands<T>, AudioChannel)>>,
+    pub(crate) commands: RwLock<VecDeque<(StreamCommands<T>, AudioStreamChannel)>>,
 }
 
 impl<T> Default for StreamedAudio<T>
@@ -145,7 +145,7 @@ where
     pub fn stream(&self, stream: T) {
         self.commands
             .write()
-            .push_front((StreamCommands::Play(stream), AudioChannel::default()));
+            .push_front((StreamCommands::Play(stream), AudioStreamChannel::default()));
     }
 
     /// Stop all audio streams in the default channel
@@ -175,14 +175,14 @@ where
     pub fn stop(&self) {
         self.commands
             .write()
-            .push_front((StreamCommands::Stop, AudioChannel::default()));
+            .push_front((StreamCommands::Stop, AudioStreamChannel::default()));
     }
 
     /// Start an audio stream in the given channel
     ///
     /// ```edition2018
     /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::{StreamedAudio, AudioStream, Frame, AudioChannel};
+    /// # use bevy_kira_audio::{StreamedAudio, AudioStream, Frame, AudioStreamChannel};
     ///
     /// #[derive(Debug, Default)]
     /// struct SineStream {
@@ -199,10 +199,10 @@ where
     /// }
     ///
     /// fn my_system(audio: Res<StreamedAudio<SineStream>>) {
-    ///     audio.stream_in_channel(SineStream { t: 0.0, note: 440.0, frequency: 44_000.0 }, &AudioChannel::new("my-channel".to_owned()));
+    ///     audio.stream_in_channel(SineStream { t: 0.0, note: 440.0, frequency: 44_000.0 }, &AudioStreamChannel::new("my-channel".to_owned()));
     /// }
     /// ```
-    pub fn stream_in_channel(&self, stream: T, channel_id: &AudioChannel) {
+    pub fn stream_in_channel(&self, stream: T, channel_id: &AudioStreamChannel) {
         self.commands
             .write()
             .push_front((StreamCommands::Play(stream), channel_id.clone()));
@@ -212,7 +212,7 @@ where
     ///
     /// ```edition2018
     /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::{StreamedAudio, AudioStream, Frame, AudioChannel};
+    /// # use bevy_kira_audio::{StreamedAudio, AudioStream, Frame, AudioStreamChannel};
     ///
     /// #[derive(Debug, Default)]
     /// struct SineStream {
@@ -229,10 +229,10 @@ where
     /// }
     ///
     /// fn my_system(audio: Res<StreamedAudio<SineStream>>) {
-    ///     audio.stop_channel(&AudioChannel::new("my-channel".to_owned()));
+    ///     audio.stop_channel(&AudioStreamChannel::new("my-channel".to_owned()));
     /// }
     /// ```
-    pub fn stop_channel(&self, channel_id: &AudioChannel) {
+    pub fn stop_channel(&self, channel_id: &AudioStreamChannel) {
         self.commands
             .write()
             .push_front((StreamCommands::Stop, channel_id.clone()));
