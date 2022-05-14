@@ -1,21 +1,14 @@
-#[cfg(feature = "flac")]
 use anyhow::Result;
-#[cfg(feature = "flac")]
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
-#[cfg(feature = "flac")]
 use bevy::utils::BoxedFuture;
-#[cfg(feature = "flac")]
-use kira::sound::{Sound, SoundSettings};
-#[cfg(feature = "flac")]
+use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use std::io::Cursor;
 
-#[cfg(feature = "flac")]
 use crate::source::AudioSource;
 
 #[derive(Default)]
 pub struct FlacLoader;
 
-#[cfg(feature = "flac")]
 impl AssetLoader for FlacLoader {
     fn load<'a>(
         &'a self,
@@ -23,7 +16,14 @@ impl AssetLoader for FlacLoader {
         load_context: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<()>> {
         Box::pin(async move {
-            let sound = Sound::from_flac_reader(Cursor::new(bytes), SoundSettings::default())?;
+            let mut vec = vec![];
+            for byte in bytes {
+                vec.push(*byte);
+            }
+            let sound = StaticSoundData::from_media_source(
+                Box::new(Cursor::new(vec)),
+                StaticSoundSettings::default(),
+            )?;
             load_context.set_default_asset(LoadedAsset::new(AudioSource { sound }));
             Ok(())
         })
