@@ -9,7 +9,7 @@ use crate::source::AudioSource;
 use crate::AudioChannel;
 use bevy::ecs::system::Resource;
 use kira::manager::{AudioManager, AudioManagerSettings};
-use kira::sound::static_sound::StaticSoundHandle;
+use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::tween::Tween;
 use kira::{CommandError, LoopBehavior};
 use std::collections::HashMap;
@@ -155,20 +155,20 @@ impl AudioOutput {
         instance_handle: InstanceHandle,
     ) -> AudioCommandResult {
         let mut sound = audio_source.sound.clone();
+        if let Some(channel_state) = self.channels.get(channel) {
+            channel_state.apply(&mut sound);
+        }
         if play_settings.looped && sound.settings.loop_behavior.is_none() {
             sound.settings.loop_behavior = Some(LoopBehavior {
                 start_position: 0.0,
             });
         }
-        let mut sound_handle = self
+        let sound_handle = self
             .manager
             .as_mut()
             .unwrap()
             .play(sound)
             .expect("Failed to play sound");
-        if let Some(channel_state) = self.channels.get(channel) {
-            channel_state.apply(&mut sound_handle);
-        }
         let instance_state = InstanceState {
             kira: sound_handle,
             handle: instance_handle,
@@ -274,16 +274,10 @@ impl Default for ChannelState {
 }
 
 impl ChannelState {
-    pub(crate) fn apply(&self, handle: &mut StaticSoundHandle) {
-        handle
-            .set_volume(self.volume, Tween::default())
-            .expect("Failed to set volume");
-        handle
-            .set_playback_rate(self.playback_rate, Tween::default())
-            .expect("Failed to set playback_rate");
-        handle
-            .set_panning(self.panning, Tween::default())
-            .expect("Failed to set panning");
+    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
+        sound.settings.volume = self.volume.into();
+        sound.settings.playback_rate = self.playback_rate.into();
+        sound.settings.panning = self.panning;
     }
 }
 
