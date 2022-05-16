@@ -15,21 +15,19 @@ rust-version = "1.56.1"
 
 [features]
 default = ["ogg"]
+flac = ["kira/flac"]
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
-flac = ["kira/flac"]
-settings_loader = ["ron", "serde"]
 wav = ["kira/wav"]
+settings_loader = ["ron", "serde"]
 
 [dependencies]
-# bevy
 bevy = { version = "0.7", default-features = false }
-# other
 anyhow = "1.0"
-kira = { version = "0.5.2", default-features = false }
-parking_lot = "0.11.0"
+kira = { version = "0.6", default-features = false, features = ["cpal"] }
 ron = { version = "0.6.2", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
+parking_lot = "0.11.0"
 
 [dev-dependencies]
 bevy = { version = "0.7", features = ["bevy_gltf", "bevy_winit", "render"] }
@@ -50,15 +48,11 @@ path = "examples/multiple_channels.rs"
 required-features = ["ogg"]
 
 [[example]]
-name = "semantic_duration"
-path = "examples/semantic_duration.rs"
-required-features = ["ogg", "settings_loader"]
-
-[[example]]
 name = "status"
 path = "examples/status.rs"
 required-features = ["ogg"]
 
 [[example]]
-name = "stream"
-path = "examples/stream.rs"
+name = "semantic_duration"
+path = "examples/settings_loader.rs"
+required-features = ["ogg", "settings_loader"]

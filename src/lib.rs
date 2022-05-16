@@ -4,7 +4,7 @@
 //! via Bevy's ECS.
 //!
 //! ```edition2018
-//! # use bevy_kira_audio::{AudioStreamChannel, Audio, AudioPlugin};
+//! # use bevy_kira_audio::{Audio, AudioPlugin};
 //! # use bevy::prelude::*;
 //! # use bevy::asset::AssetPlugin;
 //! # use bevy::app::AppExit;
@@ -32,39 +32,34 @@
 #![warn(unused_imports, missing_docs)]
 
 pub use audio::{AudioApp, AudioChannel, InstanceHandle, PlaybackState};
-pub use channel::AudioStreamChannel;
 pub use source::AudioSource;
-pub use stream::{AudioStream, Frame, StreamedAudio};
 
 mod audio;
 mod audio_output;
-mod channel;
 mod source;
-mod stream;
 
-use crate::audio_output::{cleanup_stopped_instances, stream_audio_system, AudioOutput};
+use crate::audio_output::{cleanup_stopped_instances, AudioOutput};
 
 #[cfg(feature = "flac")]
-use crate::source::FlacLoader;
+use crate::source::flac_loader::FlacLoader;
 #[cfg(feature = "mp3")]
-use crate::source::Mp3Loader;
+use crate::source::mp3_loader::Mp3Loader;
 #[cfg(feature = "ogg")]
-use crate::source::OggLoader;
+use crate::source::ogg_loader::OggLoader;
 #[cfg(feature = "settings_loader")]
-use crate::source::SettingsLoader;
+use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
-use crate::source::WavLoader;
+use crate::source::wav_loader::WavLoader;
 use bevy::prelude::{
     AddAsset, App, CoreStage, ParallelSystemDescriptorCoercion, Plugin, SystemLabel,
 };
-use std::marker::PhantomData;
 
 /// A Bevy plugin for audio
 ///
 /// Add this plugin to your Bevy app to get access to
 /// the Audio resource
 /// ```edition2018
-/// # use bevy_kira_audio::{AudioStreamChannel, Audio, AudioPlugin};
+/// # use bevy_kira_audio::{Audio, AudioPlugin};
 /// # use bevy::prelude::*;
 /// # use bevy::asset::AssetPlugin;
 /// # use bevy::app::AppExit;
@@ -103,6 +98,7 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<WavLoader>();
         #[cfg(feature = "flac")]
         app.init_asset_loader::<FlacLoader>();
+
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
@@ -132,73 +128,6 @@ pub type Audio = AudioChannel<MainTrack>;
 ///
 /// You can use [`Audio`] as a type alias for [`AudioChannel<MainTrack>`]
 pub struct MainTrack;
-
-/// A Bevy plugin for streaming of audio
-///
-/// This plugin requires [AudioPlugin] to also be active
-/// ```edition2018
-/// # use bevy_kira_audio::{AudioStream, Frame, StreamedAudio, AudioStreamChannel, Audio, AudioPlugin, AudioStreamPlugin};
-/// # use bevy::prelude::*;
-/// # use bevy::asset::AssetPlugin;
-/// # use bevy::app::AppExit;
-/// fn main() {
-///    let mut app = App::new();
-///    app
-///         .add_plugins(MinimalPlugins)
-///         .add_plugin(AssetPlugin)
-///         .add_plugin(AudioPlugin)
-/// #       .add_system(stop)
-///         .add_plugin(AudioStreamPlugin::<SineStream>::default())
-///         .add_startup_system(start_stream);
-///    app.run();
-/// }
-///
-/// #[derive(Debug, Default)]
-/// struct SineStream {
-///     t: f64,
-///     note: f64,
-///     frequency: f64
-/// }
-///
-/// impl AudioStream for SineStream {
-///     fn next(&mut self, _: f64) -> Frame {
-///         let increment = 2.0 * std::f64::consts::PI * self.note / self.frequency;
-///         self.t += increment;
-///
-///         let sample: f64 = self.t.sin();
-///         Frame {
-///             left: sample as f32,
-///             right: sample as f32,
-///         }
-///     }
-/// }
-///
-///fn start_stream(audio: Res<StreamedAudio<SineStream>>) {
-///    audio.stream(SineStream {
-///        t: 0.0,
-///        note: 440.0,
-///        frequency: 44_000.0,
-///    });
-///}
-///
-/// # fn stop(mut events: EventWriter<AppExit>) {
-/// #     events.send(AppExit)
-/// # }
-/// ```
-#[derive(Default)]
-pub struct AudioStreamPlugin<T: AudioStream> {
-    _marker: PhantomData<T>,
-}
-
-impl<T> Plugin for AudioStreamPlugin<T>
-where
-    T: AudioStream,
-{
-    fn build(&self, app: &mut App) {
-        app.init_resource::<StreamedAudio<T>>()
-            .add_system_to_stage(CoreStage::PostUpdate, stream_audio_system::<T>);
-    }
-}
 
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]

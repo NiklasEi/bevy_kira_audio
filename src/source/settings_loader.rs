@@ -1,8 +1,11 @@
+use std::time::Duration;
 use std::{io::Cursor, path::PathBuf};
 
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
 use bevy::utils::BoxedFuture;
-use kira::sound::{error::SoundFromFileError, Sound, SoundSettings};
+use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
+use kira::tween::Tween;
+use kira::{LoopBehavior, PlaybackRate, Volume};
 use serde::Deserialize;
 
 use crate::AudioSource;
@@ -10,66 +13,84 @@ use crate::AudioSource;
 #[derive(Default)]
 pub struct SettingsLoader;
 
-fn default_settings_value() -> f64 {
-    f64::MIN
-}
-
-/// Kira sound settings specification
+/// Kira sound settings
 ///
 /// This is used when loading from a *.{wav,mp3,ogg,flac}.ron file to override
-/// the default `kira::SoundSettings`.
+/// the default [`StaticSoundSettings`].
 #[derive(Deserialize)]
-struct SoundSettingsSpec {
+#[serde(deny_unknown_fields)]
+struct SoundSettings {
     /// Location of the sound file.
     file: PathBuf,
 
-    /// How long the sound is musically.
+    /// The initial playback position of the sound (in seconds).
+    #[serde(default)]
+    pub start_position: f64,
+    /// Amplitude multiplier
     ///
-    /// For example, a recording of a 2-bar drum fill
-    /// in an echoey cathedral may have 5 seconds of actual
-    /// drumming and then 10 seconds of reverberations from
-    /// the building. So even though the audio is 15 seconds
-    /// long, you might say the music only lasts for 5 seconds.
+    /// If the channel you play the sound is configured, it will overwrite the volume here.
+    #[serde(default = "default_one")]
+    pub volume: f64,
+    /// The playback rate of the sound.
     ///
-    /// If set, the semantic duration of the sound will be
-    /// used as the default end point when looping the sound.
-    #[serde(default = "default_settings_value")]
-    semantic_duration: f64,
+    /// Changing the playback rate will change both the speed
+    /// and the pitch of the sound.
+    ///
+    /// If the channel you play the sound is configured, it will overwrite the volume here.
+    #[serde(default = "default_one")]
+    pub playback_rate: f64,
+    /// The panning of the sound, where 0 is hard left
+    /// and 1 is hard right.
+    ///
+    /// If the channel you play the sound is configured, it will overwrite the volume here.
+    #[serde(default = "default_panning")]
+    pub panning: f64,
+    /// Whether the sound should play in reverse.
+    ///
+    /// If set to `true`, the start position will be relative
+    /// to the end of the sound.
+    #[serde(default)]
+    pub reverse: bool,
+    /// The looping behavior of the sound.
+    ///
+    /// If you set a value here, playback will jump to that position when the end of the sound
+    /// has been reached.
+    #[serde(default)]
+    pub loop_behavior: Option<f64>,
+    /// An optional linear fade-in from silence.
+    ///
+    /// The [`u64`] value is the duration of the tween in milliseconds.
+    #[serde(default)]
+    pub fade_in_tween: Option<u64>,
 }
 
-fn positive_or_none(value: f64) -> Option<f64> {
-    if value >= 0. {
-        Some(value)
-    } else {
-        None
-    }
+fn default_one() -> f64 {
+    1.0
 }
 
-fn load_sound(
-    bytes: Vec<u8>,
-    sound_settings: SoundSettingsSpec,
-) -> Result<Sound, SoundFromFileError> {
-    let settings = SoundSettings {
-        semantic_duration: positive_or_none(sound_settings.semantic_duration),
+fn default_panning() -> f64 {
+    0.5
+}
 
-        ..SoundSettings::default()
-    };
+impl From<SoundSettings> for StaticSoundSettings {
+    fn from(settings: SoundSettings) -> Self {
+        let mut static_sound_settings = StaticSoundSettings::new();
 
-    if let Some(extension) = sound_settings.file.as_path().extension() {
-        match extension.to_str() {
-            #[cfg(feature = "mp3")]
-            Some("mp3") => return Sound::from_mp3_reader(Cursor::new(bytes), settings),
-            #[cfg(feature = "ogg")]
-            Some("ogg") => return Sound::from_ogg_reader(Cursor::new(bytes), settings),
-            #[cfg(feature = "flac")]
-            Some("flac") => return Sound::from_flac_reader(Cursor::new(bytes), settings),
-            #[cfg(feature = "wav")]
-            Some("wav") => return Sound::from_wav_reader(Cursor::new(bytes), settings),
-            _ => {}
-        }
+        static_sound_settings.start_position = settings.start_position;
+        static_sound_settings.volume = Volume::from(settings.volume);
+        static_sound_settings.playback_rate = PlaybackRate::from(settings.playback_rate);
+        static_sound_settings.panning = settings.panning;
+        static_sound_settings.reverse = settings.reverse;
+        static_sound_settings.loop_behavior = settings
+            .loop_behavior
+            .map(|start_position| LoopBehavior { start_position });
+        static_sound_settings.fade_in_tween = settings.fade_in_tween.map(|micros| Tween {
+            duration: Duration::from_micros(micros),
+            ..Default::default()
+        });
+
+        static_sound_settings
     }
-
-    Err(SoundFromFileError::UnsupportedAudioFileFormat)
 }
 
 impl AssetLoader for SettingsLoader {
@@ -79,10 +100,11 @@ impl AssetLoader for SettingsLoader {
         load_context: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<(), anyhow::Error>> {
         Box::pin(async move {
-            let sound_settings: SoundSettingsSpec = ron::de::from_bytes(bytes)?;
+            let sound_settings: SoundSettings = ron::de::from_bytes(bytes)?;
             let sound_bytes = load_context.read_asset_bytes(&sound_settings.file).await?;
 
-            let sound = load_sound(sound_bytes, sound_settings)?;
+            let sound =
+                StaticSoundData::from_cursor(Cursor::new(sound_bytes), sound_settings.into())?;
 
             load_context.set_default_asset(LoadedAsset::new(AudioSource { sound }));
 

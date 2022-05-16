@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/crates/l/bevy_kira_audio)](https://github.com/NiklasEi/bevy_kira_audio/blob/main/LICENSE.md)
 [![Crates.io](https://img.shields.io/crates/d/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
 
-This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds for everything except `mp3`. It also supports streaming of generated audio.
+This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds for everything except `mp3`.
 
 You can check out the `examples` directory in this repository for a display of this plugin's functionality.
 
@@ -50,9 +50,9 @@ fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 - [ ] control pitch (no change in playback rate)
 - [x] control panning
 - [x] get the current status and position of a track (see the [`status` example](examples/status.rs))
-- [x] audio streaming
+- [ ] audio streaming
 
-Currently, sound settings are hard to control and usually your audio files get loaded with the default. With the feature `settings_loader` it is possible to define an audio asset with non-default semantic duration. The [semantic_duration](examples/semantic_duration.rs) example demonstrates loading and playing such an asset. More options will likely be supported in the future.
+Currently, sound settings are hard to control and your audio files get loaded with the default.
 
 ## Compatible Bevy versions
 

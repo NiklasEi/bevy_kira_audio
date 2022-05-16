@@ -180,7 +180,7 @@ struct LastAction(f64);
 
 impl LastAction {
     fn action(&mut self, time: &Time) -> bool {
-        if time.seconds_since_startup() - self.0 < 0.1 {
+        if time.seconds_since_startup() - self.0 < 0.2 {
             return false;
         }
         self.0 = time.seconds_since_startup();
