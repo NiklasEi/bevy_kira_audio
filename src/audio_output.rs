@@ -155,7 +155,7 @@ impl AudioOutput {
         instance_handle: InstanceHandle,
     ) -> AudioCommandResult {
         let mut sound = audio_source.sound.clone();
-        if play_settings.looped {
+        if play_settings.looped && sound.settings.loop_behavior.is_none() {
             sound.settings.loop_behavior = Some(LoopBehavior {
                 start_position: 0.0,
             });

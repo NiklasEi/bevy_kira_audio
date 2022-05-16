@@ -16,12 +16,12 @@ impl AssetLoader for WavLoader {
         load_context: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<()>> {
         Box::pin(async move {
-            let mut vec = vec![];
+            let mut sound_bytes = vec![];
             for byte in bytes {
-                vec.push(*byte);
+                sound_bytes.push(*byte);
             }
-            let sound = StaticSoundData::from_media_source(
-                Box::new(Cursor::new(vec)),
+            let sound = StaticSoundData::from_cursor(
+                Cursor::new(sound_bytes),
                 StaticSoundSettings::default(),
             )?;
             load_context.set_default_asset(LoadedAsset::new(AudioSource { sound }));

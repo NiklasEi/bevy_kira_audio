@@ -4,6 +4,8 @@ pub mod flac_loader;
 pub mod mp3_loader;
 #[cfg(feature = "ogg")]
 pub mod ogg_loader;
+#[cfg(feature = "settings_loader")]
+pub mod settings_loader;
 #[cfg(feature = "wav")]
 pub mod wav_loader;
 

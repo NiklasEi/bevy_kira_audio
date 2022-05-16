@@ -1,0 +1,19 @@
+(
+    // The actual sound file in your assets directory
+    file: "sounds/loop.ogg",
+
+    // Start sound at 2 seconds
+    start_position: 2.,
+    // Half amplitude
+    volume: 0.5,
+    // Play 50% faster (this also changes the pitch)
+    playback_rate: 1.5,
+    // Play more on the right
+    panning: 0.75,
+    // Reverse the sound
+    reverse: true,
+    // Loop the sound
+    loop_behavior: Some(0.5),
+    // fade the sound in for 1.5 seconds
+    fade_in_tween: Some(1500000),
+)

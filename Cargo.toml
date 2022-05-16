@@ -19,12 +19,14 @@ flac = ["kira/flac"]
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 wav = ["kira/wav"]
+settings_loader = ["ron", "serde"]
 
 [dependencies]
 bevy = { version = "0.7", default-features = false }
 anyhow = "1.0"
-#kira = { version = "0.6", default-features = false, features = ["cpal"] }
-kira = { git = "https://github.com/NiklasEi/kira", branch = "expose_from_media_source", default-features = false, features = ["cpal"] }
+kira = { version = "0.6", default-features = false, features = ["cpal"] }
+ron = { version = "0.6.2", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.11.0"
 
 [dev-dependencies]
@@ -49,3 +51,8 @@ required-features = ["ogg"]
 name = "status"
 path = "examples/status.rs"
 required-features = ["ogg"]
+
+[[example]]
+name = "semantic_duration"
+path = "examples/settings_loader.rs"
+required-features = ["ogg", "settings_loader"]
