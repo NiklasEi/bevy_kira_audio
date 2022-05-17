@@ -56,3 +56,8 @@ required-features = ["ogg"]
 name = "semantic_duration"
 path = "examples/settings_loader.rs"
 required-features = ["ogg", "settings_loader"]
+
+[[example]]
+name = "stress_test"
+path = "examples/stress_test.rs"
+required-features = ["ogg"]

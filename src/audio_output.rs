@@ -5,10 +5,11 @@ use bevy::prelude::*;
 use bevy::utils::tracing::warn;
 use std::any::TypeId;
 
+use crate::settings::AudioSettings;
 use crate::source::AudioSource;
 use crate::AudioChannel;
 use bevy::ecs::system::Resource;
-use kira::manager::{AudioManager, AudioManagerSettings};
+use kira::manager::AudioManager;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::tween::Tween;
 use kira::{CommandError, LoopBehavior};
@@ -29,9 +30,10 @@ struct InstanceState {
     handle: InstanceHandle,
 }
 
-impl Default for AudioOutput {
-    fn default() -> Self {
-        let manager = AudioManager::new(AudioManagerSettings::default());
+impl FromWorld for AudioOutput {
+    fn from_world(world: &mut World) -> Self {
+        let settings = world.remove_resource::<AudioSettings>().unwrap_or_default();
+        let manager = AudioManager::new(settings.into());
         if let Err(ref setup_error) = manager {
             warn!("Failed to setup audio: {:?}", setup_error);
         }
@@ -252,7 +254,7 @@ impl AudioOutput {
         for (_, instances) in self.instances.iter_mut() {
             instances.retain(|instance| {
                 instance.kira.state() != kira::sound::static_sound::PlaybackState::Stopped
-            })
+            });
         }
     }
 }

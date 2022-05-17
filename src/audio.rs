@@ -265,7 +265,7 @@ impl<T> AudioChannel<T> {
 
     /// Set the volume for the default channel
     ///
-    /// The default value is 1
+    /// The default value is 1.
     ///
     /// ```edition2018
     /// # use bevy::prelude::*;

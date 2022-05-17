@@ -31,12 +31,14 @@
 #![forbid(unsafe_code)]
 #![warn(unused_imports, missing_docs)]
 
-pub use audio::{AudioApp, AudioChannel, InstanceHandle, PlaybackState};
-pub use source::AudioSource;
-
 mod audio;
 mod audio_output;
+mod settings;
 mod source;
+
+pub use audio::{AudioApp, AudioChannel, InstanceHandle, PlaybackState};
+pub use settings::AudioSettings;
+pub use source::AudioSource;
 
 use crate::audio_output::{cleanup_stopped_instances, AudioOutput};
 

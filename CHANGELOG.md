@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.10.0
+- Allow configuring the audio backend through a settings resource
+
 ## v0.9.0
 - Update to Bevy version 0.7
 - the sound field in `AudioSource` is now public ([#37](https://github.com/NiklasEi/bevy_kira_audio/pull/37))

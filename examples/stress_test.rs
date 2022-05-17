@@ -1,11 +1,14 @@
 use bevy::asset::LoadState;
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioPlugin, AudioSource};
+use bevy_kira_audio::{Audio, AudioPlugin, AudioSettings, AudioSource};
 
-// Todo: make Kira backend capacities configurable
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .insert_resource(AudioSettings {
+            sound_capacity: 4096,
+            command_capacity: 1024,
+        })
         .add_plugin(AudioPlugin)
         .add_startup_system(prepare)
         .add_system(check)
@@ -35,7 +38,7 @@ fn check(
 
 fn play(handle: Option<Res<MyHandle>>, audio: Res<Audio>) {
     if let Some(handle) = handle {
-        for _ in 0..80 {
+        for _ in 0..75 {
             audio.play(handle.0.clone());
         }
     }
