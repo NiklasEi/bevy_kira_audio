@@ -19,7 +19,8 @@ fn main() {
 struct MyLoadingHandle(Handle<AudioSource>);
 struct MyHandle(Handle<AudioSource>);
 
-fn prepare(asset_server: Res<AssetServer>, mut commands: Commands) {
+fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Audio>) {
+    audio.set_volume(0.001);
     commands.insert_resource(MyLoadingHandle(asset_server.load("sounds/plop.ogg")))
 }
 
