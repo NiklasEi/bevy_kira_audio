@@ -53,7 +53,7 @@ path = "examples/status.rs"
 required-features = ["ogg"]
 
 [[example]]
-name = "semantic_duration"
+name = "settings_loader"
 path = "examples/settings_loader.rs"
 required-features = ["ogg", "settings_loader"]
 

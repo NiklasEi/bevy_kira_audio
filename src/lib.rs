@@ -3,20 +3,23 @@
 //! It uses the library Kira to play audio and offers an API to control running game audio
 //! via Bevy's ECS.
 //!
-//! ```edition2018
-//! # use bevy_kira_audio::{Audio, AudioPlugin};
-//! # use bevy::prelude::*;
+//! ```
+//! use bevy_kira_audio::{Audio, AudioPlugin};
+//! use bevy::prelude::*;
 //! # use bevy::asset::AssetPlugin;
 //! # use bevy::app::AppExit;
+//!
 //! fn main() {
-//!    let mut app = App::new();
-//!    app
-//!         .add_plugins(MinimalPlugins)
-//!         .add_plugin(AssetPlugin)
+//!    App::new()
+//! #       .add_plugins(MinimalPlugins)
+//! #       .add_plugin(AssetPlugin)
+//! # /*
+//!         .add_plugins(DefaultPlugins)
+//! # */
 //!         .add_plugin(AudioPlugin)
 //! #       .add_system(stop)
-//!         .add_startup_system(start_background_audio);
-//!    app.run();
+//!         .add_startup_system(start_background_audio)
+//!         .run();
 //! }
 //!
 //! fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {

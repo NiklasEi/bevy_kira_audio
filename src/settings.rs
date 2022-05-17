@@ -12,6 +12,8 @@ pub struct AudioSettings {
     ///
     /// Each action you take, like playing or pausing a sound
     /// queues up one command.
+    ///
+    /// Note that configuring a channel will cause one command per sound in the channel!
     pub command_capacity: usize,
     /// The maximum number of sounds that can be playing at a time.
     pub sound_capacity: usize,

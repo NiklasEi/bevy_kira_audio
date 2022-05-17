@@ -101,6 +101,26 @@ impl PlaybackState {
 /// Extension trait to add new audio channels to the application
 pub trait AudioApp {
     /// Add a new audio channel to the application
+    ///
+    /// ```no_run
+    /// use bevy::prelude::*;
+    /// use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin};
+    ///
+    /// fn main() {
+    ///     App::new()
+    ///         .add_plugins(DefaultPlugins)
+    ///         .add_plugin(AudioPlugin)
+    ///         .add_audio_channel::<Background>()
+    ///         .add_startup_system(play)
+    ///         .run();
+    /// }
+    ///
+    /// fn play(background: Res<AudioChannel<Background>>, asset_server: Res<AssetServer>) {
+    ///     background.play(asset_server.load("sounds/loop.ogg"));
+    /// }
+    ///
+    /// struct Background;
+    /// ```
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
 }
 

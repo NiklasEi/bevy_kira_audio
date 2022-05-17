@@ -5,13 +5,13 @@
 [![license](https://img.shields.io/crates/l/bevy_kira_audio)](https://github.com/NiklasEi/bevy_kira_audio/blob/main/LICENSE.md)
 [![Crates.io](https://img.shields.io/crates/d/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
 
-This bevy plugin is intended to try integrating [Kira][kira] into Bevy. The goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds for everything except `mp3`.
+This bevy plugin is intended to test an integration of [Kira][kira] into Bevy. The goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds.
 
-You can check out the `examples` directory in this repository for a display of this plugin's functionality.
+Sound can be played in channels. Each channel has controls to pause or stop playback and can change the volume, playback speed, and panning of all sounds playing in it. You can easily add new channels and access them through Bevy's ECS (see the [`custom_channel` example](examples/custom_channel.rs)).
 
 ## Usage
 
-*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.7.0/Cargo.toml#L20-L29) for a list of all default features of version `0.7` and list them manually in your Cargo file excluding the ones you do not want.*
+*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.7.0/Cargo.toml#L20-L29) for a list of all default features of version `0.7` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to false for the Bevy dependency in your Cargo file.*
 
 
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
@@ -33,7 +33,24 @@ fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 }
 ```
 
-## Current state
+### Sound with custom settings
+
+*Requires feature `settings_loader`*
+
+It is possible to load sounds with custom settings from `ron` files. A common example would be a loop with an intro. Loading a ron file like this:
+```ron
+(
+    // The actual sound file in your assets directory
+    file: "sounds/loop.ogg",
+
+    loop_behavior: Some(3.0),
+)
+```
+would make the loaded sound loop by default and start each repeated playback three seconds into the sound (the three seconds being the intro then).
+
+There are a few more available settings. See the [`settings_loader` example](examples/settings_loader.rs) for more options.
+
+## Current and planned features
 - [x] play common audio formats
   - [x] `ogg`
   - [x] `mp3`
@@ -52,11 +69,9 @@ fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 - [x] get the current status and position of a track (see the [`status` example](examples/status.rs))
 - [ ] audio streaming
 
-Currently, sound settings are hard to control and your audio files get loaded with the default.
-
 ## Compatible Bevy versions
 
-The main branch is compatible with the latest Bevy release, while the branch `bevy_main` tracks the `main` branch of Bevy.
+The main branch is compatible with the latest Bevy release.
 
 Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
