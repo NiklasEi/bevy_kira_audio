@@ -2,7 +2,6 @@ use crate::audio::{
     AudioCommand, AudioCommandResult, InstanceHandle, PlayAudioSettings, PlaybackState,
 };
 use bevy::prelude::*;
-use bevy::utils::tracing::warn;
 use std::any::TypeId;
 
 use crate::settings::AudioSettings;
@@ -55,7 +54,7 @@ impl AudioOutput {
                         return AudioCommandResult::Retry;
                     }
                     Err(error) => {
-                        println!("Failed to stop instance: {:?}", error);
+                        error!("Failed to stop instance: {:?}", error);
                     }
                     _ => (),
                 }
@@ -70,7 +69,7 @@ impl AudioOutput {
             for instance in instances.iter_mut() {
                 if kira::sound::static_sound::PlaybackState::Playing == instance.kira.state() {
                     if let Err(error) = instance.kira.pause(Tween::default()) {
-                        println!("Failed to pause instance: {:?}", error);
+                        error!("Failed to pause instance: {:?}", error);
                     }
                 }
             }
@@ -82,7 +81,7 @@ impl AudioOutput {
             for instance in instances.iter_mut() {
                 if let kira::sound::static_sound::PlaybackState::Paused = instance.kira.state() {
                     if let Err(error) = instance.kira.resume(Tween::default()) {
-                        println!("Failed to resume instance: {:?}", error);
+                        error!("Failed to resume instance: {:?}", error);
                     }
                 }
             }
@@ -93,7 +92,7 @@ impl AudioOutput {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.kira.set_volume(volume, Tween::default()) {
-                    println!("Failed to set volume for instance: {:?}", error);
+                    error!("Failed to set volume for instance: {:?}", error);
                 }
             }
         }
@@ -112,7 +111,7 @@ impl AudioOutput {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances.iter_mut() {
                 if let Err(error) = instance.kira.set_panning(panning, Tween::default()) {
-                    println!("Failed to set panning for instance: {:?}", error);
+                    error!("Failed to set panning for instance: {:?}", error);
                 }
             }
         }
@@ -134,7 +133,7 @@ impl AudioOutput {
                     .kira
                     .set_playback_rate(playback_rate, Tween::default())
                 {
-                    println!("Failed to set playback rate for instance: {:?}", error);
+                    error!("Failed to set playback rate for instance: {:?}", error);
                 }
             }
         }
