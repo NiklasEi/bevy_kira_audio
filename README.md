@@ -11,7 +11,7 @@ Sound can be played in channels. Each channel has controls to pause or stop play
 
 ## Usage
 
-*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.7.0/Cargo.toml#L20-L29) for a list of all default features of version `0.7` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to false for the Bevy dependency in your Cargo file.*
+*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.7.0/Cargo.toml#L20-L29) for a list of all default features of version `0.7` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to false for the Bevy dependency in your Cargo file. You can take a look at [bevy_game_template's cargo file as an example](https://github.com/NiklasEi/bevy_game_template/blob/main/Cargo.toml).*
 
 
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
@@ -46,9 +46,9 @@ It is possible to load sounds with custom settings from `ron` files. A common ex
     loop_behavior: Some(3.0),
 )
 ```
-would make the loaded sound loop by default and start each repeated playback three seconds into the sound (the three seconds being the intro then).
+would make the loaded sound loop by default and start each repeated playback three seconds into the sound (the three seconds are the intro).
 
-There are a few more available settings. See the [`settings_loader` example](examples/settings_loader.rs) for more options.
+More settings are available. See the [`settings_loader` example](examples/settings_loader.rs) for all options.
 
 ## Current and planned features
 - [x] play common audio formats
@@ -57,7 +57,7 @@ There are a few more available settings. See the [`settings_loader` example](exa
   - [x] `wav`
   - [x] `flac`
 - [x] web support
-  - The features `ogg`, `flac` and `wav` can be build for WASM and used in web builds. There are some differences between browsers:
+  - There are some differences between browsers:
     - Chrome requires an interaction with the website to play audio (e.g. a button click). This issue can be resolved with [a script][audio-context-resuming] in your `index.html` file ([usage example][bevy-game-template-audio-context-resuming]).
     - Firefox: The audio might sound distorted (this could be related to overall performance; see [issue #9][issue-9])
 - [x] pause/resume and stop tracks
@@ -76,7 +76,7 @@ The main branch is compatible with the latest Bevy release.
 Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
 |  :--              |  :--   |
-| `0.9`             | `0.7`  |
+| `0.9` - `0.10`    | `0.7`  |
 | `0.8`             | `0.6`  |
 | `0.4` - `0.7`     | `0.5`  |
 | `0.3`             | `0.4`  |
