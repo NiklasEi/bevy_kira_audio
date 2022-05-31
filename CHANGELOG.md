@@ -2,7 +2,7 @@
 
 ## v0.10.0
 - Allow configuring the audio backend through a settings resource
-- Add support to load sound with any eligible settings (see [the example](examples/settings_loader))
+- Add support to load sound with any eligible settings (see [the example](examples/settings_loader.rs))
 - Update to Kira version 0.6 ([#48](https://github.com/NiklasEi/bevy_kira_audio/issues/48))
 - Make channels resources ([#43](https://github.com/NiklasEi/bevy_kira_audio/issues/43))
 
