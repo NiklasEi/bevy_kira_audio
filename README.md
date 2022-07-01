@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
 [![docs](https://docs.rs/bevy_kira_audio/badge.svg)](https://docs.rs/bevy_kira_audio)
-[![license](https://img.shields.io/crates/l/bevy_kira_audio)](https://github.com/NiklasEi/bevy_kira_audio/blob/main/LICENSE.md)
+[![license](https://img.shields.io/crates/l/bevy_kira_audio)](https://github.com/NiklasEi/bevy_kira_audio#license)
 [![Crates.io](https://img.shields.io/crates/d/bevy_kira_audio.svg)](https://crates.io/crates/bevy_kira_audio)
 
 This bevy plugin is intended to test an integration of [Kira][kira] into Bevy. The goal is to replace or update `bevy_audio`, if Kira turns out to be a good approach. Currently, this plugin can play `ogg`, `mp3`, `flac`, and `wav` formats and supports web builds.
@@ -85,7 +85,7 @@ Compatibility of `bevy_kira_audio` versions:
 
 ## License
 
-Licensed under either of
+Dual-licensed under either of
 
 * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or https://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
