@@ -26,13 +26,13 @@ fn start_audio(mut commands: Commands, asset_server: Res<AssetServer>, audio: Re
 fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
     if kb.just_pressed(KeyCode::P) {
         audio.pause();
-        println!("Audio paused.");
+        println!("Audio pausing...");
     } else if kb.just_pressed(KeyCode::S) {
         audio.stop();
-        println!("Audio stopped.");
+        println!("Audio stopping...");
     } else if kb.just_pressed(KeyCode::R) {
         audio.resume();
-        println!("Audio resumed.");
+        println!("Audio resuming...");
     }
 }
 

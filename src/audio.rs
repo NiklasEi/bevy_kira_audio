@@ -1,4 +1,4 @@
-use crate::audio_output::{play_audio_channel, update_instance_states};
+use crate::audio_output::{play_audio_channel, update_instance_states, InstanceState};
 use crate::source::AudioSource;
 use crate::{AudioSystemLabel, ParallelSystemDescriptorCoercion};
 use bevy::app::{App, CoreStage};
@@ -94,6 +94,25 @@ impl PlaybackState {
             | PlaybackState::Paused { position }
             | PlaybackState::Pausing { position }
             | PlaybackState::Stopping { position } => Some(*position),
+        }
+    }
+}
+
+impl From<&InstanceState> for PlaybackState {
+    fn from(state: &InstanceState) -> Self {
+        let position = state.kira.position();
+        match state.kira.state() {
+            kira::sound::static_sound::PlaybackState::Playing => {
+                PlaybackState::Playing { position }
+            }
+            kira::sound::static_sound::PlaybackState::Paused => PlaybackState::Paused { position },
+            kira::sound::static_sound::PlaybackState::Stopped => PlaybackState::Stopped,
+            kira::sound::static_sound::PlaybackState::Pausing => {
+                PlaybackState::Pausing { position }
+            }
+            kira::sound::static_sound::PlaybackState::Stopping => {
+                PlaybackState::Stopping { position }
+            }
         }
     }
 }
