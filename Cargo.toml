@@ -22,7 +22,7 @@ wav = ["kira/wav"]
 settings_loader = ["ron", "serde"]
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "518408dfdaa8884ba86a71512de2a7d57848413d" , default-features = false }
+bevy = { git = "https://github.com/bevyengine/bevy", default-features = false }
 anyhow = "1.0"
 kira = { version = "0.6", default-features = false, features = ["cpal"] }
 ron = { version = "0.6.2", optional = true }
@@ -30,7 +30,7 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.11.0"
 
 [dev-dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "518408dfdaa8884ba86a71512de2a7d57848413d", features = ["bevy_gltf", "bevy_winit", "render"] }
+bevy = { git = "https://github.com/bevyengine/bevy", features = ["bevy_gltf", "bevy_winit", "render"] }
 
 [[example]]
 name = "basic"
