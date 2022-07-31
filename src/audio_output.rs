@@ -1,6 +1,4 @@
-use crate::audio::{
-    AudioCommand, AudioCommandResult, InstanceHandle, PlayAudioSettings, PlaybackState,
-};
+use crate::audio::{AudioCommand, AudioCommandResult, InstanceHandle, PlayAudioSettings};
 use bevy::prelude::*;
 use std::any::TypeId;
 
@@ -24,9 +22,9 @@ pub struct AudioOutput {
     channels: HashMap<TypeId, ChannelState>,
 }
 
-struct InstanceState {
-    kira: StaticSoundHandle,
-    handle: InstanceHandle,
+pub(crate) struct InstanceState {
+    pub(crate) kira: StaticSoundHandle,
+    pub(crate) handle: InstanceHandle,
 }
 
 impl FromWorld for AudioOutput {
@@ -301,26 +299,11 @@ pub(crate) fn update_instance_states<T: Resource>(
     mut channel: ResMut<AudioChannel<T>>,
 ) {
     if let Some(instances) = audio_output.instances.get(&TypeId::of::<T>()) {
+        channel.states.clear();
         for instance_state in instances.iter() {
-            let position = instance_state.kira.position();
-            let playback_status = match instance_state.kira.state() {
-                kira::sound::static_sound::PlaybackState::Playing => {
-                    PlaybackState::Playing { position }
-                }
-                kira::sound::static_sound::PlaybackState::Paused => {
-                    PlaybackState::Paused { position }
-                }
-                kira::sound::static_sound::PlaybackState::Stopped => PlaybackState::Stopped,
-                kira::sound::static_sound::PlaybackState::Pausing => {
-                    PlaybackState::Pausing { position }
-                }
-                kira::sound::static_sound::PlaybackState::Stopping => {
-                    PlaybackState::Stopping { position }
-                }
-            };
             channel
                 .states
-                .insert(instance_state.handle.clone(), playback_status);
+                .insert(instance_state.handle.clone(), instance_state.into());
         }
     }
 }
