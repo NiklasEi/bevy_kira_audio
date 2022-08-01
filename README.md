@@ -11,7 +11,7 @@ Sound can be played in channels. Each channel has controls to pause or stop play
 
 ## Usage
 
-*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.7.0/Cargo.toml#L20-L29) for a list of all default features of version `0.7` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to false for the Bevy dependency in your Cargo file. You can take a look at [bevy_game_template's cargo file as an example](https://github.com/NiklasEi/bevy_game_template/blob/main/Cargo.toml).*
+*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.8.0/Cargo.toml#L27-L40) for a list of all default features of version `0.8` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to `false` for the Bevy dependency. You can take a look at [bevy_game_template's cargo file as an example](https://github.com/NiklasEi/bevy_game_template/blob/main/Cargo.toml).*
 
 
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
