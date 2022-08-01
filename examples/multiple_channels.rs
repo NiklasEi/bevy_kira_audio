@@ -268,7 +268,7 @@ fn prepare_audio_and_ui(mut commands: Commands, asset_server: ResMut<AssetServer
 
 fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>) {
     let font = asset_server.load("fonts/monogram.ttf");
-    commands.spawn_bundle(UiCameraBundle::default());
+    commands.spawn_bundle(Camera2dBundle::default());
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -390,7 +390,7 @@ fn spawn_button<T: Component + Clone>(
         .spawn_bundle(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Px(100.0), Val::Px(65.0)),
-                margin: Rect::all(Val::Auto),
+                margin: UiRect::all(Val::Auto),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..Default::default()

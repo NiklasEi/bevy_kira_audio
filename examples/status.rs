@@ -43,7 +43,7 @@ fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
 
 fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     let monogram = asset_server.load("fonts/monogram.ttf");
-    commands.spawn_bundle(UiCameraBundle::default());
+    commands.spawn_bundle(Camera2dBundle::default());
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
