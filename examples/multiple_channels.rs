@@ -155,7 +155,7 @@ fn volume_buttons<T: Component + Default>(
     mut channel_state: ResMut<ChannelAudioState<T>>,
     mut interaction_query: Query<(&Interaction, &mut UiColor, &ChangeVolumeButton<T>)>,
 ) {
-    for (interaction, mut color, volume) in interaction_query.iter_mut() {
+    for (interaction, mut color, volume) in &mut interaction_query {
         *color = if interaction == &Interaction::Hovered {
             HOVERED_BUTTON.into()
         } else {

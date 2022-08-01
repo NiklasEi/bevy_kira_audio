@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.11.0
+- Fix channel playback states ([#54](https://github.com/NiklasEi/bevy_kira_audio/issues/54))
+- Update to Bevy 0.8
+
 ## v0.10.0
 - Allow configuring the audio backend through a settings resource
 - Add support to load sound with any eligible settings (see [the example](examples/settings_loader.rs))

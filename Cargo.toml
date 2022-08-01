@@ -29,8 +29,10 @@ ron = { version = "0.7", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
 
-[dev-dependencies]
-bevy = { version = "0.8" }
+[dev-dependencies.bevy]
+version = "0.8"
+default-features = false
+features = ["bevy_asset", "bevy_winit", "render", "x11"]
 
 [[example]]
 name = "basic"
