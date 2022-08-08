@@ -9,7 +9,7 @@ use bevy::ecs::system::Resource;
 use kira::manager::AudioManager;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::tween::Tween;
-use kira::{CommandError, LoopBehavior};
+use kira::{CommandError, LoopBehavior, PlaybackRate};
 use std::collections::HashMap;
 
 /// Non-send resource that acts as audio output
@@ -72,6 +72,15 @@ impl AudioOutput {
                 }
             }
         }
+        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+            channel_state.paused = true;
+        } else {
+            let channel_state = ChannelState {
+                paused: true,
+                ..Default::default()
+            };
+            self.channels.insert(*channel, channel_state);
+        }
     }
 
     fn resume(&mut self, channel: &TypeId) {
@@ -83,6 +92,11 @@ impl AudioOutput {
                     }
                 }
             }
+        }
+        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+            channel_state.paused = false;
+        } else {
+            self.channels.insert(*channel, ChannelState::default());
         }
     }
 
@@ -156,18 +170,38 @@ impl AudioOutput {
         let mut sound = audio_source.sound.clone();
         if let Some(channel_state) = self.channels.get(channel) {
             channel_state.apply(&mut sound);
+            // This is reverted after pausing the sound handle.
+            // Otherwise the audio thread will start playing the sound before our pause command goes through.
+            if channel_state.paused {
+                sound.settings.playback_rate = PlaybackRate::Factor(0.0);
+            }
         }
         if play_settings.looped && sound.settings.loop_behavior.is_none() {
             sound.settings.loop_behavior = Some(LoopBehavior {
                 start_position: 0.0,
             });
         }
-        let sound_handle = self
-            .manager
-            .as_mut()
-            .unwrap()
-            .play(sound)
-            .expect("Failed to play sound");
+        let sound_handle = self.manager.as_mut().unwrap().play(sound);
+        if let Err(error) = sound_handle {
+            warn!("Failed to play sound due to {:?}", error);
+            return AudioCommandResult::Ok;
+        }
+        let mut sound_handle = sound_handle.unwrap();
+        if let Some(channel_state) = self.channels.get(channel) {
+            if channel_state.paused {
+                if let Err(error) = sound_handle.pause(Tween::default()) {
+                    warn!(
+                        "Failed to pause instance (channel was paused) due to {:?}",
+                        error
+                    );
+                }
+                if let Err(error) =
+                    sound_handle.set_playback_rate(channel_state.playback_rate, Tween::default())
+                {
+                    error!("Failed to set playback rate for instance: {:?}", error);
+                }
+            }
+        }
         let instance_state = InstanceState {
             kira: sound_handle,
             handle: instance_handle,
@@ -257,6 +291,7 @@ impl AudioOutput {
 }
 
 struct ChannelState {
+    paused: bool,
     volume: f64,
     playback_rate: f64,
     panning: f64,
@@ -265,6 +300,7 @@ struct ChannelState {
 impl Default for ChannelState {
     fn default() -> Self {
         ChannelState {
+            paused: false,
             volume: 1.0,
             playback_rate: 1.0,
             panning: 0.5,
