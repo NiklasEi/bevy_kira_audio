@@ -378,6 +378,21 @@ impl<T> AudioChannel<T> {
                     .unwrap_or(PlaybackState::Stopped)
             })
     }
+
+    /// Returns `true` if there is any sound in this channel that is in the state `Playing`, `Pausing`, or `Stopping`
+    ///
+    /// If there are only `Stopped`, `Paused`, or `Queued` sounds, the method will return `false`.
+    /// The same result is returned if there are no sounds in the channel at all.
+    pub fn is_playing_sound(&self) -> bool {
+        self.states
+            .iter()
+            .fold(false, |playing, (_, state)| match state {
+                PlaybackState::Playing { .. }
+                | PlaybackState::Pausing { .. }
+                | PlaybackState::Stopping { .. } => true,
+                _ => playing,
+            })
+    }
 }
 
 #[cfg(test)]
@@ -417,5 +432,27 @@ mod test {
             audio.state(instance_handle),
             PlaybackState::Pausing { position: 42. }
         );
+    }
+
+    #[test]
+    fn finds_playing_sound() {
+        let mut audio = AudioChannel::<Audio>::default();
+        audio
+            .states
+            .insert(InstanceHandle::new(), PlaybackState::Queued);
+        audio.states.insert(
+            InstanceHandle::new(),
+            PlaybackState::Paused { position: 42. },
+        );
+        audio
+            .states
+            .insert(InstanceHandle::new(), PlaybackState::Stopped);
+        assert!(!audio.is_playing_sound());
+
+        audio.states.insert(
+            InstanceHandle::new(),
+            PlaybackState::Playing { position: 42. },
+        );
+        assert!(audio.is_playing_sound());
     }
 }
