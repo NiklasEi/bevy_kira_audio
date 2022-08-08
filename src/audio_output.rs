@@ -226,15 +226,22 @@ impl AudioOutput {
         let mut commands = channel.commands.write();
         let len = commands.len();
         let channel_id = TypeId::of::<T>();
+        let mut commands_to_retry = vec![];
         let mut i = 0;
         while i < len {
             let audio_command = commands.pop_back().unwrap();
             let result = self.run_audio_command(&audio_command, audio_sources, &channel_id);
+            if let AudioCommand::Stop = audio_command {
+                commands_to_retry.clear();
+            }
             if let AudioCommandResult::Retry = result {
-                commands.push_front(audio_command);
+                commands_to_retry.push(audio_command);
             }
             i += 1;
         }
+        commands_to_retry
+            .drain(..)
+            .for_each(|command| commands.push_front(command));
     }
 
     pub(crate) fn run_audio_command(
@@ -341,5 +348,84 @@ pub(crate) fn update_instance_states<T: Resource>(
                 .states
                 .insert(instance_state.handle.clone(), instance_state.into());
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{Audio, AudioPlugin};
+    use bevy::asset::{AssetPlugin, HandleId};
+    use kira::manager::AudioManagerSettings;
+
+    #[test]
+    fn keeps_order_of_commands_to_retry() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .add_plugin(AssetPlugin::default())
+            .add_plugin(AudioPlugin);
+        let mut audio_output = AudioOutput {
+            manager: AudioManager::new(AudioManagerSettings::default()).ok(),
+            instances: HashMap::default(),
+            channels: HashMap::default(),
+        };
+        let audio_handle_one: Handle<AudioSource> =
+            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
+        let audio_handle_two: Handle<AudioSource> =
+            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
+
+        let channel = AudioChannel::<Audio>::default();
+        channel.play(audio_handle_one.clone());
+        channel.play(audio_handle_two.clone());
+
+        audio_output.play_channel(&app.world.resource::<Assets<AudioSource>>(), &channel);
+
+        let command_one = channel.commands.write().pop_back().unwrap();
+        match command_one {
+            AudioCommand::Play(settings) => {
+                assert_eq!(settings.settings.source.id, audio_handle_one.id)
+            }
+            _ => panic!("Wrong audio command"),
+        }
+        let command_two = channel.commands.write().pop_back().unwrap();
+        match command_two {
+            AudioCommand::Play(settings) => {
+                assert_eq!(settings.settings.source.id, audio_handle_two.id)
+            }
+            _ => panic!("Wrong audio command"),
+        }
+    }
+
+    #[test]
+    fn stop_command_removes_previous_play_commands() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .add_plugin(AssetPlugin::default())
+            .add_plugin(AudioPlugin);
+        let mut audio_output = AudioOutput {
+            manager: AudioManager::new(AudioManagerSettings::default()).ok(),
+            instances: HashMap::default(),
+            channels: HashMap::default(),
+        };
+        let audio_handle_one: Handle<AudioSource> =
+            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
+        let audio_handle_two: Handle<AudioSource> =
+            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
+
+        let channel = AudioChannel::<Audio>::default();
+        channel.play(audio_handle_one.clone());
+        channel.stop();
+        channel.play(audio_handle_two.clone());
+
+        audio_output.play_channel(&app.world.resource::<Assets<AudioSource>>(), &channel);
+
+        let command = channel.commands.write().pop_back().unwrap();
+        match command {
+            AudioCommand::Play(settings) => {
+                assert_eq!(settings.settings.source.id, audio_handle_two.id)
+            }
+            _ => panic!("Wrong audio command"),
+        }
+        assert!(channel.commands.write().pop_back().is_none());
     }
 }
