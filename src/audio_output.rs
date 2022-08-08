@@ -6,6 +6,7 @@ use crate::settings::AudioSettings;
 use crate::source::AudioSource;
 use crate::AudioChannel;
 use bevy::ecs::system::Resource;
+use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::tween::Tween;
@@ -16,8 +17,8 @@ use std::collections::HashMap;
 ///
 /// This struct holds the [kira::manager::AudioManager] to play audio through. It also
 /// keeps track of all audio instance handles and which sounds are playing in which channel.
-pub struct AudioOutput {
-    manager: Option<AudioManager>,
+pub(crate) struct AudioOutput<B: Backend = DefaultBackend> {
+    manager: Option<AudioManager<B>>,
     instances: HashMap<TypeId, Vec<InstanceState>>,
     channels: HashMap<TypeId, ChannelState>,
 }
@@ -43,7 +44,7 @@ impl FromWorld for AudioOutput {
     }
 }
 
-impl AudioOutput {
+impl<B: Backend> AudioOutput<B> {
     fn stop(&mut self, channel: &TypeId) -> AudioCommandResult {
         if let Some(instances) = self.instances.get_mut(channel) {
             for instance in instances {
@@ -356,16 +357,20 @@ mod test {
     use super::*;
     use crate::{Audio, AudioPlugin};
     use bevy::asset::{AssetPlugin, HandleId};
+    use kira::manager::backend::mock::MockBackend;
     use kira::manager::AudioManagerSettings;
 
     #[test]
     fn keeps_order_of_commands_to_retry() {
+        // we only need this app to conveniently get a assets collection for `AudioSource`...
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .add_plugin(AssetPlugin::default())
             .add_plugin(AudioPlugin);
+        let audio_source_assets = app.world.resource::<Assets<AudioSource>>();
+
         let mut audio_output = AudioOutput {
-            manager: AudioManager::new(AudioManagerSettings::default()).ok(),
+            manager: AudioManager::new(AudioManagerSettings::<MockBackend>::default()).ok(),
             instances: HashMap::default(),
             channels: HashMap::default(),
         };
@@ -378,7 +383,7 @@ mod test {
         channel.play(audio_handle_one.clone());
         channel.play(audio_handle_two.clone());
 
-        audio_output.play_channel(&app.world.resource::<Assets<AudioSource>>(), &channel);
+        audio_output.play_channel(&audio_source_assets, &channel);
 
         let command_one = channel.commands.write().pop_back().unwrap();
         match command_one {
@@ -398,12 +403,15 @@ mod test {
 
     #[test]
     fn stop_command_removes_previous_play_commands() {
+        // we only need this app to conveniently get a assets collection for `AudioSource`...
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .add_plugin(AssetPlugin::default())
             .add_plugin(AudioPlugin);
+        let audio_source_assets = app.world.resource::<Assets<AudioSource>>();
+
         let mut audio_output = AudioOutput {
-            manager: AudioManager::new(AudioManagerSettings::default()).ok(),
+            manager: AudioManager::new(AudioManagerSettings::<MockBackend>::default()).ok(),
             instances: HashMap::default(),
             channels: HashMap::default(),
         };
@@ -417,7 +425,7 @@ mod test {
         channel.stop();
         channel.play(audio_handle_two.clone());
 
-        audio_output.play_channel(&app.world.resource::<Assets<AudioSource>>(), &channel);
+        audio_output.play_channel(&audio_source_assets, &channel);
 
         let command = channel.commands.write().pop_back().unwrap();
         match command {
