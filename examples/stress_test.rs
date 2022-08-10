@@ -1,6 +1,6 @@
 use bevy::asset::LoadState;
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioPlugin, AudioSettings, AudioSource};
+use bevy_kira_audio::prelude::*;
 
 /// This example needs to be played in release mode!
 /// A large amount of sounds will be played in every frame.

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin, AudioSource};
+use bevy_kira_audio::prelude::*;
 use std::clone::Clone;
 use std::marker::PhantomData;
 

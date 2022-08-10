@@ -1,12 +1,12 @@
+//! Common audio types
+
 use crate::audio_output::{play_audio_channel, update_instance_states, InstanceState};
+use crate::channel::AudioChannel;
 use crate::source::AudioSource;
 use crate::{AudioSystemLabel, ParallelSystemDescriptorCoercion};
 use bevy::app::{App, CoreStage};
 use bevy::asset::Handle;
 use bevy::ecs::system::Resource;
-use parking_lot::RwLock;
-use std::collections::{HashMap, VecDeque};
-use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub(crate) enum AudioCommand {
@@ -42,13 +42,13 @@ pub(crate) struct PlayAudioSettings {
 /// Allows you to interact with a playing sound.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct InstanceHandle {
-    id: u64,
+    pub(crate) id: u64,
 }
 
 static NEXT_INSTANCE_HANDLE_ID: AtomicU64 = AtomicU64::new(0);
 
 impl InstanceHandle {
-    fn new() -> InstanceHandle {
+    pub(crate) fn new() -> InstanceHandle {
         let id = NEXT_INSTANCE_HANDLE_ID.fetch_add(1, Ordering::SeqCst);
         InstanceHandle { id }
     }
@@ -123,7 +123,7 @@ pub trait AudioApp {
     ///
     /// ```no_run
     /// use bevy::prelude::*;
-    /// use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin};
+    /// use bevy_kira_audio::prelude::*;
     ///
     /// fn main() {
     ///     App::new()
@@ -145,314 +145,14 @@ pub trait AudioApp {
 
 impl AudioApp for App {
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self {
-        self.add_system_to_stage(CoreStage::PostUpdate, play_audio_channel::<T>)
-            .add_system_to_stage(
-                CoreStage::PreUpdate,
-                update_instance_states::<T>.after(AudioSystemLabel::InstanceCleanup),
-            )
-            .insert_resource(AudioChannel::<T>::default())
-    }
-}
-
-/// Channel to play and control audio
-///
-/// Add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
-/// By default, there is only the [`AudioChannel<MainTrack>`](crate::Audio) channel.
-pub struct AudioChannel<T> {
-    pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
-    pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
-    _marker: PhantomData<T>,
-}
-
-impl<T> Default for AudioChannel<T> {
-    fn default() -> Self {
-        AudioChannel::<T> {
-            commands: Default::default(),
-            states: Default::default(),
-            _marker: PhantomData::default(),
-        }
-    }
-}
-
-impl<T> AudioChannel<T> {
-    /// Play audio in the default channel
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play(asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    pub fn play(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: audio_source,
-                    intro_source: None,
-                    looped: false,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Play looped audio in the default channel
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped(asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    pub fn play_looped(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: audio_source,
-                    intro_source: None,
-                    looped: true,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Play looped audio in the default channel with an intro
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped_with_intro(asset_server.load("intro.mp3"), asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    pub fn play_looped_with_intro(
-        &self,
-        intro_audio_source: Handle<AudioSource>,
-        looped_audio_source: Handle<AudioSource>,
-    ) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: looped_audio_source,
-                    intro_source: Some(intro_audio_source),
-                    looped: true,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Stop all audio in the default channel
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(audio: Res<Audio>) {
-    ///     audio.stop();
-    /// }
-    /// ```
-    pub fn stop(&self) {
-        self.commands.write().push_front(AudioCommand::Stop);
-    }
-
-    /// Pause all audio in the default channel
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(audio: Res<Audio>) {
-    ///     audio.pause();
-    /// }
-    /// ```
-    pub fn pause(&self) {
-        self.commands.write().push_front(AudioCommand::Pause);
-    }
-
-    /// Resume all audio in the default channel
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(audio: Res<Audio>) {
-    ///     audio.resume();
-    /// }
-    /// ```
-    pub fn resume(&self) {
-        self.commands.write().push_front(AudioCommand::Resume);
-    }
-
-    /// Set the volume for the default channel
-    ///
-    /// The default value is 1.
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_volume(0.5);
-    /// }
-    /// ```
-    pub fn set_volume(&self, volume: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetVolume(volume));
-    }
-
-    /// Set panning for the default channel
-    ///
-    /// The default value is 0.5
-    /// Values up to 1 pan to the right
-    /// Values down to 0 pan to the left
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_panning(0.9);
-    /// }
-    /// ```
-    pub fn set_panning(&self, panning: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetPanning(panning));
-    }
-
-    /// Set playback rate for the default channel
-    ///
-    /// The default value is 1
-    ///
-    /// ```edition2018
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::Audio;
-    ///
-    /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_playback_rate(2.0);
-    /// }
-    /// ```
-    pub fn set_playback_rate(&self, playback_rate: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetPlaybackRate(playback_rate));
-    }
-
-    /// Get state for a playback instance.
-    pub fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
-        self.states
-            .get(&instance_handle)
-            .cloned()
-            .unwrap_or_else(|| {
-                self.commands
-                    .read()
-                    .iter()
-                    .find(|command| match command {
-                        AudioCommand::Play(PlayAudioCommandArgs {
-                            instance_handle: handle,
-                            settings: _,
-                        }) => handle.id == instance_handle.id,
-                        _ => false,
-                    })
-                    .map(|_| PlaybackState::Queued)
-                    .unwrap_or(PlaybackState::Stopped)
-            })
-    }
-
-    /// Returns `true` if there is any sound in this channel that is in the state `Playing`, `Pausing`, or `Stopping`
-    ///
-    /// If there are only `Stopped`, `Paused`, or `Queued` sounds, the method will return `false`.
-    /// The same result is returned if there are no sounds in the channel at all.
-    pub fn is_playing_sound(&self) -> bool {
-        self.states
-            .iter()
-            .fold(false, |playing, (_, state)| match state {
-                PlaybackState::Playing { .. }
-                | PlaybackState::Pausing { .. }
-                | PlaybackState::Stopping { .. } => true,
-                _ => playing,
-            })
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::Audio;
-    use bevy::asset::HandleId;
-
-    #[test]
-    fn state_is_queued_if_command_is_queued() {
-        let audio = AudioChannel::<Audio>::default();
-        let audio_handle: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
-        let instance_handle = audio.play(audio_handle);
-
-        assert_eq!(audio.state(instance_handle), PlaybackState::Queued);
-    }
-
-    #[test]
-    fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
-        let audio = AudioChannel::<Audio>::default();
-        let instance_handle = InstanceHandle::new();
-
-        assert_eq!(audio.state(instance_handle), PlaybackState::Stopped);
-    }
-
-    #[test]
-    fn state_is_fetched_from_state_map() {
-        let mut audio = AudioChannel::<Audio>::default();
-        let instance_handle = InstanceHandle::new();
-        audio.states.insert(
-            instance_handle.clone(),
-            PlaybackState::Pausing { position: 42. },
-        );
-
-        assert_eq!(
-            audio.state(instance_handle),
-            PlaybackState::Pausing { position: 42. }
-        );
-    }
-
-    #[test]
-    fn finds_playing_sound() {
-        let mut audio = AudioChannel::<Audio>::default();
-        audio
-            .states
-            .insert(InstanceHandle::new(), PlaybackState::Queued);
-        audio.states.insert(
-            InstanceHandle::new(),
-            PlaybackState::Paused { position: 42. },
-        );
-        audio
-            .states
-            .insert(InstanceHandle::new(), PlaybackState::Stopped);
-        assert!(!audio.is_playing_sound());
-
-        audio.states.insert(
-            InstanceHandle::new(),
-            PlaybackState::Playing { position: 42. },
-        );
-        assert!(audio.is_playing_sound());
+        self.add_system_to_stage(
+            CoreStage::PostUpdate,
+            play_audio_channel::<T>.label(AudioSystemLabel::PlayTypedChannels),
+        )
+        .add_system_to_stage(
+            CoreStage::PreUpdate,
+            update_instance_states::<T>.after(AudioSystemLabel::InstanceCleanup),
+        )
+        .insert_resource(AudioChannel::<T>::default())
     }
 }

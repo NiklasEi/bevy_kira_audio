@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioPlugin, InstanceHandle};
+use bevy_kira_audio::prelude::*;
 
 struct LoopAudioInstanceHandle {
     instance_handle: InstanceHandle,

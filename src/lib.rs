@@ -4,7 +4,7 @@
 //! via Bevy's ECS.
 //!
 //! ```
-//! use bevy_kira_audio::{Audio, AudioPlugin};
+//! use bevy_kira_audio::prelude::*;
 //! use bevy::prelude::*;
 //! # use bevy::asset::AssetPlugin;
 //! # use bevy::app::AppExit;
@@ -36,14 +36,32 @@
 
 mod audio;
 mod audio_output;
+mod channel;
 mod settings;
 mod source;
 
-pub use audio::{AudioApp, AudioChannel, InstanceHandle, PlaybackState};
+pub use audio::{AudioApp, InstanceHandle, PlaybackState};
+pub use channel::{AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels};
 pub use settings::AudioSettings;
 pub use source::AudioSource;
 
-use crate::audio_output::{cleanup_stopped_instances, AudioOutput};
+/// Most commonly used types
+pub mod prelude {
+    #[doc(hidden)]
+    pub use crate::audio::{AudioApp, InstanceHandle, PlaybackState};
+    #[doc(hidden)]
+    pub use crate::channel::{
+        AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels,
+    };
+    #[doc(hidden)]
+    pub use crate::settings::AudioSettings;
+    #[doc(hidden)]
+    pub use crate::source::AudioSource;
+    #[doc(hidden)]
+    pub use crate::{Audio, AudioPlugin, MainTrack};
+}
+
+use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
 
 #[cfg(feature = "flac")]
 use crate::source::flac_loader::FlacLoader;
@@ -63,8 +81,8 @@ use bevy::prelude::{
 ///
 /// Add this plugin to your Bevy app to get access to
 /// the Audio resource
-/// ```edition2018
-/// # use bevy_kira_audio::{Audio, AudioPlugin};
+/// ```
+/// # use bevy_kira_audio::prelude::*;
 /// # use bevy::prelude::*;
 /// # use bevy::asset::AssetPlugin;
 /// # use bevy::app::AppExit;
@@ -107,17 +125,28 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
-        app.add_system_to_stage(
-            CoreStage::PreUpdate,
-            cleanup_stopped_instances.label(AudioSystemLabel::InstanceCleanup),
-        )
-        .add_audio_channel::<MainTrack>();
+        app.init_resource::<DynamicAudioChannels>()
+            .add_system_to_stage(
+                CoreStage::PostUpdate,
+                play_dynamic_channels.label(AudioSystemLabel::PlayDynamicChannels),
+            )
+            .add_system_to_stage(
+                CoreStage::PreUpdate,
+                cleanup_stopped_instances.label(AudioSystemLabel::InstanceCleanup),
+            )
+            .add_audio_channel::<MainTrack>();
     }
 }
 
+/// Labels for audio systems
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
-pub(crate) enum AudioSystemLabel {
+pub enum AudioSystemLabel {
+    /// Label for systems in [`CoreStage::PreUpdate`] that clean up tracked audio instances
     InstanceCleanup,
+    /// Label for system in [`CoreStage::PostUpdate`] that processes audio commands for dynamic channels
+    PlayDynamicChannels,
+    /// Label for systems in [`CoreStage::PostUpdate`] that process audio commands for typed channels
+    PlayTypedChannels,
 }
 
 /// The default audio channel

@@ -1,3 +1,5 @@
+//! Asset loaders for commonly used audio file formats
+
 #[cfg(feature = "flac")]
 pub mod flac_loader;
 #[cfg(feature = "mp3")]
