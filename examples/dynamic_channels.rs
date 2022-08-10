@@ -19,7 +19,8 @@ fn start_background_audio(
 ) {
     audio
         .create_channel("example")
-        .play_looped(asset_server.load("sounds/loop.ogg"));
+        .play(asset_server.load("sounds/loop.ogg"))
+        .looped();
     commands.insert_resource::<Handle<AudioSource>>(asset_server.load("sounds/plop.ogg"))
 }
 

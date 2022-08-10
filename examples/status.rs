@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
+use std::time::Duration;
 
 struct LoopAudioInstanceHandle {
     instance_handle: InstanceHandle,
@@ -18,27 +19,31 @@ fn main() {
 
 fn start_audio(mut commands: Commands, asset_server: Res<AssetServer>, audio: Res<Audio>) {
     let asset_handle = asset_server.load("sounds/loop.ogg");
-    let instance_handle = audio.play_looped(asset_handle);
+    let instance_handle = audio.play(asset_handle).looped().handle();
     println!("Audio started.");
     commands.insert_resource(LoopAudioInstanceHandle { instance_handle });
 }
 
 fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
     if kb.just_pressed(KeyCode::P) {
-        audio.pause();
+        audio.pause().linear_fade_out(Duration::from_millis(500));
         println!("Audio pausing...");
     } else if kb.just_pressed(KeyCode::S) {
-        audio.stop();
+        audio
+            .stop()
+            .fade_out(Duration::from_secs(1), Easing::InOutPowi(2));
         println!("Audio stopping...");
     } else if kb.just_pressed(KeyCode::R) {
-        audio.resume();
+        audio
+            .resume()
+            .fade_in(Duration::from_millis(500), Easing::InOutPowi(4));
         println!("Audio resuming...");
     }
 }
 
 fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
     let state = audio.state(loop_audio.instance_handle.clone());
-    println!("Loop audio {:?}", state);
+    println!("Looping audio is {:?}", state);
 }
 
 fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {

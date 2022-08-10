@@ -1,42 +1,277 @@
 //! Common audio types
 
 use crate::audio_output::{play_audio_channel, update_instance_states, InstanceState};
-use crate::channel::AudioChannel;
+use crate::channel::{AudioChannel, AudioCommandQue};
 use crate::source::AudioSource;
 use crate::{AudioSystemLabel, ParallelSystemDescriptorCoercion};
 use bevy::app::{App, CoreStage};
 use bevy::asset::Handle;
 use bevy::ecs::system::Resource;
+use bevy::prelude::default;
+use kira::sound::static_sound::StaticSoundData;
+use kira::LoopBehavior;
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 pub(crate) enum AudioCommand {
-    Play(PlayAudioCommandArgs),
-    SetVolume(f32),
-    SetPanning(f32),
-    SetPlaybackRate(f32),
+    Play(PlayAudioSettings),
+    SetVolume(f64, Option<Tween>),
+    SetPanning(f64, Option<Tween>),
+    SetPlaybackRate(f64, Option<Tween>),
+    Stop(Option<Tween>),
+    Pause(Option<Tween>),
+    Resume(Option<Tween>),
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PartialSoundSettings {
+    pub(crate) loop_behavior: Option<Option<f64>>,
+    pub(crate) volume: Option<f64>,
+    pub(crate) playback_rate: Option<f64>,
+    pub(crate) start_position: Option<f64>,
+    pub(crate) panning: Option<f64>,
+    pub(crate) reverse: Option<bool>,
+    pub(crate) fade_in: Option<Tween>,
+}
+
+/// Different kinds of easing for fade-in and fade-out
+pub type Easing = kira::tween::Easing;
+
+#[derive(Clone)]
+pub struct Tween(Duration, Easing);
+
+pub fn map_tween(tween: &Option<Tween>) -> kira::tween::Tween {
+    match tween {
+        Some(tween) => kira::tween::Tween {
+            duration: tween.0,
+            easing: tween.1,
+            ..default()
+        },
+        None => kira::tween::Tween::default(),
+    }
+}
+
+impl PartialSoundSettings {
+    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
+        if let Some(loop_behavior) = self.loop_behavior {
+            if let Some(start_position) = loop_behavior {
+                sound.settings.loop_behavior = Some(LoopBehavior { start_position })
+            } else {
+                sound.settings.loop_behavior = None;
+            }
+        }
+        if let Some(volume) = self.volume {
+            sound.settings.volume = volume.into();
+        }
+        if let Some(playback_rate) = self.playback_rate {
+            sound.settings.playback_rate = playback_rate.into();
+        }
+        if let Some(start_position) = self.start_position {
+            sound.settings.start_position = start_position;
+        }
+        if let Some(panning) = self.panning {
+            sound.settings.panning = panning;
+        }
+        if let Some(reverse) = self.reverse {
+            sound.settings.reverse = reverse;
+        }
+        if let Some(Tween(duration, easing)) = self.fade_in {
+            sound.settings.fade_in_tween = Some(kira::tween::Tween {
+                duration,
+                easing,
+                ..default()
+            });
+        }
+    }
+}
+
+pub struct PlayAudioSettings {
+    pub(crate) instance: InstanceHandle,
+    pub(crate) source: Handle<AudioSource>,
+    pub(crate) settings: PartialSoundSettings,
+}
+
+impl<'a> From<&mut PlayAudioCommand<'a>> for PlayAudioSettings {
+    fn from(command: &mut PlayAudioCommand<'a>) -> Self {
+        PlayAudioSettings {
+            instance: command.instance.clone(),
+            source: command.source.clone(),
+            settings: command.settings.clone(),
+        }
+    }
+}
+
+pub struct PlayAudioCommand<'a> {
+    pub(crate) instance: InstanceHandle,
+    pub(crate) source: Handle<AudioSource>,
+    pub(crate) settings: PartialSoundSettings,
+    pub(crate) que: &'a dyn AudioCommandQue,
+}
+
+impl<'a> Drop for PlayAudioCommand<'a> {
+    fn drop(&mut self) {
+        self.que.que(AudioCommand::Play(self.into()));
+    }
+}
+
+impl<'a> PlayAudioCommand<'a> {
+    pub(crate) fn new(
+        instance: InstanceHandle,
+        source: Handle<AudioSource>,
+        que: &'a dyn AudioCommandQue,
+    ) -> Self {
+        Self {
+            instance,
+            source,
+            settings: PartialSoundSettings::default(),
+            que,
+        }
+    }
+
+    pub fn looped(&mut self) -> &mut Self {
+        self.settings.loop_behavior = Some(Some(0.0));
+
+        self
+    }
+
+    pub fn loop_from(&mut self, loop_start_position: f64) -> &mut Self {
+        self.settings.loop_behavior = Some(Some(loop_start_position));
+
+        self
+    }
+
+    pub fn with_volume(&mut self, volume: f64) -> &mut Self {
+        self.settings.volume = Some(volume);
+
+        self
+    }
+
+    pub fn with_playback_rate(&mut self, playback_rate: f64) -> &mut Self {
+        self.settings.playback_rate = Some(playback_rate);
+
+        self
+    }
+
+    pub fn start_from(&mut self, start_position: f64) -> &mut Self {
+        self.settings.start_position = Some(start_position);
+
+        self
+    }
+
+    pub fn with_panning(&mut self, panning: f64) -> &mut Self {
+        self.settings.panning = Some(panning);
+
+        self
+    }
+
+    pub fn reverse(&mut self) -> &mut Self {
+        let current = self.settings.reverse.unwrap_or(false);
+        self.settings.reverse = Some(!current);
+
+        self
+    }
+
+    pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
+        self.settings.fade_in = Some(Tween(duration, Easing::Linear));
+
+        self
+    }
+
+    pub fn fade_in(&mut self, duration: Duration, easing: Easing) -> &mut Self {
+        self.settings.fade_in = Some(Tween(duration, easing));
+
+        self
+    }
+
+    #[must_use]
+    pub fn handle(&mut self) -> InstanceHandle {
+        self.instance.clone()
+    }
+}
+
+pub(crate) enum TweenCommandKind {
+    SetVolume(f64),
+    SetPanning(f64),
+    SetPlaybackRate(f64),
     Stop,
     Pause,
     Resume,
 }
 
-pub(crate) struct PlayAudioCommandArgs {
-    /// The settings for this Play command.
-    pub(crate) settings: PlayAudioSettings,
+impl TweenCommandKind {
+    fn to_command(&self, tween: Option<Tween>) -> AudioCommand {
+        match self {
+            TweenCommandKind::SetVolume(volume) => AudioCommand::SetVolume(*volume, tween),
+            TweenCommandKind::SetPanning(panning) => AudioCommand::SetPanning(*panning, tween),
+            TweenCommandKind::SetPlaybackRate(playback_rate) => {
+                AudioCommand::SetPlaybackRate(*playback_rate, tween)
+            }
+            TweenCommandKind::Stop => AudioCommand::Stop(tween),
+            TweenCommandKind::Pause => AudioCommand::Pause(tween),
+            TweenCommandKind::Resume => AudioCommand::Resume(tween),
+        }
+    }
+}
 
-    /// An instance handle to communicate with the consumer.
-    pub(crate) instance_handle: InstanceHandle,
+pub struct FadeIn;
+pub struct FadeOut;
+
+pub struct TweenCommand<'a, Fade> {
+    pub(crate) kind: TweenCommandKind,
+    pub(crate) tween: Option<Tween>,
+    pub(crate) que: &'a dyn AudioCommandQue,
+    _marker: PhantomData<Fade>,
+}
+
+impl<'a, Fade> Drop for TweenCommand<'a, Fade> {
+    fn drop(&mut self) {
+        self.que.que(self.kind.to_command(self.tween.take()));
+    }
+}
+
+impl<'a, Fade> TweenCommand<'a, Fade> {
+    pub(crate) fn new(kind: TweenCommandKind, que: &'a dyn AudioCommandQue) -> Self {
+        Self {
+            kind,
+            tween: None,
+            que,
+            _marker: PhantomData::<Fade>::default(),
+        }
+    }
+}
+
+impl<'a> TweenCommand<'a, FadeIn> {
+    pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
+        self.tween = Some(Tween(duration, Easing::Linear));
+
+        self
+    }
+
+    pub fn fade_in(&mut self, duration: Duration, easing: Easing) -> &mut Self {
+        self.tween = Some(Tween(duration, easing));
+
+        self
+    }
+}
+
+impl<'a> TweenCommand<'a, FadeOut> {
+    pub fn linear_fade_out(&mut self, duration: Duration) -> &mut Self {
+        self.tween = Some(Tween(duration, Easing::Linear));
+
+        self
+    }
+
+    pub fn fade_out(&mut self, duration: Duration, easing: Easing) -> &mut Self {
+        self.tween = Some(Tween(duration, easing));
+
+        self
+    }
 }
 
 pub enum AudioCommandResult {
     Ok,
     Retry,
-}
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub(crate) struct PlayAudioSettings {
-    pub source: Handle<AudioSource>,
-    pub intro_source: Option<Handle<AudioSource>>,
-    pub looped: bool,
 }
 
 /// Allows you to interact with a playing sound.

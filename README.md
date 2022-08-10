@@ -29,15 +29,41 @@ fn main() {
 }
 
 fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    audio.play_looped(asset_server.load("background_audio.ogg"));
+    audio.play(asset_server.load("background_audio.ogg")).looped();
 }
 ```
 
-### Sound with custom settings
+You can change settings like volume, panning, or playback rate for running sounds, or when starting to play a sound.
+All changes can be done as smooth transitions. By default, they will be almost instantaneous.
 
-*Requires feature `settings_loader`*
+### Sound settings
 
-It is possible to load sounds with custom settings from `ron` files. A common example would be a loop with an intro. Loading a ron file like this:
+You can configure a sound when playing it:
+```rust
+use bevy_kira_audio::prelude::*;
+use bevy::prelude::*;
+use std::time::Duration;
+
+fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    audio.play(asset_server.load("background_audio.ogg"))
+        // The first 0.5 seconds will not be looped and are the "intro"
+        .loop_from(0.5)
+        // Fade-in with a dynamic easing
+        .fade_in(Duration::from_secs(2), Easing::OutPowi(2))
+        // Only play on our right ear
+        .with_panning(1.0)
+        // Increase playback rate by 50% (this also increases the pitch)
+        .with_playback_rate(1.5)
+        // Play at half volume
+        .with_volume(0.5)
+        // play the track reversed
+        .reverse();
+}
+```
+
+Optionally, you can also load a sound with already applied settings. This requires the feature `settings_loader`.
+
+Sounds are configured in `ron` files. The following file loads as a `AudioSource` which is looped and has a 3 seconds intro before the loop:
 ```ron
 (
     // The actual sound file in your assets directory

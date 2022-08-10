@@ -13,7 +13,9 @@ fn main() {
 
 // Use the channel via the `AudioChannel<Background>` resource
 fn play(background: Res<AudioChannel<Background>>, asset_server: Res<AssetServer>) {
-    background.play(asset_server.load("sounds/loop.ogg"));
+    background
+        .play(asset_server.load("sounds/loop.ogg"))
+        .looped();
 }
 
 // Our type for the custom audio channel
