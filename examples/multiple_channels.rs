@@ -120,7 +120,7 @@ fn loop_button<T: Component + Default>(
         }
         channel_state.loop_started = true;
         channel_state.stopped = false;
-        channel.play_looped(audio_handles.loop_handle.clone());
+        channel.play(audio_handles.loop_handle.clone()).looped();
     }
 }
 
@@ -231,7 +231,7 @@ struct ChannelAudioState<T> {
     stopped: bool,
     paused: bool,
     loop_started: bool,
-    volume: f32,
+    volume: f64,
     _marker: PhantomData<T>,
 }
 

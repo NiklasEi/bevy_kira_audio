@@ -23,7 +23,7 @@
 //! }
 //!
 //! fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-//!     audio.play_looped(asset_server.load("background_audio.mp3"));
+//!     audio.play(asset_server.load("background_audio.mp3")).looped();
 //! }
 //!
 //! # fn stop(mut events: EventWriter<AppExit>) {
@@ -48,7 +48,7 @@ pub use source::AudioSource;
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
-    pub use crate::audio::{AudioApp, InstanceHandle, PlaybackState};
+    pub use crate::audio::{AudioApp, Easing, InstanceHandle, PlaybackState};
     #[doc(hidden)]
     pub use crate::channel::{
         AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels,
@@ -98,7 +98,7 @@ use bevy::prelude::{
 /// }
 ///
 /// fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-///     audio.play_looped(asset_server.load("background_audio.mp3"));
+///     audio.play(asset_server.load("background_audio.mp3")).looped();
 /// }
 ///
 /// # fn stop(mut events: EventWriter<AppExit>) {

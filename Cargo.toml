@@ -63,3 +63,8 @@ required-features = ["ogg", "settings_loader"]
 name = "stress_test"
 path = "examples/stress_test.rs"
 required-features = ["ogg"]
+
+[[example]]
+name = "settings"
+path = "examples/settings.rs"
+required-features = ["ogg"]

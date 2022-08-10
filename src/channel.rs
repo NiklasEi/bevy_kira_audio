@@ -1,4 +1,7 @@
-use crate::audio::{AudioCommand, PlayAudioCommandArgs, PlayAudioSettings};
+use crate::audio::{
+    AudioCommand, FadeIn, FadeOut, PlayAudioCommand, PlayAudioSettings, TweenCommand,
+    TweenCommandKind,
+};
 use crate::{AudioSource, InstanceHandle, PlaybackState};
 use bevy::asset::Handle;
 use bevy::utils::HashMap;
@@ -25,35 +28,7 @@ pub trait AudioControl {
     ///     audio.play(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    fn play(&self, audio_source: Handle<AudioSource>) -> InstanceHandle;
-
-    /// Play looped audio
-    ///
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::prelude::*;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped(asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    fn play_looped(&self, audio_source: Handle<AudioSource>) -> InstanceHandle;
-
-    /// Play looped audio with an intro
-    ///
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::prelude::*;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped_with_intro(asset_server.load("intro.mp3"), asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    fn play_looped_with_intro(
-        &self,
-        intro_audio_source: Handle<AudioSource>,
-        looped_audio_source: Handle<AudioSource>,
-    ) -> InstanceHandle;
+    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand;
 
     /// Stop all audio
     ///
@@ -65,7 +40,7 @@ pub trait AudioControl {
     ///     audio.stop();
     /// }
     /// ```
-    fn stop(&self);
+    fn stop(&self) -> TweenCommand<FadeOut>;
 
     /// Pause all audio
     ///
@@ -77,7 +52,7 @@ pub trait AudioControl {
     ///     audio.pause();
     /// }
     /// ```
-    fn pause(&self);
+    fn pause(&self) -> TweenCommand<FadeOut>;
 
     /// Resume all audio
     ///
@@ -89,7 +64,7 @@ pub trait AudioControl {
     ///     audio.resume();
     /// }
     /// ```
-    fn resume(&self);
+    fn resume(&self) -> TweenCommand<FadeIn>;
 
     /// Set the volume
     ///
@@ -103,7 +78,7 @@ pub trait AudioControl {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: f32);
+    fn set_volume(&self, volume: f64) -> TweenCommand<FadeIn>;
 
     /// Set panning
     ///
@@ -119,7 +94,7 @@ pub trait AudioControl {
     ///     audio.set_panning(0.9);
     /// }
     /// ```
-    fn set_panning(&self, panning: f32);
+    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn>;
 
     /// Set playback rate
     ///
@@ -133,7 +108,7 @@ pub trait AudioControl {
     ///     audio.set_playback_rate(2.0);
     /// }
     /// ```
-    fn set_playback_rate(&self, playback_rate: f32);
+    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<FadeIn>;
 
     /// Get state for a playback instance.
     fn state(&self, instance_handle: InstanceHandle) -> PlaybackState;
@@ -143,6 +118,10 @@ pub trait AudioControl {
     /// If there are only `Stopped`, `Paused`, or `Queued` sounds, the method will return `false`.
     /// The same result is returned if there are no sounds in the channel at all.
     fn is_playing_sound(&self) -> bool;
+}
+
+pub(crate) trait AudioCommandQue {
+    fn que(&self, command: AudioCommand);
 }
 
 /// Channel to play and control audio
@@ -165,6 +144,12 @@ impl<T> Default for AudioChannel<T> {
     }
 }
 
+impl<T> AudioCommandQue for AudioChannel<T> {
+    fn que(&self, command: AudioCommand) {
+        self.commands.write().push_front(command)
+    }
+}
+
 impl<T> AudioControl for AudioChannel<T> {
     /// Play audio
     ///
@@ -176,79 +161,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.play(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    fn play(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: audio_source,
-                    intro_source: None,
-                    looped: false,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Play looped audio
-    ///
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::prelude::*;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped(asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    fn play_looped(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: audio_source,
-                    intro_source: None,
-                    looped: true,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Play looped audio with an intro
-    ///
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::prelude::*;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped_with_intro(asset_server.load("intro.mp3"), asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    fn play_looped_with_intro(
-        &self,
-        intro_audio_source: Handle<AudioSource>,
-        looped_audio_source: Handle<AudioSource>,
-    ) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: looped_audio_source,
-                    intro_source: Some(intro_audio_source),
-                    looped: true,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
+    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand {
+        PlayAudioCommand::new(InstanceHandle::new(), audio_source, self)
     }
 
     /// Stop all audio
@@ -261,8 +175,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.stop();
     /// }
     /// ```
-    fn stop(&self) {
-        self.commands.write().push_front(AudioCommand::Stop);
+    fn stop(&self) -> TweenCommand<FadeOut> {
+        TweenCommand::new(TweenCommandKind::Stop, self)
     }
 
     /// Pause all audio
@@ -275,8 +189,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.pause();
     /// }
     /// ```
-    fn pause(&self) {
-        self.commands.write().push_front(AudioCommand::Pause);
+    fn pause(&self) -> TweenCommand<FadeOut> {
+        TweenCommand::new(TweenCommandKind::Pause, self)
     }
 
     /// Resume all audio
@@ -289,8 +203,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.resume();
     /// }
     /// ```
-    fn resume(&self) {
-        self.commands.write().push_front(AudioCommand::Resume);
+    fn resume(&self) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::Resume, self)
     }
 
     /// Set the volume
@@ -305,10 +219,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetVolume(volume));
+    fn set_volume(&self, volume: f64) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetVolume(volume), self)
     }
 
     /// Set panning
@@ -325,10 +237,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.set_panning(0.9);
     /// }
     /// ```
-    fn set_panning(&self, panning: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetPanning(panning));
+    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetPanning(panning), self)
     }
 
     /// Set playback rate
@@ -343,10 +253,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.set_playback_rate(2.0);
     /// }
     /// ```
-    fn set_playback_rate(&self, playback_rate: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetPlaybackRate(playback_rate));
+    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetPlaybackRate(playback_rate), self)
     }
 
     /// Get state for a playback instance.
@@ -359,9 +267,10 @@ impl<T> AudioControl for AudioChannel<T> {
                     .read()
                     .iter()
                     .find(|command| match command {
-                        AudioCommand::Play(PlayAudioCommandArgs {
-                            instance_handle: handle,
+                        AudioCommand::Play(PlayAudioSettings {
+                            instance: handle,
                             settings: _,
+                            source: _,
                         }) => handle.id == instance_handle.id,
                         _ => false,
                     })
@@ -393,6 +302,12 @@ pub struct DynamicAudioChannel {
     pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
 }
 
+impl AudioCommandQue for DynamicAudioChannel {
+    fn que(&self, command: AudioCommand) {
+        self.commands.write().push_front(command)
+    }
+}
+
 impl AudioControl for DynamicAudioChannel {
     /// ```
     /// # use bevy::prelude::*;
@@ -402,79 +317,8 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.play(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    fn play(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: audio_source,
-                    intro_source: None,
-                    looped: false,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Play looped audio
-    ///
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::prelude::*;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped(asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    fn play_looped(&self, audio_source: Handle<AudioSource>) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: audio_source,
-                    intro_source: None,
-                    looped: true,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
-    }
-
-    /// Play looped audio with an intro
-    ///
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use bevy_kira_audio::prelude::*;
-    ///
-    /// fn my_system(asset_server: Res<AssetServer>, audio: Res<Audio>) {
-    ///     audio.play_looped_with_intro(asset_server.load("intro.mp3"), asset_server.load("audio.mp3"));
-    /// }
-    /// ```
-    fn play_looped_with_intro(
-        &self,
-        intro_audio_source: Handle<AudioSource>,
-        looped_audio_source: Handle<AudioSource>,
-    ) -> InstanceHandle {
-        let instance_handle = InstanceHandle::new();
-
-        self.commands
-            .write()
-            .push_front(AudioCommand::Play(PlayAudioCommandArgs {
-                settings: PlayAudioSettings {
-                    source: looped_audio_source,
-                    intro_source: Some(intro_audio_source),
-                    looped: true,
-                },
-                instance_handle: instance_handle.clone(),
-            }));
-
-        instance_handle
+    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand {
+        PlayAudioCommand::new(InstanceHandle::new(), audio_source, self)
     }
 
     /// Stop all audio
@@ -487,8 +331,8 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.stop();
     /// }
     /// ```
-    fn stop(&self) {
-        self.commands.write().push_front(AudioCommand::Stop);
+    fn stop(&self) -> TweenCommand<FadeOut> {
+        TweenCommand::new(TweenCommandKind::Stop, self)
     }
 
     /// Pause all audio
@@ -501,8 +345,8 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.pause();
     /// }
     /// ```
-    fn pause(&self) {
-        self.commands.write().push_front(AudioCommand::Pause);
+    fn pause(&self) -> TweenCommand<FadeOut> {
+        TweenCommand::new(TweenCommandKind::Pause, self)
     }
 
     /// Resume all audio
@@ -515,8 +359,8 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.resume();
     /// }
     /// ```
-    fn resume(&self) {
-        self.commands.write().push_front(AudioCommand::Resume);
+    fn resume(&self) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::Resume, self)
     }
 
     /// Set the volume
@@ -531,12 +375,9 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetVolume(volume));
+    fn set_volume(&self, volume: f64) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetVolume(volume), self)
     }
-
     /// Set panning
     ///
     /// The default value is 0.5
@@ -551,12 +392,9 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.set_panning(0.9);
     /// }
     /// ```
-    fn set_panning(&self, panning: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetPanning(panning));
+    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetPanning(panning), self)
     }
-
     /// Set playback rate
     ///
     /// The default value is 1
@@ -569,10 +407,8 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.set_playback_rate(2.0);
     /// }
     /// ```
-    fn set_playback_rate(&self, playback_rate: f32) {
-        self.commands
-            .write()
-            .push_front(AudioCommand::SetPlaybackRate(playback_rate));
+    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetPlaybackRate(playback_rate), self)
     }
 
     /// Get state for a playback instance.
@@ -585,9 +421,10 @@ impl AudioControl for DynamicAudioChannel {
                     .read()
                     .iter()
                     .find(|command| match command {
-                        AudioCommand::Play(PlayAudioCommandArgs {
-                            instance_handle: handle,
+                        AudioCommand::Play(PlayAudioSettings {
+                            instance: handle,
                             settings: _,
+                            source: _,
                         }) => handle.id == instance_handle.id,
                         _ => false,
                     })
@@ -691,7 +528,7 @@ mod typed_channels {
         let audio = AudioChannel::<Audio>::default();
         let audio_handle: Handle<AudioSource> =
             Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
-        let instance_handle = audio.play(audio_handle);
+        let instance_handle = audio.play(audio_handle).handle();
 
         assert_eq!(audio.state(instance_handle), PlaybackState::Queued);
     }
@@ -752,7 +589,7 @@ mod dynamic_channels {
         let mut audio = DynamicAudioChannels::default();
         let audio_handle: Handle<AudioSource> =
             Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
-        let instance_handle = audio.create_channel("test").play(audio_handle);
+        let instance_handle = audio.create_channel("test").play(audio_handle).handle();
 
         assert_eq!(
             audio.channel("test").state(instance_handle),

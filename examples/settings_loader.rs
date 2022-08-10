@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
+/// This example shows how to load a sound file with applied audio settings.
+/// You can also easily apply settings when playing a sound (see the `settings` example).
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)

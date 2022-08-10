@@ -1,5 +1,10 @@
 # Changelog
 
+## Next version
+- Support changing most settings when playing a sound
+  - Removed `.play_looped(handle)` in preference for `.play(handle).looped()`
+- All audio commands can use smooth transitions with configurable easings and durations
+
 ## v0.11.0
 - Fix channel playback states ([#54](https://github.com/NiklasEi/bevy_kira_audio/issues/54))
 - Update to Bevy 0.8
@@ -27,6 +32,6 @@
 - Clean up stopped instances
 - "ogg" is now a default feature 
 - No longer panic when no Audio device can be found (analogue to bevy/audio)
-- Files can be loaded with a semantic duration (see [the example](examples/settings_loader))
+- Files can be loaded with a semantic duration (see [the example](examples/settings_loader.rs))
 - The plugin will no longer compile if none of the features "mp3", "ogg", "wav", or "flac" are set
 - Allow playing looped sounds with an intro

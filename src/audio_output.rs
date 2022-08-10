@@ -1,6 +1,8 @@
 //! The internal audio systems and resource
 
-use crate::audio::{AudioCommand, AudioCommandResult, InstanceHandle, PlayAudioSettings};
+use crate::audio::{
+    map_tween, AudioCommand, AudioCommandResult, InstanceHandle, PartialSoundSettings, Tween,
+};
 use std::any::TypeId;
 
 use crate::channel::AudioChannel;
@@ -15,8 +17,7 @@ use bevy::log::{error, warn};
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
-use kira::tween::Tween;
-use kira::{CommandError, LoopBehavior, PlaybackRate};
+use kira::{CommandError, PlaybackRate};
 use std::collections::HashMap;
 
 /// Non-send resource that acts as audio output
@@ -51,10 +52,11 @@ impl FromWorld for AudioOutput {
 }
 
 impl<B: Backend> AudioOutput<B> {
-    fn stop(&mut self, channel: &Channel) -> AudioCommandResult {
+    fn stop(&mut self, channel: &Channel, tween: &Option<Tween>) -> AudioCommandResult {
         if let Some(instances) = self.instances.get_mut(channel) {
+            let tween = map_tween(tween);
             for instance in instances {
-                match instance.kira.stop(Tween::default()) {
+                match instance.kira.stop(tween) {
                     Err(CommandError::CommandQueueFull) => {
                         return AudioCommandResult::Retry;
                     }
@@ -69,11 +71,12 @@ impl<B: Backend> AudioOutput<B> {
         AudioCommandResult::Ok
     }
 
-    fn pause(&mut self, channel: &Channel) {
+    fn pause(&mut self, channel: &Channel, tween: &Option<Tween>) {
         if let Some(instances) = self.instances.get_mut(channel) {
+            let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if kira::sound::static_sound::PlaybackState::Playing == instance.kira.state() {
-                    if let Err(error) = instance.kira.pause(Tween::default()) {
+                    if let Err(error) = instance.kira.pause(tween) {
                         error!("Failed to pause instance: {:?}", error);
                     }
                 }
@@ -90,11 +93,12 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn resume(&mut self, channel: &Channel) {
+    fn resume(&mut self, channel: &Channel, tween: &Option<Tween>) {
         if let Some(instances) = self.instances.get_mut(channel) {
+            let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if let kira::sound::static_sound::PlaybackState::Paused = instance.kira.state() {
-                    if let Err(error) = instance.kira.resume(Tween::default()) {
+                    if let Err(error) = instance.kira.resume(tween) {
                         error!("Failed to resume instance: {:?}", error);
                     }
                 }
@@ -108,10 +112,11 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn set_volume(&mut self, channel: &Channel, volume: f64) {
+    fn set_volume(&mut self, channel: &Channel, volume: f64, tween: &Option<Tween>) {
         if let Some(instances) = self.instances.get_mut(channel) {
+            let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.kira.set_volume(volume, Tween::default()) {
+                if let Err(error) = instance.kira.set_volume(volume, tween) {
                     error!("Failed to set volume for instance: {:?}", error);
                 }
             }
@@ -127,10 +132,11 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn set_panning(&mut self, channel: &Channel, panning: f64) {
+    fn set_panning(&mut self, channel: &Channel, panning: f64, tween: &Option<Tween>) {
         if let Some(instances) = self.instances.get_mut(channel) {
+            let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.kira.set_panning(panning, Tween::default()) {
+                if let Err(error) = instance.kira.set_panning(panning, tween) {
                     error!("Failed to set panning for instance: {:?}", error);
                 }
             }
@@ -146,13 +152,11 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn set_playback_rate(&mut self, channel: &Channel, playback_rate: f64) {
+    fn set_playback_rate(&mut self, channel: &Channel, playback_rate: f64, tween: &Option<Tween>) {
         if let Some(instances) = self.instances.get_mut(channel) {
+            let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Err(error) = instance
-                    .kira
-                    .set_playback_rate(playback_rate, Tween::default())
-                {
+                if let Err(error) = instance.kira.set_playback_rate(playback_rate, tween) {
                     error!("Failed to set playback rate for instance: {:?}", error);
                 }
             }
@@ -171,7 +175,7 @@ impl<B: Backend> AudioOutput<B> {
     fn play(
         &mut self,
         channel: &Channel,
-        play_settings: &PlayAudioSettings,
+        partial_sound_settings: &PartialSoundSettings,
         audio_source: &AudioSource,
         instance_handle: InstanceHandle,
     ) -> AudioCommandResult {
@@ -184,11 +188,7 @@ impl<B: Backend> AudioOutput<B> {
                 sound.settings.playback_rate = PlaybackRate::Factor(0.0);
             }
         }
-        if play_settings.looped && sound.settings.loop_behavior.is_none() {
-            sound.settings.loop_behavior = Some(LoopBehavior {
-                start_position: 0.0,
-            });
-        }
+        partial_sound_settings.apply(&mut sound);
         let sound_handle = self.manager.as_mut().unwrap().play(sound);
         if let Err(error) = sound_handle {
             warn!("Failed to play sound due to {:?}", error);
@@ -197,14 +197,17 @@ impl<B: Backend> AudioOutput<B> {
         let mut sound_handle = sound_handle.unwrap();
         if let Some(channel_state) = self.channels.get(channel) {
             if channel_state.paused {
-                if let Err(error) = sound_handle.pause(Tween::default()) {
+                if let Err(error) = sound_handle.pause(kira::tween::Tween::default()) {
                     warn!(
                         "Failed to pause instance (channel was paused) due to {:?}",
                         error
                     );
                 }
+                let playback_rate = partial_sound_settings
+                    .playback_rate
+                    .unwrap_or(channel_state.playback_rate);
                 if let Err(error) =
-                    sound_handle.set_playback_rate(channel_state.playback_rate, Tween::default())
+                    sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default())
                 {
                     error!("Failed to set playback rate for instance: {:?}", error);
                 }
@@ -240,7 +243,7 @@ impl<B: Backend> AudioOutput<B> {
         while i < len {
             let audio_command = commands.pop_back().unwrap();
             let result = self.run_audio_command(&audio_command, audio_sources, &channel);
-            if let AudioCommand::Stop = audio_command {
+            if let AudioCommand::Stop(_) = audio_command {
                 commands_to_retry.clear();
             }
             if let AudioCommandResult::Retry = result {
@@ -285,37 +288,37 @@ impl<B: Backend> AudioOutput<B> {
     ) -> AudioCommandResult {
         match audio_command {
             AudioCommand::Play(play_args) => {
-                if let Some(audio_source) = audio_sources.get(&play_args.settings.source) {
+                if let Some(audio_source) = audio_sources.get(&play_args.source) {
                     self.play(
                         channel,
                         &play_args.settings,
                         audio_source,
-                        play_args.instance_handle.clone(),
+                        play_args.instance.clone(),
                     )
                 } else {
                     // audio source hasn't loaded yet. Add it back to the queue
                     AudioCommandResult::Retry
                 }
             }
-            AudioCommand::Stop => self.stop(channel),
-            AudioCommand::Pause => {
-                self.pause(channel);
+            AudioCommand::Stop(tween) => self.stop(channel, tween),
+            AudioCommand::Pause(tween) => {
+                self.pause(channel, tween);
                 AudioCommandResult::Ok
             }
-            AudioCommand::Resume => {
-                self.resume(channel);
+            AudioCommand::Resume(tween) => {
+                self.resume(channel, tween);
                 AudioCommandResult::Ok
             }
-            AudioCommand::SetVolume(volume) => {
-                self.set_volume(channel, *volume as f64);
+            AudioCommand::SetVolume(volume, tween) => {
+                self.set_volume(channel, *volume, tween);
                 AudioCommandResult::Ok
             }
-            AudioCommand::SetPanning(panning) => {
-                self.set_panning(channel, *panning as f64);
+            AudioCommand::SetPanning(panning, tween) => {
+                self.set_panning(channel, *panning, tween);
                 AudioCommandResult::Ok
             }
-            AudioCommand::SetPlaybackRate(playback_rate) => {
-                self.set_playback_rate(channel, *playback_rate as f64);
+            AudioCommand::SetPlaybackRate(playback_rate, tween) => {
+                self.set_playback_rate(channel, *playback_rate, tween);
                 AudioCommandResult::Ok
             }
         }
@@ -435,14 +438,14 @@ mod test {
         let command_one = channel.commands.write().pop_back().unwrap();
         match command_one {
             AudioCommand::Play(settings) => {
-                assert_eq!(settings.settings.source.id, audio_handle_one.id)
+                assert_eq!(settings.source.id, audio_handle_one.id)
             }
             _ => panic!("Wrong audio command"),
         }
         let command_two = channel.commands.write().pop_back().unwrap();
         match command_two {
             AudioCommand::Play(settings) => {
-                assert_eq!(settings.settings.source.id, audio_handle_two.id)
+                assert_eq!(settings.source.id, audio_handle_two.id)
             }
             _ => panic!("Wrong audio command"),
         }
@@ -477,7 +480,7 @@ mod test {
         let command = channel.commands.write().pop_back().unwrap();
         match command {
             AudioCommand::Play(settings) => {
-                assert_eq!(settings.settings.source.id, audio_handle_two.id)
+                assert_eq!(settings.source.id, audio_handle_two.id)
             }
             _ => panic!("Wrong audio command"),
         }
