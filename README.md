@@ -17,7 +17,7 @@ Sound can be played in channels. Each channel has controls to pause or stop play
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
 
 ```rust no_run
-use bevy_kira_audio::{Audio, AudioPlugin};
+use bevy_kira_audio::prelude::*;
 use bevy::prelude::*;
 
 fn main() {

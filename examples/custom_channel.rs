@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin};
+use bevy_kira_audio::prelude::*;
 
 fn main() {
     App::new()
