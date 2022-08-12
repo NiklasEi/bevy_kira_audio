@@ -18,7 +18,7 @@ fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
         // The first 0.5 seconds will not be looped and are the "intro"
         .loop_from(0.5)
         // Fade-in with a dynamic easing
-        .fade_in(Duration::from_secs(2), Easing::OutPowi(2))
+        .fade_in(Duration::from_secs(2), AudioEasing::OutPowi(2))
         // Only play on our right ear
         .with_panning(1.0)
         // Increase playback rate by 50% (this also increases the pitch)

@@ -36,10 +36,10 @@ pub(crate) struct PartialSoundSettings {
 }
 
 /// Different kinds of easing for fade-in and fade-out
-pub type Easing = kira::tween::Easing;
+pub type AudioEasing = kira::tween::Easing;
 
 #[derive(Clone)]
-pub struct Tween(Duration, Easing);
+pub struct Tween(Duration, AudioEasing);
 
 pub fn map_tween(tween: &Option<Tween>) -> kira::tween::Tween {
     match tween {
@@ -173,12 +173,12 @@ impl<'a> PlayAudioCommand<'a> {
     }
 
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
-        self.settings.fade_in = Some(Tween(duration, Easing::Linear));
+        self.settings.fade_in = Some(Tween(duration, AudioEasing::Linear));
 
         self
     }
 
-    pub fn fade_in(&mut self, duration: Duration, easing: Easing) -> &mut Self {
+    pub fn fade_in(&mut self, duration: Duration, easing: AudioEasing) -> &mut Self {
         self.settings.fade_in = Some(Tween(duration, easing));
 
         self
@@ -243,12 +243,12 @@ impl<'a, Fade> TweenCommand<'a, Fade> {
 
 impl<'a> TweenCommand<'a, FadeIn> {
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
-        self.tween = Some(Tween(duration, Easing::Linear));
+        self.tween = Some(Tween(duration, AudioEasing::Linear));
 
         self
     }
 
-    pub fn fade_in(&mut self, duration: Duration, easing: Easing) -> &mut Self {
+    pub fn fade_in(&mut self, duration: Duration, easing: AudioEasing) -> &mut Self {
         self.tween = Some(Tween(duration, easing));
 
         self
@@ -257,12 +257,12 @@ impl<'a> TweenCommand<'a, FadeIn> {
 
 impl<'a> TweenCommand<'a, FadeOut> {
     pub fn linear_fade_out(&mut self, duration: Duration) -> &mut Self {
-        self.tween = Some(Tween(duration, Easing::Linear));
+        self.tween = Some(Tween(duration, AudioEasing::Linear));
 
         self
     }
 
-    pub fn fade_out(&mut self, duration: Duration, easing: Easing) -> &mut Self {
+    pub fn fade_out(&mut self, duration: Duration, easing: AudioEasing) -> &mut Self {
         self.tween = Some(Tween(duration, easing));
 
         self

@@ -31,12 +31,12 @@ fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
     } else if kb.just_pressed(KeyCode::S) {
         audio
             .stop()
-            .fade_out(Duration::from_secs(1), Easing::InOutPowi(2));
+            .fade_out(Duration::from_secs(1), AudioEasing::InOutPowi(2));
         println!("Audio stopping...");
     } else if kb.just_pressed(KeyCode::R) {
         audio
             .resume()
-            .fade_in(Duration::from_millis(500), Easing::InOutPowi(4));
+            .fade_in(Duration::from_millis(500), AudioEasing::InOutPowi(4));
         println!("Audio resuming...");
     }
 }

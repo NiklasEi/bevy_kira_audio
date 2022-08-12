@@ -40,7 +40,7 @@ mod channel;
 mod settings;
 mod source;
 
-pub use audio::{AudioApp, InstanceHandle, PlaybackState};
+pub use audio::{AudioApp, AudioEasing, InstanceHandle, PlaybackState};
 pub use channel::{AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels};
 pub use settings::AudioSettings;
 pub use source::AudioSource;
@@ -48,7 +48,7 @@ pub use source::AudioSource;
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
-    pub use crate::audio::{AudioApp, Easing, InstanceHandle, PlaybackState};
+    pub use crate::audio::{AudioApp, AudioEasing, InstanceHandle, PlaybackState};
     #[doc(hidden)]
     pub use crate::channel::{
         AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels,
