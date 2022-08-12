@@ -1,9 +1,13 @@
 # Changelog
 
 ## Next version
-- Support changing most settings when playing a sound
+- Support changing most settings when playing a sound ([#65](https://github.com/NiklasEi/bevy_kira_audio/issues/65))
   - Removed `.play_looped(handle)` in preference for `.play(handle).looped()`
-- All audio commands can use smooth transitions with configurable easings and durations
+- All audio commands can use smooth transitions with configurable easings and durations ([#65](https://github.com/NiklasEi/bevy_kira_audio/issues/65))
+- No more panics, if Kira's command que is full ([#51](https://github.com/NiklasEi/bevy_kira_audio/issues/51))
+- Dynamic audio channels ([#66](https://github.com/NiklasEi/bevy_kira_audio/issues/66))
+- Stop commands will now also stop queued sounds ([#62](https://github.com/NiklasEi/bevy_kira_audio/issues/62))
+- `is_playing_sound` method to quickly determine if a channel is in use at the moment ([#55](https://github.com/NiklasEi/bevy_kira_audio/issues/55))
 
 ## v0.11.0
 - Fix channel playback states ([#54](https://github.com/NiklasEi/bevy_kira_audio/issues/54))
