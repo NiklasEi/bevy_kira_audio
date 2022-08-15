@@ -87,7 +87,7 @@ The main branch is compatible with the latest Bevy release.
 Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy` |
 |  :--              |  :--   |
-| `0.11`            | `0.8`  |
+| `0.11` - `0.12`   | `0.8`  |
 | `0.9` - `0.10`    | `0.7`  |
 | `0.8`             | `0.6`  |
 | `0.4` - `0.7`     | `0.5`  |
