@@ -1,22 +1,22 @@
 //! The internal audio systems and resource
 
-use crate::audio::{
-    map_tween, AudioCommand, AudioCommandResult, InstanceHandle, PartialSoundSettings, Tween,
-};
+use crate::audio::{map_tween, AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings};
 use std::any::TypeId;
 
-use crate::channel::AudioChannel;
-use crate::channel::{Channel, DynamicAudioChannels};
-use crate::settings::AudioSettings;
+use crate::backend_settings::AudioSettings;
+use crate::channel::dynamic::DynamicAudioChannels;
+use crate::channel::typed::AudioChannel;
+use crate::channel::{Channel, ChannelState};
+use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use bevy::asset::Assets;
+use crate::PlaybackState;
+use bevy::asset::{Assets, Handle};
 use bevy::ecs::change_detection::{NonSendMut, ResMut};
 use bevy::ecs::system::{NonSend, Res, Resource};
 use bevy::ecs::world::{FromWorld, World};
 use bevy::log::{error, warn};
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
-use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{CommandError, PlaybackRate};
 use std::collections::HashMap;
 
@@ -26,13 +26,8 @@ use std::collections::HashMap;
 /// keeps track of all audio instance handles and which sounds are playing in which channel.
 pub(crate) struct AudioOutput<B: Backend = DefaultBackend> {
     manager: Option<AudioManager<B>>,
-    instances: HashMap<Channel, Vec<InstanceState>>,
+    instances: HashMap<Channel, Vec<Handle<AudioInstance>>>,
     channels: HashMap<Channel, ChannelState>,
-}
-
-pub(crate) struct InstanceState {
-    pub(crate) kira: StaticSoundHandle,
-    pub(crate) handle: InstanceHandle,
 }
 
 impl FromWorld for AudioOutput {
@@ -52,18 +47,25 @@ impl FromWorld for AudioOutput {
 }
 
 impl<B: Backend> AudioOutput<B> {
-    fn stop(&mut self, channel: &Channel, tween: &Option<Tween>) -> AudioCommandResult {
+    fn stop(
+        &mut self,
+        channel: &Channel,
+        audio_instances: &mut Assets<AudioInstance>,
+        tween: &Option<AudioTween>,
+    ) -> AudioCommandResult {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances {
-                match instance.kira.stop(tween) {
-                    Err(CommandError::CommandQueueFull) => {
-                        return AudioCommandResult::Retry;
+                if let Some(instance) = audio_instances.get_mut(instance) {
+                    match instance.handle.stop(tween) {
+                        Err(CommandError::CommandQueueFull) => {
+                            return AudioCommandResult::Retry;
+                        }
+                        Err(error) => {
+                            error!("Failed to stop instance: {:?}", error);
+                        }
+                        _ => (),
                     }
-                    Err(error) => {
-                        error!("Failed to stop instance: {:?}", error);
-                    }
-                    _ => (),
                 }
             }
         }
@@ -71,13 +73,21 @@ impl<B: Backend> AudioOutput<B> {
         AudioCommandResult::Ok
     }
 
-    fn pause(&mut self, channel: &Channel, tween: &Option<Tween>) {
-        if let Some(instances) = self.instances.get_mut(channel) {
+    fn pause(
+        &mut self,
+        channel: &Channel,
+        audio_instances: &mut Assets<AudioInstance>,
+        tween: &Option<AudioTween>,
+    ) {
+        if let Some(instance_handles) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
-            for instance in instances.iter_mut() {
-                if kira::sound::static_sound::PlaybackState::Playing == instance.kira.state() {
-                    if let Err(error) = instance.kira.pause(tween) {
-                        error!("Failed to pause instance: {:?}", error);
+            for instance in instance_handles.iter_mut() {
+                if let Some(instance) = audio_instances.get_mut(instance) {
+                    if kira::sound::static_sound::PlaybackState::Playing == instance.handle.state()
+                    {
+                        if let Err(error) = instance.handle.pause(tween) {
+                            error!("Failed to pause instance: {:?}", error);
+                        }
                     }
                 }
             }
@@ -93,13 +103,22 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn resume(&mut self, channel: &Channel, tween: &Option<Tween>) {
+    fn resume(
+        &mut self,
+        channel: &Channel,
+        audio_instances: &mut Assets<AudioInstance>,
+        tween: &Option<AudioTween>,
+    ) {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let kira::sound::static_sound::PlaybackState::Paused = instance.kira.state() {
-                    if let Err(error) = instance.kira.resume(tween) {
-                        error!("Failed to resume instance: {:?}", error);
+                if let Some(instance) = audio_instances.get_mut(instance) {
+                    if let kira::sound::static_sound::PlaybackState::Paused =
+                        instance.handle.state()
+                    {
+                        if let Err(error) = instance.handle.resume(tween) {
+                            error!("Failed to resume instance: {:?}", error);
+                        }
                     }
                 }
             }
@@ -112,12 +131,20 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn set_volume(&mut self, channel: &Channel, volume: f64, tween: &Option<Tween>) {
+    fn set_volume(
+        &mut self,
+        channel: &Channel,
+        audio_instances: &mut Assets<AudioInstance>,
+        volume: f64,
+        tween: &Option<AudioTween>,
+    ) {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.kira.set_volume(volume, tween) {
-                    error!("Failed to set volume for instance: {:?}", error);
+                if let Some(instance) = audio_instances.get_mut(instance) {
+                    if let Err(error) = instance.handle.set_volume(volume, tween) {
+                        error!("Failed to set volume for instance: {:?}", error);
+                    }
                 }
             }
         }
@@ -132,12 +159,20 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn set_panning(&mut self, channel: &Channel, panning: f64, tween: &Option<Tween>) {
+    fn set_panning(
+        &mut self,
+        channel: &Channel,
+        audio_instances: &mut Assets<AudioInstance>,
+        panning: f64,
+        tween: &Option<AudioTween>,
+    ) {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.kira.set_panning(panning, tween) {
-                    error!("Failed to set panning for instance: {:?}", error);
+                if let Some(instance) = audio_instances.get_mut(instance) {
+                    if let Err(error) = instance.handle.set_panning(panning, tween) {
+                        error!("Failed to set panning for instance: {:?}", error);
+                    }
                 }
             }
         }
@@ -152,12 +187,20 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    fn set_playback_rate(&mut self, channel: &Channel, playback_rate: f64, tween: &Option<Tween>) {
+    fn set_playback_rate(
+        &mut self,
+        channel: &Channel,
+        audio_instances: &mut Assets<AudioInstance>,
+        playback_rate: f64,
+        tween: &Option<AudioTween>,
+    ) {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Err(error) = instance.kira.set_playback_rate(playback_rate, tween) {
-                    error!("Failed to set playback rate for instance: {:?}", error);
+                if let Some(instance) = audio_instances.get_mut(instance) {
+                    if let Err(error) = instance.handle.set_playback_rate(playback_rate, tween) {
+                        error!("Failed to set playback rate for instance: {:?}", error);
+                    }
                 }
             }
         }
@@ -177,7 +220,8 @@ impl<B: Backend> AudioOutput<B> {
         channel: &Channel,
         partial_sound_settings: &PartialSoundSettings,
         audio_source: &AudioSource,
-        instance_handle: InstanceHandle,
+        instance_handle: Handle<AudioInstance>,
+        audio_instances: &mut Assets<AudioInstance>,
     ) -> AudioCommandResult {
         let mut sound = audio_source.sound.clone();
         if let Some(channel_state) = self.channels.get(channel) {
@@ -213,14 +257,17 @@ impl<B: Backend> AudioOutput<B> {
                 }
             }
         }
-        let instance_state = InstanceState {
-            kira: sound_handle,
-            handle: instance_handle,
-        };
+        let instance_handle = audio_instances.set(
+            instance_handle,
+            AudioInstance {
+                handle: sound_handle,
+            },
+        );
         if let Some(instance_states) = self.instances.get_mut(channel) {
-            instance_states.push(instance_state);
+            instance_states.push(instance_handle);
         } else {
-            self.instances.insert(channel.clone(), vec![instance_state]);
+            self.instances
+                .insert(channel.clone(), vec![instance_handle]);
         }
 
         AudioCommandResult::Ok
@@ -230,6 +277,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         audio_sources: &Assets<AudioSource>,
         channel: &AudioChannel<T>,
+        audio_instances: &mut Assets<AudioInstance>,
     ) {
         if self.manager.is_none() {
             return;
@@ -242,7 +290,8 @@ impl<B: Backend> AudioOutput<B> {
         let mut i = 0;
         while i < len {
             let audio_command = commands.pop_back().unwrap();
-            let result = self.run_audio_command(&audio_command, audio_sources, &channel);
+            let result =
+                self.run_audio_command(&audio_command, audio_sources, audio_instances, &channel);
             if let AudioCommand::Stop(_) = audio_command {
                 commands_to_retry.clear();
             }
@@ -260,6 +309,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         audio_sources: &Assets<AudioSource>,
         channels: &DynamicAudioChannels,
+        audio_instances: &mut Assets<AudioInstance>,
     ) {
         if self.manager.is_none() {
             return;
@@ -271,7 +321,12 @@ impl<B: Backend> AudioOutput<B> {
             let mut i = 0;
             while i < len {
                 let audio_command = commands.pop_back().unwrap();
-                let result = self.run_audio_command(&audio_command, audio_sources, &channel);
+                let result = self.run_audio_command(
+                    &audio_command,
+                    audio_sources,
+                    audio_instances,
+                    &channel,
+                );
                 if let AudioCommandResult::Retry = result {
                     commands.push_front(audio_command);
                 }
@@ -284,6 +339,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         audio_command: &AudioCommand,
         audio_sources: &Assets<AudioSource>,
+        audio_instances: &mut Assets<AudioInstance>,
         channel: &Channel,
     ) -> AudioCommandResult {
         match audio_command {
@@ -293,69 +349,48 @@ impl<B: Backend> AudioOutput<B> {
                         channel,
                         &play_args.settings,
                         audio_source,
-                        play_args.instance.clone(),
+                        play_args.instance_handle.clone(),
+                        audio_instances,
                     )
                 } else {
                     // audio source hasn't loaded yet. Add it back to the queue
                     AudioCommandResult::Retry
                 }
             }
-            AudioCommand::Stop(tween) => self.stop(channel, tween),
+            AudioCommand::Stop(tween) => self.stop(channel, audio_instances, tween),
             AudioCommand::Pause(tween) => {
-                self.pause(channel, tween);
+                self.pause(channel, audio_instances, tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::Resume(tween) => {
-                self.resume(channel, tween);
+                self.resume(channel, audio_instances, tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetVolume(volume, tween) => {
-                self.set_volume(channel, *volume, tween);
+                self.set_volume(channel, audio_instances, *volume, tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetPanning(panning, tween) => {
-                self.set_panning(channel, *panning, tween);
+                self.set_panning(channel, audio_instances, *panning, tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetPlaybackRate(playback_rate, tween) => {
-                self.set_playback_rate(channel, *playback_rate, tween);
+                self.set_playback_rate(channel, audio_instances, *playback_rate, tween);
                 AudioCommandResult::Ok
             }
         }
     }
 
-    pub(crate) fn cleanup_stopped_instances(&mut self) {
-        for (_, instances) in self.instances.iter_mut() {
-            instances.retain(|instance| {
-                instance.kira.state() != kira::sound::static_sound::PlaybackState::Stopped
+    pub(crate) fn cleanup_stopped_instances(&mut self, instances: &mut Assets<AudioInstance>) {
+        for (_, handles) in self.instances.iter_mut() {
+            handles.retain(|handle| {
+                if let Some(instance) = instances.get(handle) {
+                    instance.handle.state() != kira::sound::static_sound::PlaybackState::Stopped
+                } else {
+                    false
+                }
             });
         }
-    }
-}
-
-struct ChannelState {
-    paused: bool,
-    volume: f64,
-    playback_rate: f64,
-    panning: f64,
-}
-
-impl Default for ChannelState {
-    fn default() -> Self {
-        ChannelState {
-            paused: false,
-            volume: 1.0,
-            playback_rate: 1.0,
-            panning: 0.5,
-        }
-    }
-}
-
-impl ChannelState {
-    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        sound.settings.volume = self.volume.into();
-        sound.settings.playback_rate = self.playback_rate.into();
-        sound.settings.panning = self.panning;
     }
 }
 
@@ -363,9 +398,10 @@ pub(crate) fn play_dynamic_channels(
     mut audio_output: NonSendMut<AudioOutput>,
     channels: Res<DynamicAudioChannels>,
     audio_sources: Option<Res<Assets<AudioSource>>>,
+    mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Some(audio_sources) = audio_sources {
-        audio_output.play_dynamic_channels(&*audio_sources, &channels);
+        audio_output.play_dynamic_channels(&*audio_sources, &channels, &mut audio_instances);
     };
 }
 
@@ -373,18 +409,23 @@ pub(crate) fn play_audio_channel<T: Resource>(
     mut audio_output: NonSendMut<AudioOutput>,
     channel: Res<AudioChannel<T>>,
     audio_sources: Option<Res<Assets<AudioSource>>>,
+    mut instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Some(audio_sources) = audio_sources {
-        audio_output.play_channel(&*audio_sources, &channel);
+        audio_output.play_channel(&*audio_sources, &channel, &mut instances);
     };
 }
 
-pub(crate) fn cleanup_stopped_instances(mut audio_output: NonSendMut<AudioOutput>) {
-    audio_output.cleanup_stopped_instances();
+pub(crate) fn cleanup_stopped_instances(
+    mut audio_output: NonSendMut<AudioOutput>,
+    mut instances: ResMut<Assets<AudioInstance>>,
+) {
+    audio_output.cleanup_stopped_instances(&mut instances);
 }
 
 pub(crate) fn update_instance_states<T: Resource>(
     audio_output: NonSend<AudioOutput>,
+    audio_instances: Res<Assets<AudioInstance>>,
     mut channel: ResMut<AudioChannel<T>>,
 ) {
     if let Some(instances) = audio_output
@@ -392,10 +433,12 @@ pub(crate) fn update_instance_states<T: Resource>(
         .get(&Channel::Typed(TypeId::of::<T>()))
     {
         channel.states.clear();
-        for instance_state in instances.iter() {
-            channel
-                .states
-                .insert(instance_state.handle.clone(), instance_state.into());
+        for instance_handle in instances.iter() {
+            let state = audio_instances
+                .get(instance_handle)
+                .map(|instance| instance.state())
+                .unwrap_or(PlaybackState::Stopped);
+            channel.states.insert(instance_handle.id, state);
         }
     }
 }
@@ -417,7 +460,11 @@ mod test {
         app.add_plugins(MinimalPlugins)
             .add_plugin(AssetPlugin::default())
             .add_plugin(AudioPlugin);
-        let audio_source_assets = app.world.resource::<Assets<AudioSource>>();
+        let audio_source_assets = app.world.remove_resource::<Assets<AudioSource>>().unwrap();
+        let mut audio_instance_assets = app
+            .world
+            .remove_resource::<Assets<AudioInstance>>()
+            .unwrap();
 
         let mut audio_output = AudioOutput {
             manager: AudioManager::new(AudioManagerSettings::<MockBackend>::default()).ok(),
@@ -433,7 +480,7 @@ mod test {
         channel.play(audio_handle_one.clone());
         channel.play(audio_handle_two.clone());
 
-        audio_output.play_channel(audio_source_assets, &channel);
+        audio_output.play_channel(&audio_source_assets, &channel, &mut audio_instance_assets);
 
         let command_one = channel.commands.write().pop_back().unwrap();
         match command_one {
@@ -458,7 +505,11 @@ mod test {
         app.add_plugins(MinimalPlugins)
             .add_plugin(AssetPlugin::default())
             .add_plugin(AudioPlugin);
-        let audio_source_assets = app.world.resource::<Assets<AudioSource>>();
+        let audio_source_assets = app.world.remove_resource::<Assets<AudioSource>>().unwrap();
+        let mut audio_instance_assets = app
+            .world
+            .remove_resource::<Assets<AudioInstance>>()
+            .unwrap();
 
         let mut audio_output = AudioOutput {
             manager: AudioManager::new(AudioManagerSettings::<MockBackend>::default()).ok(),
@@ -475,7 +526,7 @@ mod test {
         channel.stop();
         channel.play(audio_handle_two.clone());
 
-        audio_output.play_channel(audio_source_assets, &channel);
+        audio_output.play_channel(&audio_source_assets, &channel, &mut audio_instance_assets);
 
         let command = channel.commands.write().pop_back().unwrap();
         match command {

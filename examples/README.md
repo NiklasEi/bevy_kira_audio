@@ -7,10 +7,12 @@ These examples are simple Bevy Apps illustrating the capabilities of `bevy_kira_
 | [`basic.rs`](/examples/basic.rs)                         | Display of basic functionality                                       |
 | [`custom_channel.rs`](/examples/custom_channel.rs)       | How to add and use a custom audio channel                            |
 | [`dynamic_channels.rs`](/examples/dynamic_channels.rs)   | Usage of dynamic audio channels                                      |
+| [`instance_control.rs`](/examples/instance_control.rs)   | Demonstrate controlling a single audio instance                      |
 | [`multiple_channels.rs`](/examples/multiple_channels.rs) | GUI application with full control over tree different audio channels |
 | [`settings.rs`](/examples/settings.rs)                   | Demonstrate settings supported when playing a sound                  |
 | [`settings_loader.rs`](/examples/settings_loader.rs)     | Loading a sound with applied settings                                |
 | [`status.rs`](/examples/status.rs)                       | Continuously get the playback state of a sound                       |
+| [`stress_test.rs`](/examples/stress_test.rs)             | Example app playing a high number of sounds every frame              |
 
 ## Credits
 The examples include third party assets:
