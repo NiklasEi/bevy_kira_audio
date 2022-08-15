@@ -74,3 +74,8 @@ required-features = ["ogg"]
 name = "instance_control"
 path = "examples/instance_control.rs"
 required-features = ["ogg"]
+
+[[example]]
+name = "channel_control"
+path = "examples/channel_control.rs"
+required-features = ["ogg"]

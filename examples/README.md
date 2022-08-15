@@ -5,6 +5,7 @@ These examples are simple Bevy Apps illustrating the capabilities of `bevy_kira_
 | Example                                                  | Description                                                          |
 |----------------------------------------------------------|----------------------------------------------------------------------|
 | [`basic.rs`](/examples/basic.rs)                         | Display of basic functionality                                       |
+| [`channel_control.rs`](/examples/channel_control.rs)     | Demonstrate controlling an audio channel                             |
 | [`custom_channel.rs`](/examples/custom_channel.rs)       | How to add and use a custom audio channel                            |
 | [`dynamic_channels.rs`](/examples/dynamic_channels.rs)   | Usage of dynamic audio channels                                      |
 | [`instance_control.rs`](/examples/instance_control.rs)   | Demonstrate controlling a single audio instance                      |

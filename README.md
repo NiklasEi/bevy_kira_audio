@@ -76,24 +76,9 @@ would make the loaded sound loop by default and start each repeated playback thr
 
 More settings are available. See the [`settings_loader` example](examples/settings_loader.rs) for all options.
 
-## Current and planned features
-- [x] play common audio formats
-  - [x] `ogg`
-  - [x] `mp3`
-  - [x] `wav`
-  - [x] `flac`
-- [x] web support
-  - There are some differences between browsers:
-    - Chrome requires an interaction with the website to play audio (e.g. a button click). This issue can be resolved with [a script][audio-context-resuming] in your `index.html` file ([usage example][bevy-game-template-audio-context-resuming]).
-    - Firefox: The audio might sound distorted (this could be related to overall performance; see [issue #9][issue-9])
-- [x] pause/resume and stop tracks
-- [x] play a track on repeat
-- [x] control volume
-- [x] control playback rate
-- [ ] control pitch (no change in playback rate)
-- [x] control panning
-- [x] get the current status and position of a track (see the [`status` example](examples/status.rs))
-- [ ] audio streaming
+### Controlling sounds
+
+You can either control a whole audio channel and all instances playing in it ([`channel_control` example](examples/channel_control.rs)), or a single audio instance ([`instance_control` example](examples/instance_control.rs)). Both ways offer audio transitions with Tweens supporting multiple easings.
 
 ## Compatible Bevy versions
 
