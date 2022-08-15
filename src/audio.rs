@@ -1,27 +1,26 @@
 //! Common audio types
 
-use crate::audio_output::{play_audio_channel, update_instance_states, InstanceState};
-use crate::channel::{AudioChannel, AudioCommandQue};
+use crate::audio_output::{play_audio_channel, update_instance_states};
+use crate::channel::{AudioChannel, AudioCommandQue, AudioInstance};
 use crate::source::AudioSource;
 use crate::{AudioSystemLabel, ParallelSystemDescriptorCoercion};
 use bevy::app::{App, CoreStage};
-use bevy::asset::Handle;
+use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
 use bevy::prelude::default;
-use kira::sound::static_sound::StaticSoundData;
+use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::LoopBehavior;
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 pub(crate) enum AudioCommand {
     Play(PlayAudioSettings),
-    SetVolume(f64, Option<Tween>),
-    SetPanning(f64, Option<Tween>),
-    SetPlaybackRate(f64, Option<Tween>),
-    Stop(Option<Tween>),
-    Pause(Option<Tween>),
-    Resume(Option<Tween>),
+    SetVolume(f64, Option<AudioTween>),
+    SetPanning(f64, Option<AudioTween>),
+    SetPlaybackRate(f64, Option<AudioTween>),
+    Stop(Option<AudioTween>),
+    Pause(Option<AudioTween>),
+    Resume(Option<AudioTween>),
 }
 
 #[derive(Clone, Default)]
@@ -32,23 +31,69 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) start_position: Option<f64>,
     pub(crate) panning: Option<f64>,
     pub(crate) reverse: Option<bool>,
-    pub(crate) fade_in: Option<Tween>,
+    pub(crate) fade_in: Option<AudioTween>,
 }
 
 /// Different kinds of easing for fade-in and fade-out
 pub type AudioEasing = kira::tween::Easing;
 
 #[derive(Clone)]
-pub struct Tween(Duration, AudioEasing);
+/// A tween for audio transitions
+///
+/// Use the default for almost instantaneous transitions without audio artifacts
+pub struct AudioTween {
+    duration: Duration,
+    easing: AudioEasing,
+}
 
-pub fn map_tween(tween: &Option<Tween>) -> kira::tween::Tween {
+impl AudioTween {
+    /// Create a new tween with the given duration and easing
+    pub fn new(duration: Duration, easing: AudioEasing) -> Self {
+        AudioTween { duration, easing }
+    }
+
+    /// Create a new linear tween with the given duration
+    pub fn linear(duration: Duration) -> Self {
+        AudioTween {
+            duration,
+            easing: AudioEasing::Linear,
+        }
+    }
+
+    /// Set an easing for the tween
+    pub fn with_easing(mut self, easing: AudioEasing) -> Self {
+        self.easing = easing;
+
+        self
+    }
+}
+
+impl Default for AudioTween {
+    fn default() -> Self {
+        AudioTween::new(Duration::from_millis(10), AudioEasing::Linear)
+    }
+}
+
+pub fn map_tween(tween: &Option<AudioTween>) -> kira::tween::Tween {
     match tween {
-        Some(tween) => kira::tween::Tween {
-            duration: tween.0,
-            easing: tween.1,
-            ..default()
-        },
+        Some(tween) => tween.into(),
         None => kira::tween::Tween::default(),
+    }
+}
+
+impl From<AudioTween> for kira::tween::Tween {
+    fn from(tween: AudioTween) -> Self {
+        (&tween).into()
+    }
+}
+
+impl From<&AudioTween> for kira::tween::Tween {
+    fn from(tween: &AudioTween) -> Self {
+        kira::tween::Tween {
+            duration: tween.duration,
+            easing: tween.easing,
+            ..default()
+        }
     }
 }
 
@@ -76,7 +121,7 @@ impl PartialSoundSettings {
         if let Some(reverse) = self.reverse {
             sound.settings.reverse = reverse;
         }
-        if let Some(Tween(duration, easing)) = self.fade_in {
+        if let Some(AudioTween { duration, easing }) = self.fade_in {
             sound.settings.fade_in_tween = Some(kira::tween::Tween {
                 duration,
                 easing,
@@ -87,7 +132,7 @@ impl PartialSoundSettings {
 }
 
 pub struct PlayAudioSettings {
-    pub(crate) instance: InstanceHandle,
+    pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
     pub(crate) settings: PartialSoundSettings,
 }
@@ -95,7 +140,7 @@ pub struct PlayAudioSettings {
 impl<'a> From<&mut PlayAudioCommand<'a>> for PlayAudioSettings {
     fn from(command: &mut PlayAudioCommand<'a>) -> Self {
         PlayAudioSettings {
-            instance: command.instance.clone(),
+            instance_handle: command.instance_handle.clone(),
             source: command.source.clone(),
             settings: command.settings.clone(),
         }
@@ -103,7 +148,7 @@ impl<'a> From<&mut PlayAudioCommand<'a>> for PlayAudioSettings {
 }
 
 pub struct PlayAudioCommand<'a> {
-    pub(crate) instance: InstanceHandle,
+    pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
     pub(crate) settings: PartialSoundSettings,
     pub(crate) que: &'a dyn AudioCommandQue,
@@ -116,13 +161,10 @@ impl<'a> Drop for PlayAudioCommand<'a> {
 }
 
 impl<'a> PlayAudioCommand<'a> {
-    pub(crate) fn new(
-        instance: InstanceHandle,
-        source: Handle<AudioSource>,
-        que: &'a dyn AudioCommandQue,
-    ) -> Self {
+    pub(crate) fn new(source: Handle<AudioSource>, que: &'a dyn AudioCommandQue) -> Self {
+        let handle_id = HandleId::random::<AudioInstance>();
         Self {
-            instance,
+            instance_handle: Handle::<AudioInstance>::weak(handle_id),
             source,
             settings: PartialSoundSettings::default(),
             que,
@@ -173,20 +215,19 @@ impl<'a> PlayAudioCommand<'a> {
     }
 
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
-        self.settings.fade_in = Some(Tween(duration, AudioEasing::Linear));
+        self.settings.fade_in = Some(AudioTween::linear(duration));
 
         self
     }
 
-    pub fn fade_in(&mut self, duration: Duration, easing: AudioEasing) -> &mut Self {
-        self.settings.fade_in = Some(Tween(duration, easing));
+    pub fn fade_in(&mut self, tween: AudioTween) -> &mut Self {
+        self.settings.fade_in = Some(tween);
 
         self
     }
 
-    #[must_use]
-    pub fn handle(&mut self) -> InstanceHandle {
-        self.instance.clone()
+    pub fn handle(&mut self) -> Handle<AudioInstance> {
+        self.instance_handle.clone()
     }
 }
 
@@ -200,7 +241,7 @@ pub(crate) enum TweenCommandKind {
 }
 
 impl TweenCommandKind {
-    fn to_command(&self, tween: Option<Tween>) -> AudioCommand {
+    fn to_command(&self, tween: Option<AudioTween>) -> AudioCommand {
         match self {
             TweenCommandKind::SetVolume(volume) => AudioCommand::SetVolume(*volume, tween),
             TweenCommandKind::SetPanning(panning) => AudioCommand::SetPanning(*panning, tween),
@@ -219,7 +260,7 @@ pub struct FadeOut;
 
 pub struct TweenCommand<'a, Fade> {
     pub(crate) kind: TweenCommandKind,
-    pub(crate) tween: Option<Tween>,
+    pub(crate) tween: Option<AudioTween>,
     pub(crate) que: &'a dyn AudioCommandQue,
     _marker: PhantomData<Fade>,
 }
@@ -243,13 +284,13 @@ impl<'a, Fade> TweenCommand<'a, Fade> {
 
 impl<'a> TweenCommand<'a, FadeIn> {
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
-        self.tween = Some(Tween(duration, AudioEasing::Linear));
+        self.tween = Some(AudioTween::linear(duration));
 
         self
     }
 
-    pub fn fade_in(&mut self, duration: Duration, easing: AudioEasing) -> &mut Self {
-        self.tween = Some(Tween(duration, easing));
+    pub fn fade_in(&mut self, tween: AudioTween) -> &mut Self {
+        self.tween = Some(tween);
 
         self
     }
@@ -257,13 +298,13 @@ impl<'a> TweenCommand<'a, FadeIn> {
 
 impl<'a> TweenCommand<'a, FadeOut> {
     pub fn linear_fade_out(&mut self, duration: Duration) -> &mut Self {
-        self.tween = Some(Tween(duration, AudioEasing::Linear));
+        self.tween = Some(AudioTween::linear(duration));
 
         self
     }
 
-    pub fn fade_out(&mut self, duration: Duration, easing: AudioEasing) -> &mut Self {
-        self.tween = Some(Tween(duration, easing));
+    pub fn fade_out(&mut self, tween: AudioTween) -> &mut Self {
+        self.tween = Some(tween);
 
         self
     }
@@ -272,21 +313,6 @@ impl<'a> TweenCommand<'a, FadeOut> {
 pub enum AudioCommandResult {
     Ok,
     Retry,
-}
-
-/// Allows you to interact with a playing sound.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct InstanceHandle {
-    pub(crate) id: u64,
-}
-
-static NEXT_INSTANCE_HANDLE_ID: AtomicU64 = AtomicU64::new(0);
-
-impl InstanceHandle {
-    pub(crate) fn new() -> InstanceHandle {
-        let id = NEXT_INSTANCE_HANDLE_ID.fetch_add(1, Ordering::SeqCst);
-        InstanceHandle { id }
-    }
 }
 
 /// Playback status of a currently playing sound.
@@ -333,10 +359,16 @@ impl PlaybackState {
     }
 }
 
-impl From<&InstanceState> for PlaybackState {
-    fn from(state: &InstanceState) -> Self {
-        let position = state.kira.position();
-        match state.kira.state() {
+impl From<StaticSoundHandle> for PlaybackState {
+    fn from(sound_handle: StaticSoundHandle) -> Self {
+        (&sound_handle).into()
+    }
+}
+
+impl From<&StaticSoundHandle> for PlaybackState {
+    fn from(sound_handle: &StaticSoundHandle) -> Self {
+        let position = sound_handle.position();
+        match sound_handle.state() {
             kira::sound::static_sound::PlaybackState::Playing => {
                 PlaybackState::Playing { position }
             }

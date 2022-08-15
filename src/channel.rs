@@ -2,13 +2,16 @@ use crate::audio::{
     AudioCommand, FadeIn, FadeOut, PlayAudioCommand, PlayAudioSettings, TweenCommand,
     TweenCommandKind,
 };
-use crate::{AudioSource, InstanceHandle, PlaybackState};
-use bevy::asset::Handle;
+use crate::{AudioSource, AudioTween, PlaybackState};
+use bevy::asset::{Assets, Handle, HandleId};
 use bevy::utils::HashMap;
+use kira::sound::static_sound::StaticSoundHandle;
+use kira::CommandError;
 use parking_lot::RwLock;
 use std::any::TypeId;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
+use thiserror::Error;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Channel {
@@ -111,13 +114,144 @@ pub trait AudioControl {
     fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<FadeIn>;
 
     /// Get state for a playback instance.
-    fn state(&self, instance_handle: InstanceHandle) -> PlaybackState;
+    fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState;
 
     /// Returns `true` if there is any sound in this channel that is in the state `Playing`, `Pausing`, or `Stopping`
     ///
     /// If there are only `Stopped`, `Paused`, or `Queued` sounds, the method will return `false`.
     /// The same result is returned if there are no sounds in the channel at all.
     fn is_playing_sound(&self) -> bool;
+}
+
+#[derive(bevy::reflect::TypeUuid)]
+#[uuid = "77f84bee-42d6-4d83-9aac-929a9360f696"]
+/// Asset for direct audio control
+pub struct AudioInstance {
+    pub(crate) handle: StaticSoundHandle,
+}
+
+/// Errors that can occur when directly controlling audio
+#[derive(Error, Debug)]
+pub enum AudioCommandError {
+    /// The audio command que of the audio manager is full
+    #[error("the audio thread could not handle the command, because its command que is full")]
+    CommandQueueFull,
+
+    /// Something went wrong when handling the command in the audio thread
+    #[error("an error occurred while handling the command in the audio thread")]
+    AudioThreadError,
+}
+
+impl From<CommandError> for AudioCommandError {
+    fn from(kira_error: CommandError) -> Self {
+        match kira_error {
+            CommandError::CommandQueueFull => AudioCommandError::CommandQueueFull,
+            _ => AudioCommandError::AudioThreadError,
+        }
+    }
+}
+
+impl AudioInstance {
+    /// Pause the audio instance with the given easing
+    pub fn pause(&mut self, tween: AudioTween) -> Option<AudioCommandError> {
+        self.handle
+            .pause(tween.into())
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Resume the audio instance with the given easing
+    pub fn resume(&mut self, tween: AudioTween) -> Option<AudioCommandError> {
+        self.handle
+            .resume(tween.into())
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Stop the audio instance with the given easing
+    pub fn stop(&mut self, tween: AudioTween) -> Option<AudioCommandError> {
+        self.handle
+            .stop(tween.into())
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Pause the audio instance with the given easing
+    pub fn state(&self) -> PlaybackState {
+        (&self.handle).into()
+    }
+
+    /// Set the volume of the audio instance
+    ///
+    /// Default is `1.0`
+    pub fn set_volume(&mut self, volume: f64, tween: AudioTween) -> Option<AudioCommandError> {
+        self.handle
+            .set_volume(volume, tween.into())
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Sets the playback rate of the sound.
+    ///
+    /// Changing the playback rate will change both the speed
+    /// and pitch of the sound.
+    pub fn set_playback_rate(
+        &mut self,
+        playback_rate: f64,
+        tween: AudioTween,
+    ) -> Option<AudioCommandError> {
+        self.handle
+            .set_playback_rate(playback_rate, tween.into())
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Sets the panning of the sound
+    ///
+    /// `0.0` is hard left,
+    /// `0.5` is center (default)
+    /// `1.0` is hard right.
+    pub fn set_panning(&mut self, panning: f64, tween: AudioTween) -> Option<AudioCommandError> {
+        self.handle
+            .set_panning(panning, tween.into())
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Sets the playback position to the specified time in seconds.
+    pub fn seek_to(&mut self, position: f64) -> Option<AudioCommandError> {
+        self.handle
+            .seek_to(position)
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+
+    /// Moves the playback position by the specified amount of time in seconds.
+    pub fn seek_by(&mut self, amount: f64) -> Option<AudioCommandError> {
+        self.handle
+            .seek_by(amount)
+            .err()
+            .map(|kira_error| kira_error.into())
+    }
+}
+
+/// Extension trait to remove some boilerplate when
+pub trait AudioInstanceAssetsExt {
+    /// Get the playback state of the audio instance
+    ///
+    /// A return value of [`PlaybackState::Stopped`] might be either a stopped instance or a
+    /// queued one! To be able to differentiate the two, you need to query the state on the
+    /// channel that the sound was played on.
+    fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState;
+}
+
+impl AudioInstanceAssetsExt for Assets<AudioInstance> {
+    fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState {
+        // Todo: `Stopped` might also be `Queued` here
+        self.get(instance_handle)
+            .map(|instance| instance.state())
+            .unwrap_or(PlaybackState::Stopped)
+    }
 }
 
 pub(crate) trait AudioCommandQue {
@@ -130,7 +264,7 @@ pub(crate) trait AudioCommandQue {
 /// By default, there is only the [`AudioChannel<MainTrack>`](crate::Audio) channel.
 pub struct AudioChannel<T> {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
-    pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
+    pub(crate) states: HashMap<HandleId, PlaybackState>,
     _marker: PhantomData<T>,
 }
 
@@ -162,7 +296,7 @@ impl<T> AudioControl for AudioChannel<T> {
     /// }
     /// ```
     fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand {
-        PlayAudioCommand::new(InstanceHandle::new(), audio_source, self)
+        PlayAudioCommand::new(audio_source, self)
     }
 
     /// Stop all audio
@@ -258,9 +392,9 @@ impl<T> AudioControl for AudioChannel<T> {
     }
 
     /// Get state for a playback instance.
-    fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
+    fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState {
         self.states
-            .get(&instance_handle)
+            .get(&instance_handle.id)
             .cloned()
             .unwrap_or_else(|| {
                 self.commands
@@ -268,7 +402,7 @@ impl<T> AudioControl for AudioChannel<T> {
                     .iter()
                     .find(|command| match command {
                         AudioCommand::Play(PlayAudioSettings {
-                            instance: handle,
+                            instance_handle: handle,
                             settings: _,
                             source: _,
                         }) => handle.id == instance_handle.id,
@@ -299,7 +433,7 @@ impl<T> AudioControl for AudioChannel<T> {
 #[derive(Default)]
 pub struct DynamicAudioChannel {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
-    pub(crate) states: HashMap<InstanceHandle, PlaybackState>,
+    pub(crate) states: HashMap<HandleId, PlaybackState>,
 }
 
 impl AudioCommandQue for DynamicAudioChannel {
@@ -318,7 +452,7 @@ impl AudioControl for DynamicAudioChannel {
     /// }
     /// ```
     fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand {
-        PlayAudioCommand::new(InstanceHandle::new(), audio_source, self)
+        PlayAudioCommand::new(audio_source, self)
     }
 
     /// Stop all audio
@@ -412,9 +546,9 @@ impl AudioControl for DynamicAudioChannel {
     }
 
     /// Get state for a playback instance.
-    fn state(&self, instance_handle: InstanceHandle) -> PlaybackState {
+    fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState {
         self.states
-            .get(&instance_handle)
+            .get(&instance_handle.id)
             .cloned()
             .unwrap_or_else(|| {
                 self.commands
@@ -422,7 +556,7 @@ impl AudioControl for DynamicAudioChannel {
                     .iter()
                     .find(|command| match command {
                         AudioCommand::Play(PlayAudioSettings {
-                            instance: handle,
+                            instance_handle: handle,
                             settings: _,
                             source: _,
                         }) => handle.id == instance_handle.id,
@@ -521,7 +655,7 @@ impl DynamicAudioChannels {
 mod typed_channels {
     use super::*;
     use crate::Audio;
-    use bevy::asset::HandleId;
+    use bevy::asset::{Handle, HandleId};
 
     #[test]
     fn state_is_queued_if_command_is_queued() {
@@ -530,28 +664,27 @@ mod typed_channels {
             Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
         let instance_handle = audio.play(audio_handle).handle();
 
-        assert_eq!(audio.state(instance_handle), PlaybackState::Queued);
+        assert_eq!(audio.state(&instance_handle), PlaybackState::Queued);
     }
 
     #[test]
     fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
         let audio = AudioChannel::<Audio>::default();
-        let instance_handle = InstanceHandle::new();
+        let instance_handle = Handle::weak(HandleId::random::<AudioInstance>());
 
-        assert_eq!(audio.state(instance_handle), PlaybackState::Stopped);
+        assert_eq!(audio.state(&instance_handle), PlaybackState::Stopped);
     }
 
     #[test]
     fn state_is_fetched_from_state_map() {
         let mut audio = AudioChannel::<Audio>::default();
-        let instance_handle = InstanceHandle::new();
-        audio.states.insert(
-            instance_handle.clone(),
-            PlaybackState::Pausing { position: 42. },
-        );
+        let instance_handle = Handle::weak(HandleId::random::<AudioInstance>());
+        audio
+            .states
+            .insert(instance_handle.id, PlaybackState::Pausing { position: 42. });
 
         assert_eq!(
-            audio.state(instance_handle),
+            audio.state(&instance_handle),
             PlaybackState::Pausing { position: 42. }
         );
     }
@@ -561,18 +694,18 @@ mod typed_channels {
         let mut audio = AudioChannel::<Audio>::default();
         audio
             .states
-            .insert(InstanceHandle::new(), PlaybackState::Queued);
+            .insert(HandleId::random::<AudioInstance>(), PlaybackState::Queued);
         audio.states.insert(
-            InstanceHandle::new(),
+            HandleId::random::<AudioInstance>(),
             PlaybackState::Paused { position: 42. },
         );
         audio
             .states
-            .insert(InstanceHandle::new(), PlaybackState::Stopped);
+            .insert(HandleId::random::<AudioInstance>(), PlaybackState::Stopped);
         assert!(!audio.is_playing_sound());
 
         audio.states.insert(
-            InstanceHandle::new(),
+            HandleId::random::<AudioInstance>(),
             PlaybackState::Playing { position: 42. },
         );
         assert!(audio.is_playing_sound());
@@ -592,7 +725,7 @@ mod dynamic_channels {
         let instance_handle = audio.create_channel("test").play(audio_handle).handle();
 
         assert_eq!(
-            audio.channel("test").state(instance_handle),
+            audio.channel("test").state(&instance_handle),
             PlaybackState::Queued
         );
     }
@@ -600,10 +733,10 @@ mod dynamic_channels {
     #[test]
     fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
         let mut audio = DynamicAudioChannels::default();
-        let instance_handle = InstanceHandle::new();
+        let instance_handle = Handle::<AudioInstance>::weak(HandleId::default::<AudioInstance>());
 
         assert_eq!(
-            audio.create_channel("test").state(instance_handle),
+            audio.create_channel("test").state(&instance_handle),
             PlaybackState::Stopped
         );
     }
@@ -611,15 +744,17 @@ mod dynamic_channels {
     #[test]
     fn state_is_fetched_from_state_map() {
         let mut audio = DynamicAudioChannels::default();
-        let instance_handle = InstanceHandle::new();
+        let instance_handle = Handle::<AudioInstance>::weak(HandleId::default::<AudioInstance>());
         audio.create_channel("test");
-        audio.channels.get_mut("test").unwrap().states.insert(
-            instance_handle.clone(),
-            PlaybackState::Pausing { position: 42. },
-        );
+        audio
+            .channels
+            .get_mut("test")
+            .unwrap()
+            .states
+            .insert(instance_handle.id, PlaybackState::Pausing { position: 42. });
 
         assert_eq!(
-            audio.channel("test").state(instance_handle),
+            audio.channel("test").state(&instance_handle),
             PlaybackState::Pausing { position: 42. }
         );
     }
@@ -633,9 +768,9 @@ mod dynamic_channels {
             .get_mut("test")
             .unwrap()
             .states
-            .insert(InstanceHandle::new(), PlaybackState::Queued);
+            .insert(HandleId::default::<AudioInstance>(), PlaybackState::Queued);
         audio.channels.get_mut("test").unwrap().states.insert(
-            InstanceHandle::new(),
+            HandleId::default::<AudioInstance>(),
             PlaybackState::Paused { position: 42. },
         );
         audio
@@ -643,11 +778,11 @@ mod dynamic_channels {
             .get_mut("test")
             .unwrap()
             .states
-            .insert(InstanceHandle::new(), PlaybackState::Stopped);
+            .insert(HandleId::default::<AudioInstance>(), PlaybackState::Stopped);
         assert!(!audio.channel("test").is_playing_sound());
 
         audio.channels.get_mut("test").unwrap().states.insert(
-            InstanceHandle::new(),
+            HandleId::default::<AudioInstance>(),
             PlaybackState::Playing { position: 42. },
         );
         assert!(audio.channel("test").is_playing_sound());

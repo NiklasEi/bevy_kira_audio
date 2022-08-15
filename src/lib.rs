@@ -40,18 +40,22 @@ mod channel;
 mod settings;
 mod source;
 
-pub use audio::{AudioApp, AudioEasing, InstanceHandle, PlaybackState};
-pub use channel::{AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels};
+pub use audio::{AudioApp, AudioEasing, AudioTween, PlaybackState};
+pub use channel::{
+    AudioChannel, AudioControl, AudioInstance, AudioInstanceAssetsExt, DynamicAudioChannel,
+    DynamicAudioChannels,
+};
 pub use settings::AudioSettings;
 pub use source::AudioSource;
 
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
-    pub use crate::audio::{AudioApp, AudioEasing, InstanceHandle, PlaybackState};
+    pub use crate::audio::{AudioApp, AudioEasing, AudioTween, PlaybackState};
     #[doc(hidden)]
     pub use crate::channel::{
-        AudioChannel, AudioControl, DynamicAudioChannel, DynamicAudioChannels,
+        AudioChannel, AudioControl, AudioInstance, AudioInstanceAssetsExt, DynamicAudioChannel,
+        DynamicAudioChannels,
     };
     #[doc(hidden)]
     pub use crate::settings::AudioSettings;
@@ -111,7 +115,8 @@ pub struct AudioPlugin;
 impl Plugin for AudioPlugin {
     fn build(&self, app: &mut App) {
         app.init_non_send_resource::<AudioOutput>()
-            .add_asset::<AudioSource>();
+            .add_asset::<AudioSource>()
+            .add_asset::<AudioInstance>();
 
         #[cfg(feature = "mp3")]
         app.init_asset_loader::<Mp3Loader>();

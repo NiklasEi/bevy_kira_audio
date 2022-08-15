@@ -3,7 +3,7 @@ use bevy_kira_audio::prelude::*;
 use std::time::Duration;
 
 struct LoopAudioInstanceHandle {
-    instance_handle: InstanceHandle,
+    instance_handle: Handle<AudioInstance>,
 }
 
 fn main() {
@@ -29,20 +29,22 @@ fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
         audio.pause().linear_fade_out(Duration::from_millis(500));
         println!("Audio pausing...");
     } else if kb.just_pressed(KeyCode::S) {
-        audio
-            .stop()
-            .fade_out(Duration::from_secs(1), AudioEasing::InOutPowi(2));
+        audio.stop().fade_out(AudioTween::new(
+            Duration::from_secs(1),
+            AudioEasing::InOutPowi(2),
+        ));
         println!("Audio stopping...");
     } else if kb.just_pressed(KeyCode::R) {
-        audio
-            .resume()
-            .fade_in(Duration::from_millis(500), AudioEasing::InOutPowi(4));
+        audio.resume().fade_in(AudioTween::new(
+            Duration::from_millis(500),
+            AudioEasing::InOutPowi(4),
+        ));
         println!("Audio resuming...");
     }
 }
 
 fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
-    let state = audio.state(loop_audio.instance_handle.clone());
+    let state = audio.state(&loop_audio.instance_handle);
     println!("Looping audio is {:?}", state);
 }
 
