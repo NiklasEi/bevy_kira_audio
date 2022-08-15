@@ -11,23 +11,16 @@ fn main() {
         .run();
 }
 
-/// Settings applied when playing a sound will overwrite the channel settings (like volume and panning)
 fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
     audio
         .play(asset_server.load("sounds/loop.ogg"))
-        // The first 0.5 seconds will not be looped and are the "intro"
         .loop_from(0.5)
-        // Fade-in with a dynamic easing
         .fade_in(AudioTween::new(
             Duration::from_secs(2),
             AudioEasing::OutPowi(2),
         ))
-        // Only play on our right ear
         .with_panning(1.0)
-        // Increase playback rate by 50% (this also increases the pitch)
         .with_playback_rate(1.5)
-        // Play at half volume
         .with_volume(0.5)
-        // play the track reversed
         .reverse();
 }
