@@ -36,16 +36,14 @@
 
 mod audio;
 mod audio_output;
+mod backend_settings;
 mod channel;
-mod settings;
+mod instance;
 mod source;
 
 pub use audio::{AudioApp, AudioEasing, AudioTween, PlaybackState};
-pub use channel::{
-    AudioChannel, AudioControl, AudioInstance, AudioInstanceAssetsExt, DynamicAudioChannel,
-    DynamicAudioChannels,
-};
-pub use settings::AudioSettings;
+pub use backend_settings::AudioSettings;
+pub use channel::AudioControl;
 pub use source::AudioSource;
 
 /// Most commonly used types
@@ -53,12 +51,15 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::audio::{AudioApp, AudioEasing, AudioTween, PlaybackState};
     #[doc(hidden)]
-    pub use crate::channel::{
-        AudioChannel, AudioControl, AudioInstance, AudioInstanceAssetsExt, DynamicAudioChannel,
-        DynamicAudioChannels,
-    };
+    pub use crate::backend_settings::AudioSettings;
     #[doc(hidden)]
-    pub use crate::settings::AudioSettings;
+    pub use crate::channel::dynamic::{DynamicAudioChannel, DynamicAudioChannels};
+    #[doc(hidden)]
+    pub use crate::channel::typed::AudioChannel;
+    #[doc(hidden)]
+    pub use crate::channel::AudioControl;
+    #[doc(hidden)]
+    pub use crate::instance::{AudioInstance, AudioInstanceAssetsExt};
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
@@ -80,6 +81,11 @@ use crate::source::wav_loader::WavLoader;
 use bevy::prelude::{
     AddAsset, App, CoreStage, ParallelSystemDescriptorCoercion, Plugin, SystemLabel,
 };
+pub use channel::dynamic::DynamicAudioChannel;
+pub use channel::dynamic::DynamicAudioChannels;
+pub use channel::typed::AudioChannel;
+pub use instance::AudioInstance;
+pub use instance::AudioInstanceAssetsExt;
 
 /// A Bevy plugin for audio
 ///

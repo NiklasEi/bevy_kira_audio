@@ -1,7 +1,9 @@
 //! Common audio types
 
 use crate::audio_output::{play_audio_channel, update_instance_states};
-use crate::channel::{AudioChannel, AudioCommandQue, AudioInstance};
+use crate::channel::typed::AudioChannel;
+use crate::channel::AudioCommandQue;
+use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use crate::{AudioSystemLabel, ParallelSystemDescriptorCoercion};
 use bevy::app::{App, CoreStage};

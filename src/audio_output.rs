@@ -3,9 +3,11 @@
 use crate::audio::{map_tween, AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings};
 use std::any::TypeId;
 
-use crate::channel::{AudioChannel, AudioInstance};
-use crate::channel::{Channel, DynamicAudioChannels};
-use crate::settings::AudioSettings;
+use crate::backend_settings::AudioSettings;
+use crate::channel::dynamic::DynamicAudioChannels;
+use crate::channel::typed::AudioChannel;
+use crate::channel::{Channel, ChannelState};
+use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use crate::PlaybackState;
 use bevy::asset::{Assets, Handle};
@@ -15,7 +17,6 @@ use bevy::ecs::world::{FromWorld, World};
 use bevy::log::{error, warn};
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
-use kira::sound::static_sound::StaticSoundData;
 use kira::{CommandError, PlaybackRate};
 use std::collections::HashMap;
 
@@ -390,32 +391,6 @@ impl<B: Backend> AudioOutput<B> {
                 }
             });
         }
-    }
-}
-
-struct ChannelState {
-    paused: bool,
-    volume: f64,
-    playback_rate: f64,
-    panning: f64,
-}
-
-impl Default for ChannelState {
-    fn default() -> Self {
-        ChannelState {
-            paused: false,
-            volume: 1.0,
-            playback_rate: 1.0,
-            panning: 0.5,
-        }
-    }
-}
-
-impl ChannelState {
-    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        sound.settings.volume = self.volume.into();
-        sound.settings.playback_rate = self.playback_rate.into();
-        sound.settings.panning = self.panning;
     }
 }
 
