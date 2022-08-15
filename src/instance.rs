@@ -120,6 +120,7 @@ impl AudioInstance {
 pub trait AudioInstanceAssetsExt {
     /// Get the playback state of the audio instance
     ///
+    /// # Note
     /// A return value of [`PlaybackState::Stopped`] might be either a stopped instance or a
     /// queued one! To be able to differentiate the two, you need to query the state on the
     /// channel that the sound was played on.
@@ -128,7 +129,6 @@ pub trait AudioInstanceAssetsExt {
 
 impl AudioInstanceAssetsExt for Assets<AudioInstance> {
     fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState {
-        // Todo: `Stopped` might also be `Queued` here
         self.get(instance_handle)
             .map(|instance| instance.state())
             .unwrap_or(PlaybackState::Stopped)

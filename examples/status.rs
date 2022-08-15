@@ -44,6 +44,9 @@ fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
 }
 
 fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
+    // We could also get this info using the audio instance handle + asset (see instance_control example)
+    // But: only the channel knows if the audio is currently queued. Using the method below,
+    // we can differentiate between Queued and Stopped.
     let state = audio.state(&loop_audio.instance_handle);
     println!("Looping audio is {:?}", state);
 }

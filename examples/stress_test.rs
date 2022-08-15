@@ -7,6 +7,8 @@ use bevy_kira_audio::prelude::*;
 ///
 /// The main objective here is to demonstrate that the plugin and Kira can handle
 /// large sound volumes over a longer period of time.
+///
+/// Depending on your machine, the number of sounds you can play before audio issues appear may differ.
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
