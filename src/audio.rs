@@ -149,6 +149,7 @@ impl<'a> From<&mut PlayAudioCommand<'a>> for PlayAudioSettings {
     }
 }
 
+/// A command for interacting with a playing sound.
 pub struct PlayAudioCommand<'a> {
     pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
@@ -173,42 +174,53 @@ impl<'a> PlayAudioCommand<'a> {
         }
     }
 
+    /// Loop the playing sound.
     pub fn looped(&mut self) -> &mut Self {
         self.settings.loop_behavior = Some(Some(0.0));
 
         self
     }
 
+    /// Loop the playing sound, starting from the given position.
     pub fn loop_from(&mut self, loop_start_position: f64) -> &mut Self {
         self.settings.loop_behavior = Some(Some(loop_start_position));
 
         self
     }
 
+    /// Set the volume of the sound.
     pub fn with_volume(&mut self, volume: f64) -> &mut Self {
         self.settings.volume = Some(volume);
 
         self
     }
 
+    /// Set the playback rate of the sound.
     pub fn with_playback_rate(&mut self, playback_rate: f64) -> &mut Self {
         self.settings.playback_rate = Some(playback_rate);
 
         self
     }
 
+    /// Start the sound from the given position in seconds.
     pub fn start_from(&mut self, start_position: f64) -> &mut Self {
         self.settings.start_position = Some(start_position);
 
         self
     }
 
+    /// Set the panning of the sound.
+    ///
+    /// The default value is 0.5.
+    /// Values up to 1.0 pan to the right,
+    /// while values down to 0.0 pan to the left.
     pub fn with_panning(&mut self, panning: f64) -> &mut Self {
         self.settings.panning = Some(panning);
 
         self
     }
 
+    /// Reverse the playing sound.
     pub fn reverse(&mut self) -> &mut Self {
         let current = self.settings.reverse.unwrap_or(false);
         self.settings.reverse = Some(!current);
@@ -216,18 +228,22 @@ impl<'a> PlayAudioCommand<'a> {
         self
     }
 
+    /// Set how long will the sound fade in linearly.
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
         self.settings.fade_in = Some(AudioTween::linear(duration));
 
         self
     }
 
+    /// Set how will the sound fade in,
+    /// given its duration and easing.
     pub fn fade_in(&mut self, tween: AudioTween) -> &mut Self {
         self.settings.fade_in = Some(tween);
 
         self
     }
 
+    /// Get the handle of the audio instance.
     pub fn handle(&mut self) -> Handle<AudioInstance> {
         self.instance_handle.clone()
     }
@@ -257,9 +273,12 @@ impl TweenCommandKind {
     }
 }
 
+/// Cross-fade that happens at the start of the audio.
 pub struct FadeIn;
+/// Cross-fade that happens at the end of the audio.
 pub struct FadeOut;
 
+/// A command for interacting with the tweening of the playing sound.
 pub struct TweenCommand<'a, Fade> {
     pub(crate) kind: TweenCommandKind,
     pub(crate) tween: Option<AudioTween>,
@@ -285,12 +304,15 @@ impl<'a, Fade> TweenCommand<'a, Fade> {
 }
 
 impl<'a> TweenCommand<'a, FadeIn> {
+    /// Set how long will the sound fade in linearly.
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
         self.tween = Some(AudioTween::linear(duration));
 
         self
     }
 
+    /// Set how will the sound fade in,
+    /// given its duration and easing.
     pub fn fade_in(&mut self, tween: AudioTween) -> &mut Self {
         self.tween = Some(tween);
 
@@ -299,12 +321,15 @@ impl<'a> TweenCommand<'a, FadeIn> {
 }
 
 impl<'a> TweenCommand<'a, FadeOut> {
+    /// Set how long will the sound fade out linearly.
     pub fn linear_fade_out(&mut self, duration: Duration) -> &mut Self {
         self.tween = Some(AudioTween::linear(duration));
 
         self
     }
 
+    /// Set how will the sound fade out,
+    /// given its duration and easing.
     pub fn fade_out(&mut self, tween: AudioTween) -> &mut Self {
         self.tween = Some(tween);
 
