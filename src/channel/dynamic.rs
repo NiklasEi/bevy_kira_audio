@@ -223,11 +223,6 @@ impl DynamicAudioChannels {
 
     /// Get a channel to play and control audio in
     pub fn get_channel(&self, key: &str) -> Option<&DynamicAudioChannel> {
-        assert!(
-            self.channels.contains_key(key),
-            "Attempting to access dynamic audio channel '{:?}', which doesn't exist.",
-            key
-        );
         self.channels.get(key)
     }
 }
