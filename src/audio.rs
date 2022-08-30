@@ -149,7 +149,7 @@ impl<'a> From<&mut PlayAudioCommand<'a>> for PlayAudioSettings {
     }
 }
 
-/// A command for interacting with a playing sound.
+/// A command for interacting with playing sound.
 pub struct PlayAudioCommand<'a> {
     pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
@@ -273,9 +273,9 @@ impl TweenCommandKind {
     }
 }
 
-/// Cross-fade that happens at the start of the audio.
+/// Marker trait for tween commands that are fading in. 
 pub struct FadeIn;
-/// Cross-fade that happens at the end of the audio.
+/// Marker trait for tween commands that are fading out. 
 pub struct FadeOut;
 
 /// A command for interacting with the tweening of the playing sound.
