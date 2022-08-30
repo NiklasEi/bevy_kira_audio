@@ -273,9 +273,9 @@ impl TweenCommandKind {
     }
 }
 
-/// Marker trait for tween commands that are fading in. 
+/// Marker trait for tween commands that are fading in.
 pub struct FadeIn;
-/// Marker trait for tween commands that are fading out. 
+/// Marker trait for tween commands that are fading out.
 pub struct FadeOut;
 
 /// A command for interacting with the tweening of the playing sound.
