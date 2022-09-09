@@ -41,7 +41,10 @@ mod channel;
 mod instance;
 mod source;
 
-pub use audio::{AudioApp, AudioEasing, AudioTween, PlaybackState};
+pub use audio::{
+    AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
+    TweenCommand,
+};
 pub use backend_settings::AudioSettings;
 pub use channel::AudioControl;
 pub use source::AudioSource;
@@ -49,7 +52,10 @@ pub use source::AudioSource;
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
-    pub use crate::audio::{AudioApp, AudioEasing, AudioTween, PlaybackState};
+    pub use crate::audio::{
+        AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
+        TweenCommand,
+    };
     #[doc(hidden)]
     pub use crate::backend_settings::AudioSettings;
     #[doc(hidden)]
@@ -59,7 +65,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::channel::AudioControl;
     #[doc(hidden)]
-    pub use crate::instance::{AudioInstance, AudioInstanceAssetsExt};
+    pub use crate::instance::{AudioCommandError, AudioInstance, AudioInstanceAssetsExt};
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
