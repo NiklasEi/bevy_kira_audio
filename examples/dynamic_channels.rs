@@ -21,15 +21,18 @@ fn start_background_audio(
         .create_channel("example")
         .play(asset_server.load("sounds/loop.ogg"))
         .looped();
-    commands.insert_resource::<Handle<AudioSource>>(asset_server.load("sounds/plop.ogg"))
+    commands.insert_resource(AudioHandle(asset_server.load("sounds/plop.ogg")));
 }
 
 fn plop(
-    handle: Res<Handle<AudioSource>>,
+    handle: Res<AudioHandle>,
     audio: Res<DynamicAudioChannels>,
     input: Res<Input<MouseButton>>,
 ) {
     if input.just_pressed(MouseButton::Left) {
-        audio.channel("example").play(handle.clone());
+        audio.channel("example").play(handle.0.clone());
     }
 }
+
+#[derive(Resource)]
+struct AudioHandle(Handle<AudioSource>);

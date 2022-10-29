@@ -6,6 +6,7 @@ use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{Handle, HandleId};
+use bevy::ecs::system::Resource;
 use bevy::utils::HashMap;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
@@ -15,6 +16,7 @@ use std::marker::PhantomData;
 ///
 /// Add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 /// By default, there is only the [`AudioChannel<MainTrack>`](crate::Audio) channel.
+#[derive(Resource)]
 pub struct AudioChannel<T> {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
     pub(crate) states: HashMap<HandleId, PlaybackState>,
@@ -147,7 +149,7 @@ impl<T> AudioControl for AudioChannel<T> {
     /// Get state for a playback instance.
     fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState {
         self.states
-            .get(&instance_handle.id)
+            .get(&instance_handle.id())
             .cloned()
             .unwrap_or_else(|| {
                 self.commands
@@ -158,7 +160,7 @@ impl<T> AudioControl for AudioChannel<T> {
                             instance_handle: handle,
                             settings: _,
                             source: _,
-                        }) => handle.id == instance_handle.id,
+                        }) => handle.id() == instance_handle.id(),
                         _ => false,
                     })
                     .map(|_| PlaybackState::Queued)
@@ -211,9 +213,10 @@ mod test {
     fn state_is_fetched_from_state_map() {
         let mut audio = AudioChannel::<Audio>::default();
         let instance_handle = Handle::weak(HandleId::random::<AudioInstance>());
-        audio
-            .states
-            .insert(instance_handle.id, PlaybackState::Pausing { position: 42. });
+        audio.states.insert(
+            instance_handle.id(),
+            PlaybackState::Pausing { position: 42. },
+        );
 
         assert_eq!(
             audio.state(&instance_handle),

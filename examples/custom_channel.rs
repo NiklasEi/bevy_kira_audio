@@ -19,4 +19,5 @@ fn play(background: Res<AudioChannel<Background>>, asset_server: Res<AssetServer
 }
 
 // Our type for the custom audio channel
+#[derive(Resource)]
 struct Background;

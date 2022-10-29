@@ -2,9 +2,8 @@ use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use std::time::Duration;
 
-struct LoopAudioInstanceHandle {
-    instance_handle: Handle<AudioInstance>,
-}
+#[derive(Resource)]
+struct LoopAudioInstanceHandle(Handle<AudioInstance>);
 
 fn main() {
     App::new()
@@ -21,7 +20,7 @@ fn start_audio(mut commands: Commands, asset_server: Res<AssetServer>, audio: Re
     let asset_handle = asset_server.load("sounds/loop.ogg");
     let instance_handle = audio.play(asset_handle).looped().handle();
     println!("Audio started.");
-    commands.insert_resource(LoopAudioInstanceHandle { instance_handle });
+    commands.insert_resource(LoopAudioInstanceHandle(instance_handle));
 }
 
 fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
@@ -47,15 +46,15 @@ fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
     // We could also get this info using the audio instance handle + asset (see instance_control example)
     // But: only the channel knows if the audio is currently queued. Using the method below,
     // we can differentiate between Queued and Stopped.
-    let state = audio.state(&loop_audio.instance_handle);
+    let state = audio.state(&loop_audio.0);
     println!("Looping audio is {:?}", state);
 }
 
 fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     let monogram = asset_server.load("fonts/monogram.ttf");
-    commands.spawn_bundle(Camera2dBundle::default());
+    commands.spawn(Camera2dBundle::default());
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size {
                     width: Val::Percent(100.),
@@ -65,11 +64,11 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            color: Color::rgba(0., 0., 0., 0.).into(),
+            background_color: Color::rgba(0., 0., 0., 0.).into(),
             ..Default::default()
         })
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
+            parent.spawn(TextBundle {
                 text: Text {
                     sections: vec![
                         TextSection {
