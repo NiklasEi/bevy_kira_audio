@@ -80,6 +80,10 @@ More settings are available. See the [`settings_loader` example](examples/settin
 
 You can either control a whole audio channel and all instances playing in it ([`channel_control` example](examples/channel_control.rs)), or a single audio instance ([`instance_control` example](examples/instance_control.rs)). Both ways offer audio transitions with Tweens supporting multiple easings.
 
+### Spacial audio
+
+There is limited spacial audio support. Currently, only the volume of audio and it's panning can be automatically changed based on emitter and receiver positions. Take a look at the [`spacial` example](examples/spacial.rs) for some code.
+
 ## Compatible Bevy versions
 
 The main branch is compatible with the latest Bevy release.
