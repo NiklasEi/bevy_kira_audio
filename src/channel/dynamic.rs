@@ -6,6 +6,7 @@ use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{Handle, HandleId};
+use bevy::ecs::system::Resource;
 use bevy::utils::HashMap;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
@@ -129,7 +130,7 @@ impl AudioControl for DynamicAudioChannel {
     /// Get state for a playback instance.
     fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState {
         self.states
-            .get(&instance_handle.id)
+            .get(&instance_handle.id())
             .cloned()
             .unwrap_or_else(|| {
                 self.commands
@@ -140,7 +141,7 @@ impl AudioControl for DynamicAudioChannel {
                             instance_handle: handle,
                             settings: _,
                             source: _,
-                        }) => handle.id == instance_handle.id,
+                        }) => handle.id() == instance_handle.id(),
                         _ => false,
                     })
                     .map(|_| PlaybackState::Queued)
@@ -168,7 +169,7 @@ impl AudioControl for DynamicAudioChannel {
 ///
 /// You should only use this if you need a number of audio channels that is not known at compile time.
 /// If that is not the case, typed channels are easier to use with Bevy's ECS.
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct DynamicAudioChannels {
     pub(crate) channels: HashMap<String, DynamicAudioChannel>,
 }
@@ -262,12 +263,10 @@ mod tests {
         let mut audio = DynamicAudioChannels::default();
         let instance_handle = Handle::<AudioInstance>::weak(HandleId::default::<AudioInstance>());
         audio.create_channel("test");
-        audio
-            .channels
-            .get_mut("test")
-            .unwrap()
-            .states
-            .insert(instance_handle.id, PlaybackState::Pausing { position: 42. });
+        audio.channels.get_mut("test").unwrap().states.insert(
+            instance_handle.id(),
+            PlaybackState::Pausing { position: 42. },
+        );
 
         assert_eq!(
             audio.channel("test").state(&instance_handle),

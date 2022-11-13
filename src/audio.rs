@@ -5,7 +5,7 @@ use crate::channel::typed::AudioChannel;
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::{AudioSystemLabel, ParallelSystemDescriptorCoercion};
+use crate::{AudioSystemLabel, IntoSystemDescriptor};
 use bevy::app::{App, CoreStage};
 use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
@@ -432,6 +432,7 @@ pub trait AudioApp {
     ///     background.play(asset_server.load("sounds/loop.ogg"));
     /// }
     ///
+    /// #[derive(Resource)]
     /// struct Background;
     /// ```
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;

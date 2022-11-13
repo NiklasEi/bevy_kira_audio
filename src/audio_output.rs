@@ -438,7 +438,7 @@ pub(crate) fn update_instance_states<T: Resource>(
                 .get(instance_handle)
                 .map(|instance| instance.state())
                 .unwrap_or(PlaybackState::Stopped);
-            channel.states.insert(instance_handle.id, state);
+            channel.states.insert(instance_handle.id(), state);
         }
     }
 }
@@ -485,14 +485,14 @@ mod test {
         let command_one = channel.commands.write().pop_back().unwrap();
         match command_one {
             AudioCommand::Play(settings) => {
-                assert_eq!(settings.source.id, audio_handle_one.id)
+                assert_eq!(settings.source.id(), audio_handle_one.id())
             }
             _ => panic!("Wrong audio command"),
         }
         let command_two = channel.commands.write().pop_back().unwrap();
         match command_two {
             AudioCommand::Play(settings) => {
-                assert_eq!(settings.source.id, audio_handle_two.id)
+                assert_eq!(settings.source.id(), audio_handle_two.id())
             }
             _ => panic!("Wrong audio command"),
         }
@@ -531,7 +531,7 @@ mod test {
         let command = channel.commands.write().pop_back().unwrap();
         match command {
             AudioCommand::Play(settings) => {
-                assert_eq!(settings.source.id, audio_handle_two.id)
+                assert_eq!(settings.source.id(), audio_handle_two.id())
             }
             _ => panic!("Wrong audio command"),
         }

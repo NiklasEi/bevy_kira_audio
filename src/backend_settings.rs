@@ -1,3 +1,4 @@
+use bevy::ecs::system::Resource;
 use bevy::utils::default;
 use kira::manager::backend::DefaultBackend;
 use kira::manager::{AudioManagerSettings, Capacities};
@@ -6,7 +7,7 @@ use kira::manager::{AudioManagerSettings, Capacities};
 ///
 /// It needs to be inserted before adding the [`AudioPlugin`](crate::AudioPlugin) and will be
 /// consumed by it. Settings cannot be changed at run-time!
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AudioSettings {
     /// The number of commands that can be sent to the audio backend at a time.
     ///

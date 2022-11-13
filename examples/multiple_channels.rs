@@ -33,7 +33,7 @@ fn play_pause_button<T: Component + Default>(
     mut channel_state: ResMut<ChannelAudioState<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
-    mut interaction_query: Query<(&Interaction, &mut UiColor), With<PlayPauseButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlayPauseButton<T>>>,
     mut play_pause_text: Query<&mut Text, With<PlayPauseButton<T>>>,
 ) {
     let (interaction, mut color) = interaction_query.single_mut();
@@ -71,7 +71,7 @@ fn stop_button<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut UiColor), With<StopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StopButton<T>>>,
 ) {
     let (interaction, mut color) = interaction_query.single_mut();
     *color = if channel_state.stopped {
@@ -99,7 +99,7 @@ fn loop_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut UiColor), With<StartLoopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StartLoopButton<T>>>,
 ) {
     let (interaction, mut color) = interaction_query.single_mut();
     *color = if !channel_state.loop_started {
@@ -130,7 +130,7 @@ fn play_sound_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut UiColor), With<PlaySoundButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlaySoundButton<T>>>,
 ) {
     let (interaction, mut color) = interaction_query.single_mut();
     *color = if interaction == &Interaction::Hovered {
@@ -153,7 +153,7 @@ fn volume_buttons<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut UiColor, &ChangeVolumeButton<T>)>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor, &ChangeVolumeButton<T>)>,
 ) {
     for (interaction, mut color, volume) in &mut interaction_query {
         *color = if interaction == &Interaction::Hovered {
@@ -175,15 +175,15 @@ fn volume_buttons<T: Component + Default>(
     }
 }
 
-#[derive(Default)]
+#[derive(Resource, Default)]
 struct LastAction(f64);
 
 impl LastAction {
     fn action(&mut self, time: &Time) -> bool {
-        if time.seconds_since_startup() - self.0 < 0.2 {
+        if time.elapsed_seconds_f64() - self.0 < 0.2 {
             return false;
         }
-        self.0 = time.seconds_since_startup();
+        self.0 = time.elapsed_seconds_f64();
 
         true
     }
@@ -215,18 +215,20 @@ struct StopButton<T: Default> {
     _marker: PhantomData<T>,
 }
 
-#[derive(Component, Default, Clone)]
+#[derive(Resource, Component, Default, Clone)]
 struct FirstChannel;
-#[derive(Component, Default, Clone)]
+#[derive(Resource, Component, Default, Clone)]
 struct SecondChannel;
-#[derive(Component, Default, Clone)]
+#[derive(Resource, Component, Default, Clone)]
 struct ThirdChannel;
 
+#[derive(Resource)]
 struct AudioHandles {
     loop_handle: Handle<AudioSource>,
     sound_handle: Handle<AudioSource>,
 }
 
+#[derive(Resource)]
 struct ChannelAudioState<T> {
     stopped: bool,
     paused: bool,
@@ -268,9 +270,9 @@ fn prepare_audio_and_ui(mut commands: Commands, asset_server: ResMut<AssetServer
 
 fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>) {
     let font = asset_server.load("fonts/monogram.ttf");
-    commands.spawn_bundle(Camera2dBundle::default());
+    commands.spawn(Camera2dBundle::default());
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Column,
@@ -292,7 +294,7 @@ fn build_button_row<T: Component + Default + Clone>(
     channel_index: u8,
 ) {
     parent
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Row,
@@ -303,7 +305,7 @@ fn build_button_row<T: Component + Default + Clone>(
         })
         .with_children(|parent| {
             parent
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         size: Size::new(Val::Px(120.0), Val::Percent(100.)),
                         justify_content: JustifyContent::Center,
@@ -313,7 +315,7 @@ fn build_button_row<T: Component + Default + Clone>(
                     ..Default::default()
                 })
                 .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         text: Text {
                             sections: vec![TextSection {
                                 value: format!("Channel {}", 4 - channel_index),
@@ -382,12 +384,12 @@ fn build_button_row<T: Component + Default + Clone>(
 fn spawn_button<T: Component + Clone>(
     parent: &mut ChildBuilder,
     text: &str,
-    color: UiColor,
+    background_color: BackgroundColor,
     marker: T,
     font: Handle<Font>,
 ) {
     parent
-        .spawn_bundle(ButtonBundle {
+        .spawn(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Px(100.0), Val::Px(65.0)),
                 margin: UiRect::all(Val::Auto),
@@ -395,13 +397,13 @@ fn spawn_button<T: Component + Clone>(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            color,
+            background_color,
             ..Default::default()
         })
         .insert(marker.clone())
         .with_children(|parent| {
             parent
-                .spawn_bundle(TextBundle {
+                .spawn(TextBundle {
                     text: Text {
                         sections: vec![TextSection {
                             value: text.to_string(),

@@ -16,8 +16,8 @@ fn main() {
         // The default is 128 per queue, which is way too low for playing as many sounds
         // as this example does.
         .insert_resource(AudioSettings {
-            sound_capacity: 4096,
-            command_capacity: 1024,
+            sound_capacity: 8192,
+            command_capacity: 4096,
         })
         .add_plugin(AudioPlugin)
         .add_startup_system(prepare)
@@ -26,30 +26,33 @@ fn main() {
         .run()
 }
 
-struct MyLoadingHandle(Handle<AudioSource>);
-struct MyHandle(Handle<AudioSource>);
+#[derive(Resource)]
+struct LoadingAudioHandle(Handle<AudioSource>);
+
+#[derive(Resource)]
+struct AudioHandle(Handle<AudioSource>);
 
 fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Audio>) {
     // Stop our ears from exploding...
     // Playing multiple sounds in the same frame just sums up their volume
     audio.set_volume(0.001);
-    commands.insert_resource(MyLoadingHandle(asset_server.load("sounds/plop.ogg")))
+    commands.insert_resource(LoadingAudioHandle(asset_server.load("sounds/plop.ogg")))
 }
 
 fn check(
-    handle: Option<Res<MyLoadingHandle>>,
+    handle: Option<Res<LoadingAudioHandle>>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
     if let Some(handle) = handle {
-        if asset_server.get_load_state(handle.0.id) == LoadState::Loaded {
-            commands.insert_resource(MyHandle(handle.0.clone()));
-            commands.remove_resource::<MyLoadingHandle>();
+        if asset_server.get_load_state(handle.0.id()) == LoadState::Loaded {
+            commands.insert_resource(AudioHandle(handle.0.clone()));
+            commands.remove_resource::<LoadingAudioHandle>();
         }
     }
 }
 
-fn play(handle: Option<Res<MyHandle>>, audio: Res<Audio>) {
+fn play(handle: Option<Res<AudioHandle>>, audio: Res<Audio>) {
     if let Some(handle) = handle {
         for _ in 0..75 {
             audio.play(handle.0.clone());

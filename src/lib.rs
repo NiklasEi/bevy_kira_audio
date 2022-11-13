@@ -12,7 +12,7 @@
 //! fn main() {
 //!    App::new()
 //! #       .add_plugins(MinimalPlugins)
-//! #       .add_plugin(AssetPlugin)
+//! #       .add_plugin(AssetPlugin::default())
 //! # /*
 //!         .add_plugins(DefaultPlugins)
 //! # */
@@ -85,7 +85,7 @@ use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
 use bevy::prelude::{
-    AddAsset, App, CoreStage, ParallelSystemDescriptorCoercion, Plugin, SystemLabel,
+    AddAsset, App, CoreStage, IntoSystemDescriptor, Plugin, Resource, SystemLabel,
 };
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
@@ -106,7 +106,7 @@ pub use instance::AudioInstanceAssetsExt;
 ///    let mut app = App::new();
 ///    app
 ///         .add_plugins(MinimalPlugins)
-///         .add_plugin(AssetPlugin)
+///         .add_plugin(AssetPlugin::default())
 ///         .add_plugin(AudioPlugin)
 /// #       .add_system(stop)
 ///         .add_startup_system(start_background_audio);
@@ -178,6 +178,7 @@ pub type Audio = AudioChannel<MainTrack>;
 /// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
 ///
 /// You can use [`Audio`] as a type alias for [`AudioChannel<MainTrack>`]
+#[derive(Resource)]
 pub struct MainTrack;
 
 #[doc = include_str!("../README.md")]

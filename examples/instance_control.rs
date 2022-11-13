@@ -14,7 +14,7 @@ fn main() {
 }
 
 fn instance_control(
-    handle: Res<MyInstanceHandle>,
+    handle: Res<InstanceHandle>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
     input: Res<Input<MouseButton>>,
 ) {
@@ -34,12 +34,13 @@ fn instance_control(
     }
 }
 
-struct MyInstanceHandle(Handle<AudioInstance>);
+#[derive(Resource)]
+struct InstanceHandle(Handle<AudioInstance>);
 
 fn play_loop(mut commands: Commands, asset_server: Res<AssetServer>, audio: Res<Audio>) {
     let handle = audio
         .play(asset_server.load("sounds/loop.ogg"))
         .looped()
         .handle();
-    commands.insert_resource(MyInstanceHandle(handle));
+    commands.insert_resource(InstanceHandle(handle));
 }
