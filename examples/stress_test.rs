@@ -16,8 +16,8 @@ fn main() {
         // The default is 128 per queue, which is way too low for playing as many sounds
         // as this example does.
         .insert_resource(AudioSettings {
-            sound_capacity: 4096,
-            command_capacity: 1024,
+            sound_capacity: 8192,
+            command_capacity: 4096,
         })
         .add_plugin(AudioPlugin)
         .add_startup_system(prepare)

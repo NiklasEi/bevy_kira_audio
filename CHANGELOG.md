@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.13.0
+- Update to Bevy 0.9
+
 ## v0.12.0
 - Support changing most settings when playing a sound ([#65](https://github.com/NiklasEi/bevy_kira_audio/issues/65))
   - Removed `.play_looped(handle)` in preference for `.play(handle).looped()`
