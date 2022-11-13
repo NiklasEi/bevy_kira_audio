@@ -401,7 +401,7 @@ pub(crate) fn play_dynamic_channels(
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Some(audio_sources) = audio_sources {
-        audio_output.play_dynamic_channels(&*audio_sources, &channels, &mut audio_instances);
+        audio_output.play_dynamic_channels(&audio_sources, &channels, &mut audio_instances);
     };
 }
 
@@ -412,7 +412,7 @@ pub(crate) fn play_audio_channel<T: Resource>(
     mut instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Some(audio_sources) = audio_sources {
-        audio_output.play_channel(&*audio_sources, &channel, &mut instances);
+        audio_output.play_channel(&audio_sources, &channel, &mut instances);
     };
 }
 
