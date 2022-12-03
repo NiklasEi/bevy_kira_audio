@@ -40,6 +40,7 @@ mod backend_settings;
 mod channel;
 mod instance;
 mod source;
+mod systems;
 
 pub use audio::{
     AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
@@ -48,6 +49,7 @@ pub use audio::{
 pub use backend_settings::AudioSettings;
 pub use channel::AudioControl;
 pub use source::AudioSource;
+pub use systems::{pause_playback, resume_playback, stop_playback};
 
 /// Most commonly used types
 pub mod prelude {
@@ -70,6 +72,8 @@ pub mod prelude {
     pub use crate::source::AudioSource;
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
+    #[doc(hidden)]
+    pub use crate::{pause_playback, resume_playback, stop_playback};
 }
 
 use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
