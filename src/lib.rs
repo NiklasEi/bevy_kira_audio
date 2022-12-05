@@ -71,9 +71,9 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
-    pub use crate::{Audio, AudioPlugin, MainTrack};
-    #[doc(hidden)]
     pub use crate::{pause_playback, resume_playback, stop_playback};
+    #[doc(hidden)]
+    pub use crate::{Audio, AudioPlugin, MainTrack};
 }
 
 use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
