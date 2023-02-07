@@ -2,8 +2,8 @@ use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
-/// This example needs to be played in release mode!
-/// A large amount of sounds will be played in every frame.
+/// This example needs to be played in release mode! `cargo run --example stress_test --release`
+/// A large amount (75) of sounds will be played in every frame.
 ///
 /// The main objective here is to demonstrate that the plugin and Kira can handle
 /// large sound volumes over a longer period of time.
@@ -34,7 +34,7 @@ struct AudioHandle(Handle<AudioSource>);
 
 fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Audio>) {
     // Stop our ears from exploding...
-    // Playing multiple sounds in the same frame just sums up their volume
+    // Playing multiple sounds in the same frame gets
     audio.set_volume(0.001);
     commands.insert_resource(LoadingAudioHandle(asset_server.load("sounds/plop.ogg")))
 }

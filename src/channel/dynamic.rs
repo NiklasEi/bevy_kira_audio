@@ -212,14 +212,9 @@ impl DynamicAudioChannels {
     /// If you aren't sure that there is one, you can check with [`is_channel`](Self::is_channel),
     /// or use [`get_channel`](Self::get_channel) instead.
     pub fn channel(&self, key: &str) -> &DynamicAudioChannel {
-        assert!(
-            self.channels.contains_key(key),
-            "Attempting to access dynamic audio channel '{:?}', which doesn't exist.",
-            key
-        );
-        self.channels
-            .get(key)
-            .expect("Failed to retrieve dynamic audio channel")
+        self.channels.get(key).unwrap_or_else(|| {
+            panic!("Attempting to access dynamic audio channel '{key:?}', which doesn't exist.")
+        })
     }
 
     /// Get a channel to play and control audio in

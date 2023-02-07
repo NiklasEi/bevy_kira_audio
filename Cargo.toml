@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.13.0"
+version = "0.14.0-git"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/bevy_kira_audio"
 keywords = ["bevy", "gamedev", "audio", "music"]
 categories = ["game-development", "multimedia::audio"]
 readme = "./README.md"
-rust-version = "1.56.1"
+rust-version = "1.67"
 
 [features]
 default = ["ogg"]
@@ -22,7 +22,7 @@ wav = ["kira/wav"]
 settings_loader = ["ron", "serde"]
 
 [dependencies]
-bevy = { version = "0.9", default-features = false, features = ["bevy_asset"] }
+bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = ["bevy_asset"] }
 anyhow = "1.0"
 kira = { version = "0.7", default-features = false, features = ["cpal"] }
 ron = { version = "0.8", optional = true }
@@ -31,9 +31,9 @@ parking_lot = "0.12"
 thiserror = "1.0"
 
 [dev-dependencies.bevy]
-version = "0.9"
+git = "https://github.com/bevyengine/bevy"
 default-features = false
-features = ["bevy_asset", "bevy_winit", "render", "x11"]
+features = ["bevy_asset", "bevy_winit", "bevy_render", "x11", "bevy_ui", "bevy_text", "bevy_core_pipeline", "bevy_sprite"]
 
 [[example]]
 name = "basic"

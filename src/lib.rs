@@ -84,9 +84,7 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use bevy::prelude::{
-    AddAsset, App, CoreStage, IntoSystemDescriptor, Plugin, Resource, SystemLabel,
-};
+use bevy::prelude::{AddAsset, App, CoreSet, IntoSystemConfig, Plugin, Resource, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
 pub use channel::typed::AudioChannel;
@@ -143,21 +141,23 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<DynamicAudioChannels>()
-            .add_system_to_stage(
-                CoreStage::PostUpdate,
-                play_dynamic_channels.label(AudioSystemLabel::PlayDynamicChannels),
+            .add_system(
+                play_dynamic_channels
+                    .in_base_set(CoreSet::PostUpdate)
+                    .in_set(AudioSystemSet::PlayDynamicChannels),
             )
-            .add_system_to_stage(
-                CoreStage::PreUpdate,
-                cleanup_stopped_instances.label(AudioSystemLabel::InstanceCleanup),
+            .add_system(
+                cleanup_stopped_instances
+                    .in_base_set(CoreSet::PreUpdate)
+                    .in_set(AudioSystemSet::InstanceCleanup),
             )
             .add_audio_channel::<MainTrack>();
     }
 }
 
 /// Labels for audio systems
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
-pub enum AudioSystemLabel {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub enum AudioSystemSet {
     /// Label for systems in [`CoreStage::PreUpdate`] that clean up tracked audio instances
     InstanceCleanup,
     /// Label for system in [`CoreStage::PostUpdate`] that processes audio commands for dynamic channels
