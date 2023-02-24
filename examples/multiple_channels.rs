@@ -11,7 +11,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .init_resource::<LastAction>()
-        .add_startup_system(prepare_audio_and_ui)
+        .add_system(prepare_audio_and_ui.on_startup())
         .add_systems(create_row_systems::<FirstChannel>())
         .add_systems(create_row_systems::<SecondChannel>())
         .add_systems(create_row_systems::<ThirdChannel>())

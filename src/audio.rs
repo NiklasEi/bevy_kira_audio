@@ -424,7 +424,7 @@ pub trait AudioApp {
     ///         .add_plugins(DefaultPlugins)
     ///         .add_plugin(AudioPlugin)
     ///         .add_audio_channel::<Background>()
-    ///         .add_startup_system(play)
+    ///         .add_system(play.on_startup())
     ///         .run();
     /// }
     ///

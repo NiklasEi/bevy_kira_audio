@@ -5,7 +5,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
-        .add_startup_system(play_loop)
+        .add_system(play_loop.on_startup())
         .run()
 }
 

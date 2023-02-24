@@ -9,8 +9,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
-        .add_startup_system(start_audio)
-        .add_startup_system(display_help_text)
+        .add_system(start_audio.on_startup())
+        .add_system(display_help_text.on_startup())
         .add_system(print_status)
         .add_system(process_keyboard_input)
         .run();

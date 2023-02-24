@@ -18,7 +18,7 @@
 //! # */
 //!         .add_plugin(AudioPlugin)
 //! #       .add_system(stop)
-//!         .add_startup_system(start_background_audio)
+//!         .add_system(start_background_audio.on_startup())
 //!         .run();
 //! }
 //!
@@ -107,7 +107,7 @@ pub use instance::AudioInstanceAssetsExt;
 ///         .add_plugin(AssetPlugin::default())
 ///         .add_plugin(AudioPlugin)
 /// #       .add_system(stop)
-///         .add_startup_system(start_background_audio);
+///         .add_system(start_background_audio.on_startup());
 ///    app.run();
 /// }
 ///

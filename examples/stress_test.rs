@@ -20,7 +20,7 @@ fn main() {
             command_capacity: 4096,
         })
         .add_plugin(AudioPlugin)
-        .add_startup_system(prepare)
+        .add_system(prepare.on_startup())
         .add_system(check)
         .add_system(play)
         .run()
