@@ -40,6 +40,7 @@ mod backend_settings;
 mod channel;
 mod instance;
 mod source;
+mod spacial;
 
 pub use audio::{
     AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
@@ -69,6 +70,8 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
+    pub use crate::spacial::{AudioEmitter, AudioReceiver, SpacialAudio};
+    #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
         dsp::Frame,
@@ -92,6 +95,7 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
+use crate::spacial::run_spacial_audio;
 use bevy::prelude::{
     AddAsset, App, CoreStage, IntoSystemDescriptor, Plugin, Resource, SystemLabel,
 };
@@ -136,7 +140,8 @@ impl Plugin for AudioPlugin {
     fn build(&self, app: &mut App) {
         app.init_non_send_resource::<AudioOutput>()
             .add_asset::<AudioSource>()
-            .add_asset::<AudioInstance>();
+            .add_asset::<AudioInstance>()
+            .add_system_to_stage(CoreStage::PostUpdate, run_spacial_audio);
 
         #[cfg(feature = "mp3")]
         app.init_asset_loader::<Mp3Loader>();
@@ -177,13 +182,13 @@ pub enum AudioSystemLabel {
 /// The default audio channel
 ///
 /// Alias for the [`AudioChannel<MainTrack>`] resource. Use it to play and control sound on the main track.
-/// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 pub type Audio = AudioChannel<MainTrack>;
 
 /// Type for the default audio channel
 ///
 /// Use it via the [`AudioChannel<MainTrack>`] resource to play and control sound on the main track.
-/// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 ///
 /// You can use [`Audio`] as a type alias for [`AudioChannel<MainTrack>`]
 #[derive(Resource)]

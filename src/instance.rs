@@ -1,7 +1,7 @@
 use crate::{AudioTween, PlaybackState};
 use bevy::asset::{Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
-use kira::CommandError;
+use kira::{CommandError, Volume};
 use thiserror::Error;
 
 #[derive(bevy::reflect::TypeUuid)]
@@ -57,7 +57,7 @@ impl AudioInstance {
             .map(|kira_error| kira_error.into())
     }
 
-    /// Pause the audio instance with the given easing
+    /// Get the state of the audio instance
     pub fn state(&self) -> PlaybackState {
         (&self.handle).into()
     }
@@ -65,7 +65,11 @@ impl AudioInstance {
     /// Set the volume of the audio instance
     ///
     /// Default is `1.0`
-    pub fn set_volume(&mut self, volume: f64, tween: AudioTween) -> Option<AudioCommandError> {
+    pub fn set_volume(
+        &mut self,
+        volume: impl Into<Volume>,
+        tween: AudioTween,
+    ) -> Option<AudioCommandError> {
         self.handle
             .set_volume(volume, tween.into())
             .err()
