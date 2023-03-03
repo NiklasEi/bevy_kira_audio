@@ -73,7 +73,14 @@ pub mod prelude {
     pub use crate::spacial::{AudioEmitter, AudioReceiver, SpacialAudio};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
-    pub use kira::Volume;
+    pub use kira::{
+        dsp::Frame,
+        sound::{
+            static_sound::{StaticSoundData, StaticSoundSettings},
+            Sound, SoundData,
+        },
+        Volume,
+    };
 }
 
 use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
