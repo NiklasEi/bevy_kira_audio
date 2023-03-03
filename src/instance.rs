@@ -57,7 +57,7 @@ impl AudioInstance {
             .map(|kira_error| kira_error.into())
     }
 
-    /// Pause the audio instance with the given easing
+    /// Get the state of the audio instance
     pub fn state(&self) -> PlaybackState {
         (&self.handle).into()
     }

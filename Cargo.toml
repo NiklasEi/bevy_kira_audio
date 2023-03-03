@@ -30,10 +30,9 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
 thiserror = "1.0"
 
-[dev-dependencies.bevy]
-version = "0.9"
-default-features = false
-features = ["bevy_asset", "bevy_winit", "render", "x11"]
+[dev-dependencies]
+bevy = { version = "0.9", default-features = false, features = ["bevy_asset", "bevy_winit", "render", "x11", "bevy_gltf", "bevy_scene"] }
+bevy_flycam = "0.9"
 
 [[example]]
 name = "basic"
@@ -78,4 +77,9 @@ required-features = ["ogg"]
 [[example]]
 name = "channel_control"
 path = "examples/channel_control.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "spacial"
+path = "examples/spacial.rs"
 required-features = ["ogg"]

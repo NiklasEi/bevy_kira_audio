@@ -12,6 +12,7 @@ These examples are simple Bevy Apps illustrating the capabilities of `bevy_kira_
 | [`multiple_channels.rs`](/examples/multiple_channels.rs) | GUI application with full control over tree different audio channels |
 | [`settings.rs`](/examples/settings.rs)                   | Demonstrate settings supported when playing a sound                  |
 | [`settings_loader.rs`](/examples/settings_loader.rs)     | Loading a sound with applied settings                                |
+| [`spacial.rs`](/examples/spacial.rs)                     | Demonstration of the limited support for spacial audio               |
 | [`status.rs`](/examples/status.rs)                       | Continuously get the playback state of a sound                       |
 | [`stress_test.rs`](/examples/stress_test.rs)             | Example app playing a high number of sounds every frame              |
 
