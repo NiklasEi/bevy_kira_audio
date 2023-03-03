@@ -17,12 +17,12 @@ use bevy::ecs::world::{FromWorld, World};
 use bevy::log::{error, warn};
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
-use kira::{CommandError, PlaybackRate};
+use kira::{CommandError, PlaybackRate, Volume};
 use std::collections::HashMap;
 
 /// Non-send resource that acts as audio output
 ///
-/// This struct holds the [`kira::manager::AudioManager`] to play audio through. It also
+/// This struct holds the [`AudioManager`] to play audio through. It also
 /// keeps track of all audio instance handles and which sounds are playing in which channel.
 pub(crate) struct AudioOutput<B: Backend = DefaultBackend> {
     manager: Option<AudioManager<B>>,
@@ -135,7 +135,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         channel: &Channel,
         audio_instances: &mut Assets<AudioInstance>,
-        volume: f64,
+        volume: Volume,
         tween: &Option<AudioTween>,
     ) {
         if let Some(instances) = self.instances.get_mut(channel) {

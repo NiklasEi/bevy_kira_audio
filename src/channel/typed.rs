@@ -8,6 +8,7 @@ use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
 use bevy::utils::HashMap;
+use kira::Volume;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
@@ -108,8 +109,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: f64) -> TweenCommand<FadeIn> {
-        TweenCommand::new(TweenCommandKind::SetVolume(volume), self)
+    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetVolume(volume.into()), self)
     }
 
     /// Set panning
