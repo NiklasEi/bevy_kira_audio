@@ -1,5 +1,7 @@
 # Changelog
 
+- Reexport some used Kira types ([#73](https://github.com/NiklasEi/bevy_kira_audio/issues/73))
+
 ## v0.13.0
 - Update to Bevy 0.9
 
