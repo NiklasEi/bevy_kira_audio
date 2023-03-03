@@ -28,7 +28,7 @@ pub struct AudioReceiver;
 /// If this resource is not added to the ECS, spacial audio is not applied.
 #[derive(Resource)]
 pub struct SpacialAudio {
-    /// The volume will linearly change from `1` at distance `0` to `0` at distance `max_distance`
+    /// The volume will change from `1` at distance `0` to `0` at distance `max_distance`
     pub max_distance: f32,
 }
 
@@ -41,7 +41,9 @@ impl SpacialAudio {
     ) {
         for (emitter_transform, emitter) in emitters {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let volume = (1. - sound_path.length() / self.max_distance).clamp(0., 1.);
+            let volume = (1. - sound_path.length() / self.max_distance)
+                .powi(2)
+                .clamp(0., 1.);
 
             let right_ear_angle = receiver_transform.right().angle_between(sound_path);
             let panning = (right_ear_angle.cos() + 1.) / 2.;
