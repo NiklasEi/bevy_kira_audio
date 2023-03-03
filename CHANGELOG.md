@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.14.0
+- Limited support for spacial audio
+  - Add `Emitter` and `Receiver` components to spacial entities
+  - Audio volume and panning will be automatically changed
+  - New example [`spacial.rs`](examples/spacial.rs)
+- Support for setting volume in Decibels ([#81](https://github.com/NiklasEi/bevy_kira_audio/issues/81))
 - Reexport some used Kira types ([#73](https://github.com/NiklasEi/bevy_kira_audio/issues/73))
 
 ## v0.13.0

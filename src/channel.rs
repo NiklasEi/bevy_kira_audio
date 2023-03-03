@@ -35,7 +35,7 @@ impl Default for ChannelState {
 
 impl ChannelState {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        sound.settings.volume = self.volume.into();
+        sound.settings.volume = self.volume;
         sound.settings.playback_rate = self.playback_rate.into();
         sound.settings.panning = self.panning;
     }
