@@ -70,6 +70,14 @@ pub mod prelude {
     pub use crate::source::AudioSource;
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
+    pub use kira::{
+        dsp::Frame,
+        sound::{
+            static_sound::{StaticSoundData, StaticSoundSettings},
+            Sound, SoundData,
+        },
+        Volume,
+    };
 }
 
 use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
