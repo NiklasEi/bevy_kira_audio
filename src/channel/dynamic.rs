@@ -8,6 +8,7 @@ use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
 use bevy::utils::HashMap;
+use kira::Volume;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 
@@ -82,6 +83,7 @@ impl AudioControl for DynamicAudioChannel {
     /// Set the volume
     ///
     /// The default value is 1.
+    /// This method supports setting the volume in Decibels or as Amplitude.
     ///
     /// ```
     /// # use bevy::prelude::*;
@@ -91,8 +93,8 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: f64) -> TweenCommand<FadeIn> {
-        TweenCommand::new(TweenCommandKind::SetVolume(volume), self)
+    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetVolume(volume.into()), self)
     }
     /// Set panning
     ///

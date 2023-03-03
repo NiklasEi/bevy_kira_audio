@@ -70,6 +70,7 @@ pub mod prelude {
     pub use crate::source::AudioSource;
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
+    pub use kira::Volume;
 }
 
 use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
@@ -169,13 +170,13 @@ pub enum AudioSystemLabel {
 /// The default audio channel
 ///
 /// Alias for the [`AudioChannel<MainTrack>`] resource. Use it to play and control sound on the main track.
-/// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 pub type Audio = AudioChannel<MainTrack>;
 
 /// Type for the default audio channel
 ///
 /// Use it via the [`AudioChannel<MainTrack>`] resource to play and control sound on the main track.
-/// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 ///
 /// You can use [`Audio`] as a type alias for [`AudioChannel<MainTrack>`]
 #[derive(Resource)]
