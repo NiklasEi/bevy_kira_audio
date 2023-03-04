@@ -6,6 +6,7 @@ use crate::instance::AudioInstance;
 use crate::{AudioSource, PlaybackState};
 use bevy::asset::Handle;
 use kira::sound::static_sound::StaticSoundData;
+use kira::Volume;
 use std::any::TypeId;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -16,7 +17,7 @@ pub enum Channel {
 
 pub(crate) struct ChannelState {
     pub(crate) paused: bool,
-    pub(crate) volume: f64,
+    pub(crate) volume: Volume,
     pub(crate) playback_rate: f64,
     pub(crate) panning: f64,
 }
@@ -25,7 +26,7 @@ impl Default for ChannelState {
     fn default() -> Self {
         ChannelState {
             paused: false,
-            volume: 1.0,
+            volume: 1.0.into(),
             playback_rate: 1.0,
             panning: 0.5,
         }
@@ -34,7 +35,7 @@ impl Default for ChannelState {
 
 impl ChannelState {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        sound.settings.volume = self.volume.into();
+        sound.settings.volume = self.volume;
         sound.settings.playback_rate = self.playback_rate.into();
         sound.settings.panning = self.panning;
     }
@@ -93,6 +94,7 @@ pub trait AudioControl {
     /// Set the volume
     ///
     /// The default value is 1.
+    /// This method supports setting the volume in Decibels or as Amplitude.
     ///
     /// ```
     /// # use bevy::prelude::*;
@@ -102,7 +104,7 @@ pub trait AudioControl {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: f64) -> TweenCommand<FadeIn>;
+    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn>;
 
     /// Set panning
     ///

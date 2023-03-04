@@ -40,6 +40,7 @@ mod backend_settings;
 mod channel;
 mod instance;
 mod source;
+mod spacial;
 
 pub use audio::{
     AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
@@ -69,7 +70,17 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
+    pub use crate::spacial::{AudioEmitter, AudioReceiver, SpacialAudio};
+    #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
+    pub use kira::{
+        dsp::Frame,
+        sound::{
+            static_sound::{StaticSoundData, StaticSoundSettings},
+            Sound, SoundData,
+        },
+        Volume,
+    };
 }
 
 use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
@@ -84,7 +95,10 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use bevy::prelude::{AddAsset, App, CoreSet, IntoSystemConfig, Plugin, Resource, SystemSet};
+use crate::spacial::{run_spacial_audio, SpacialAudio};
+use bevy::prelude::{
+    resource_exists, AddAsset, App, CoreSet, IntoSystemConfig, Plugin, Resource, SystemSet,
+};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
 pub use channel::typed::AudioChannel;
@@ -151,7 +165,12 @@ impl Plugin for AudioPlugin {
                     .in_base_set(CoreSet::PreUpdate)
                     .in_set(AudioSystemSet::InstanceCleanup),
             )
-            .add_audio_channel::<MainTrack>();
+            .add_audio_channel::<MainTrack>()
+            .add_system(
+                run_spacial_audio
+                    .in_base_set(CoreSet::PostUpdate)
+                    .run_if(resource_exists::<SpacialAudio>()),
+            );
     }
 }
 
@@ -169,13 +188,13 @@ pub enum AudioSystemSet {
 /// The default audio channel
 ///
 /// Alias for the [`AudioChannel<MainTrack>`] resource. Use it to play and control sound on the main track.
-/// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 pub type Audio = AudioChannel<MainTrack>;
 
 /// Type for the default audio channel
 ///
 /// Use it via the [`AudioChannel<MainTrack>`] resource to play and control sound on the main track.
-/// You can add your own channels via [`add_audio_channel`](audio::AudioApp::add_audio_channel).
+/// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 ///
 /// You can use [`Audio`] as a type alias for [`AudioChannel<MainTrack>`]
 #[derive(Resource)]

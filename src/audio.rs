@@ -11,13 +11,13 @@ use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
 use bevy::prelude::{default, IntoSystemConfig};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
-use kira::LoopBehavior;
+use kira::{LoopBehavior, Volume};
 use std::marker::PhantomData;
 use std::time::Duration;
 
 pub(crate) enum AudioCommand {
     Play(PlayAudioSettings),
-    SetVolume(f64, Option<AudioTween>),
+    SetVolume(Volume, Option<AudioTween>),
     SetPanning(f64, Option<AudioTween>),
     SetPlaybackRate(f64, Option<AudioTween>),
     Stop(Option<AudioTween>),
@@ -28,7 +28,7 @@ pub(crate) enum AudioCommand {
 #[derive(Clone, Default)]
 pub(crate) struct PartialSoundSettings {
     pub(crate) loop_behavior: Option<Option<f64>>,
-    pub(crate) volume: Option<f64>,
+    pub(crate) volume: Option<Volume>,
     pub(crate) playback_rate: Option<f64>,
     pub(crate) start_position: Option<f64>,
     pub(crate) panning: Option<f64>,
@@ -109,7 +109,7 @@ impl PartialSoundSettings {
             }
         }
         if let Some(volume) = self.volume {
-            sound.settings.volume = volume.into();
+            sound.settings.volume = volume;
         }
         if let Some(playback_rate) = self.playback_rate {
             sound.settings.playback_rate = playback_rate.into();
@@ -189,8 +189,8 @@ impl<'a> PlayAudioCommand<'a> {
     }
 
     /// Set the volume of the sound.
-    pub fn with_volume(&mut self, volume: f64) -> &mut Self {
-        self.settings.volume = Some(volume);
+    pub fn with_volume(&mut self, volume: impl Into<Volume>) -> &mut Self {
+        self.settings.volume = Some(volume.into());
 
         self
     }
@@ -250,7 +250,7 @@ impl<'a> PlayAudioCommand<'a> {
 }
 
 pub(crate) enum TweenCommandKind {
-    SetVolume(f64),
+    SetVolume(Volume),
     SetPanning(f64),
     SetPlaybackRate(f64),
     Stop,
