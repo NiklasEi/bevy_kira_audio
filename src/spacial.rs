@@ -42,8 +42,8 @@ impl SpacialAudio {
         for (emitter_transform, emitter) in emitters {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
             let volume = (1. - sound_path.length() / self.max_distance)
-                .powi(2)
-                .clamp(0., 1.);
+                .clamp(0., 1.)
+                .powi(2);
 
             let right_ear_angle = receiver_transform.right().angle_between(sound_path);
             let panning = (right_ear_angle.cos() + 1.) / 2.;
