@@ -5,11 +5,11 @@ use crate::channel::typed::AudioChannel;
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::{AudioSystemLabel, IntoSystemDescriptor};
-use bevy::app::{App, CoreStage};
+use crate::AudioSystemSet;
+use bevy::app::{App, CoreSet};
 use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
-use bevy::prelude::default;
+use bevy::prelude::{default, IntoSystemConfig};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{LoopBehavior, Volume};
 use std::marker::PhantomData;
@@ -424,7 +424,7 @@ pub trait AudioApp {
     ///         .add_plugins(DefaultPlugins)
     ///         .add_plugin(AudioPlugin)
     ///         .add_audio_channel::<Background>()
-    ///         .add_startup_system(play)
+    ///         .add_system(play.on_startup())
     ///         .run();
     /// }
     ///
@@ -440,13 +440,15 @@ pub trait AudioApp {
 
 impl AudioApp for App {
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self {
-        self.add_system_to_stage(
-            CoreStage::PostUpdate,
-            play_audio_channel::<T>.label(AudioSystemLabel::PlayTypedChannels),
+        self.add_system(
+            play_audio_channel::<T>
+                .in_base_set(CoreSet::PostUpdate)
+                .in_set(AudioSystemSet::PlayTypedChannels),
         )
-        .add_system_to_stage(
-            CoreStage::PreUpdate,
-            update_instance_states::<T>.after(AudioSystemLabel::InstanceCleanup),
+        .add_system(
+            update_instance_states::<T>
+                .in_base_set(CoreSet::PreUpdate)
+                .after(AudioSystemSet::InstanceCleanup),
         )
         .insert_resource(AudioChannel::<T>::default())
     }

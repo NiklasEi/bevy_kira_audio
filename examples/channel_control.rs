@@ -3,11 +3,13 @@ use bevy_kira_audio::prelude::*;
 
 // This example demonstrates how to control an audio channel
 // This kind of control is deferred to the end of the current frame update
+// Left-click to pause the audio
+// Right-click to resume the audio
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
-        .add_startup_system(play_loop)
+        .add_system(play_loop.on_startup())
         .add_system(channel_control)
         .run()
 }

@@ -9,8 +9,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
-        .add_startup_system(start_audio)
-        .add_startup_system(display_help_text)
+        .add_system(start_audio.on_startup())
+        .add_system(display_help_text.on_startup())
         .add_system(print_status)
         .add_system(process_keyboard_input)
         .run();
@@ -47,7 +47,7 @@ fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
     // But: only the channel knows if the audio is currently queued. Using the method below,
     // we can differentiate between Queued and Stopped.
     let state = audio.state(&loop_audio.0);
-    println!("Looping audio is {:?}", state);
+    println!("Looping audio is {state:?}");
 }
 
 fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -104,10 +104,8 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                             },
                         },
                     ],
-                    alignment: TextAlignment {
-                        vertical: VerticalAlign::Center,
-                        horizontal: HorizontalAlign::Center,
-                    },
+                    alignment: TextAlignment::Center,
+                    ..Default::default()
                 },
                 ..Default::default()
             });

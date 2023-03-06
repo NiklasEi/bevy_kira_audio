@@ -7,7 +7,7 @@ fn main() {
         .add_plugin(AudioPlugin)
         // add our custom audio channel
         .add_audio_channel::<Background>()
-        .add_startup_system(play)
+        .add_system(play.on_startup())
         .run();
 }
 

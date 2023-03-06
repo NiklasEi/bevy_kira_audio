@@ -18,7 +18,7 @@
 //! # */
 //!         .add_plugin(AudioPlugin)
 //! #       .add_system(stop)
-//!         .add_startup_system(start_background_audio)
+//!         .add_system(start_background_audio.on_startup())
 //!         .run();
 //! }
 //!
@@ -95,9 +95,9 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use crate::spacial::run_spacial_audio;
+use crate::spacial::{run_spacial_audio, SpacialAudio};
 use bevy::prelude::{
-    AddAsset, App, CoreStage, IntoSystemDescriptor, Plugin, Resource, SystemLabel,
+    resource_exists, AddAsset, App, CoreSet, IntoSystemConfig, Plugin, Resource, SystemSet,
 };
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
@@ -121,7 +121,7 @@ pub use instance::AudioInstanceAssetsExt;
 ///         .add_plugin(AssetPlugin::default())
 ///         .add_plugin(AudioPlugin)
 /// #       .add_system(stop)
-///         .add_startup_system(start_background_audio);
+///         .add_system(start_background_audio.on_startup());
 ///    app.run();
 /// }
 ///
@@ -140,8 +140,7 @@ impl Plugin for AudioPlugin {
     fn build(&self, app: &mut App) {
         app.init_non_send_resource::<AudioOutput>()
             .add_asset::<AudioSource>()
-            .add_asset::<AudioInstance>()
-            .add_system_to_stage(CoreStage::PostUpdate, run_spacial_audio);
+            .add_asset::<AudioInstance>();
 
         #[cfg(feature = "mp3")]
         app.init_asset_loader::<Mp3Loader>();
@@ -156,21 +155,28 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<DynamicAudioChannels>()
-            .add_system_to_stage(
-                CoreStage::PostUpdate,
-                play_dynamic_channels.label(AudioSystemLabel::PlayDynamicChannels),
+            .add_system(
+                play_dynamic_channels
+                    .in_base_set(CoreSet::PostUpdate)
+                    .in_set(AudioSystemSet::PlayDynamicChannels),
             )
-            .add_system_to_stage(
-                CoreStage::PreUpdate,
-                cleanup_stopped_instances.label(AudioSystemLabel::InstanceCleanup),
+            .add_system(
+                cleanup_stopped_instances
+                    .in_base_set(CoreSet::PreUpdate)
+                    .in_set(AudioSystemSet::InstanceCleanup),
             )
-            .add_audio_channel::<MainTrack>();
+            .add_audio_channel::<MainTrack>()
+            .add_system(
+                run_spacial_audio
+                    .in_base_set(CoreSet::PostUpdate)
+                    .run_if(resource_exists::<SpacialAudio>()),
+            );
     }
 }
 
 /// Labels for audio systems
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
-pub enum AudioSystemLabel {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub enum AudioSystemSet {
     /// Label for systems in [`CoreStage::PreUpdate`] that clean up tracked audio instances
     InstanceCleanup,
     /// Label for system in [`CoreStage::PostUpdate`] that processes audio commands for dynamic channels

@@ -2,12 +2,12 @@ use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use std::time::Duration;
 
-/// This example shows the different settings that can be applied when first playing a sound.
+/// This example shows the different settings that can be applied when playing a sound.
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
-        .add_startup_system(play_audio)
+        .add_system(play_audio.on_startup())
         .run();
 }
 

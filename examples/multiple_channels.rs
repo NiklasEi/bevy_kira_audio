@@ -1,5 +1,7 @@
+use bevy::ecs::schedule::SystemConfigs;
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
+use bevy_kira_audio::AudioApp;
 use std::clone::Clone;
 use std::marker::PhantomData;
 
@@ -9,23 +11,25 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .init_resource::<LastAction>()
+        .add_system(prepare_audio_and_ui.on_startup())
+        .add_systems(create_row_systems::<FirstChannel>())
+        .add_systems(create_row_systems::<SecondChannel>())
+        .add_systems(create_row_systems::<ThirdChannel>())
         .add_audio_channel::<FirstChannel>()
         .add_audio_channel::<SecondChannel>()
         .add_audio_channel::<ThirdChannel>()
-        .add_startup_system(prepare_audio_and_ui)
-        .add_system_set(create_row_system_set::<FirstChannel>())
-        .add_system_set(create_row_system_set::<SecondChannel>())
-        .add_system_set(create_row_system_set::<ThirdChannel>())
         .run();
 }
 
-fn create_row_system_set<T: Component + Default>() -> SystemSet {
-    SystemSet::new()
-        .with_system(stop_button::<T>)
-        .with_system(loop_button::<T>)
-        .with_system(volume_buttons::<T>)
-        .with_system(play_sound_button::<T>)
-        .with_system(play_pause_button::<T>)
+fn create_row_systems<T: Component + Default>() -> SystemConfigs {
+    (
+        stop_button::<T>,
+        loop_button::<T>,
+        volume_buttons::<T>,
+        play_sound_button::<T>,
+        play_pause_button::<T>,
+    )
+        .into_configs()
 }
 
 fn play_pause_button<T: Component + Default>(
@@ -325,7 +329,7 @@ fn build_button_row<T: Component + Default + Clone>(
                                     font: font.clone(),
                                 },
                             }],
-                            alignment: Default::default(),
+                            ..Default::default()
                         },
                         ..Default::default()
                     });
@@ -413,7 +417,8 @@ fn spawn_button<T: Component + Clone>(
                                 font: font.clone(),
                             },
                         }],
-                        alignment: Default::default(),
+                        alignment: TextAlignment::Center,
+                        ..Default::default()
                     },
                     ..Default::default()
                 })
