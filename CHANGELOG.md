@@ -1,6 +1,8 @@
 # Changelog
 
-- Update to Bevy 0.10
+## v0.15.0
+- Update to Bevy `0.10`
+- Fix: stop spacial audio from getting louder again at large distances ([#88](https://github.com/NiklasEi/bevy_kira_audio/issues/88))
 
 ## v0.14.0
 - Limited support for spacial audio
