@@ -7,6 +7,7 @@ use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
+use bevy::utils::hashbrown::hash_map::Iter;
 use bevy::utils::HashMap;
 use kira::Volume;
 use parking_lot::RwLock;
@@ -222,6 +223,11 @@ impl DynamicAudioChannels {
     /// Get a channel to play and control audio in
     pub fn get_channel(&self, key: &str) -> Option<&DynamicAudioChannel> {
         self.channels.get(key)
+    }
+
+    /// An iterator over the keys and dynamic audio channels
+    pub fn iter(&self) -> Iter<String, DynamicAudioChannel> {
+        self.channels.iter()
     }
 }
 
