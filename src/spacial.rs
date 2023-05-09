@@ -64,6 +64,7 @@ pub(crate) fn run_spacial_audio(
     emitters: Query<(&GlobalTransform, &AudioEmitter)>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
-    let receiver_transform = receiver.single();
-    spacial_audio.update(receiver_transform, &emitters, &mut audio_instances);
+    if let Ok(receiver_transform) = receiver.get_single() {
+        spacial_audio.update(receiver_transform, &emitters, &mut audio_instances);
+    }
 }
