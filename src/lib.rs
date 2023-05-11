@@ -168,14 +168,14 @@ impl Plugin for AudioPlugin {
             )
             .add_audio_channel::<MainTrack>()
             .add_system(
-                run_spacial_audio
-                    .in_base_set(CoreSet::PostUpdate)
-                    .run_if(resource_exists::<SpacialAudio>()),
-            )
-            .add_system(
                 cleanup_stopped_spacial_instances
                     .in_base_set(CoreSet::PreUpdate)
                     .in_set(AudioSystemSet::InstanceCleanup)
+                    .run_if(resource_exists::<SpacialAudio>()),
+            )
+            .add_system(
+                run_spacial_audio
+                    .in_base_set(CoreSet::PostUpdate)
                     .run_if(resource_exists::<SpacialAudio>()),
             );
     }
