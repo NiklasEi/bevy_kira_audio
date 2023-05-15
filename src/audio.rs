@@ -50,12 +50,12 @@ pub struct AudioTween {
 
 impl AudioTween {
     /// Create a new tween with the given duration and easing
-    pub fn new(duration: Duration, easing: AudioEasing) -> Self {
+    pub const fn new(duration: Duration, easing: AudioEasing) -> Self {
         AudioTween { duration, easing }
     }
 
     /// Create a new linear tween with the given duration
-    pub fn linear(duration: Duration) -> Self {
+    pub const fn linear(duration: Duration) -> Self {
         AudioTween {
             duration,
             easing: AudioEasing::Linear,
@@ -63,7 +63,7 @@ impl AudioTween {
     }
 
     /// Set an easing for the tween
-    pub fn with_easing(mut self, easing: AudioEasing) -> Self {
+    pub const fn with_easing(mut self, easing: AudioEasing) -> Self {
         self.easing = easing;
 
         self
