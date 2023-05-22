@@ -6,6 +6,7 @@ use crate::instance::AudioInstance;
 use crate::{AudioSource, PlaybackState};
 use bevy::asset::Handle;
 use kira::sound::static_sound::StaticSoundData;
+use kira::tween::Value;
 use kira::Volume;
 use std::any::TypeId;
 
@@ -35,9 +36,9 @@ impl Default for ChannelState {
 
 impl ChannelState {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        sound.settings.volume = self.volume;
+        sound.settings.volume = Value::Fixed(self.volume);
         sound.settings.playback_rate = self.playback_rate.into();
-        sound.settings.panning = self.panning;
+        sound.settings.panning = Value::Fixed(self.panning);
     }
 }
 

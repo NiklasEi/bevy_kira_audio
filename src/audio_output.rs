@@ -17,7 +17,7 @@ use bevy::ecs::world::{FromWorld, World};
 use bevy::log::{error, warn};
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
-use kira::{CommandError, PlaybackRate, Volume};
+use kira::{sound::PlaybackRate, CommandError, Volume};
 use std::collections::HashMap;
 
 /// Non-send resource that acts as audio output
@@ -83,8 +83,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instance_handles.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance) {
-                    if kira::sound::static_sound::PlaybackState::Playing == instance.handle.state()
-                    {
+                    if kira::sound::PlaybackState::Playing == instance.handle.state() {
                         if let Err(error) = instance.handle.pause(tween) {
                             error!("Failed to pause instance: {:?}", error);
                         }
@@ -113,9 +112,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance) {
-                    if let kira::sound::static_sound::PlaybackState::Paused =
-                        instance.handle.state()
-                    {
+                    if let kira::sound::PlaybackState::Paused = instance.handle.state() {
                         if let Err(error) = instance.handle.resume(tween) {
                             error!("Failed to resume instance: {:?}", error);
                         }
@@ -229,7 +226,7 @@ impl<B: Backend> AudioOutput<B> {
             // This is reverted after pausing the sound handle.
             // Otherwise the audio thread will start playing the sound before our pause command goes through.
             if channel_state.paused {
-                sound.settings.playback_rate = PlaybackRate::Factor(0.0);
+                sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
             }
         }
         partial_sound_settings.apply(&mut sound);
@@ -385,7 +382,7 @@ impl<B: Backend> AudioOutput<B> {
         for (_, handles) in self.instances.iter_mut() {
             handles.retain(|handle| {
                 if let Some(instance) = instances.get(handle) {
-                    instance.handle.state() != kira::sound::static_sound::PlaybackState::Stopped
+                    instance.handle.state() != kira::sound::PlaybackState::Stopped
                 } else {
                     false
                 }

@@ -1,6 +1,7 @@
 use crate::{AudioTween, PlaybackState};
 use bevy::asset::{Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
+use kira::tween::Value;
 use kira::{CommandError, Volume};
 use thiserror::Error;
 
@@ -67,7 +68,7 @@ impl AudioInstance {
     /// Default is `1.0`
     pub fn set_volume(
         &mut self,
-        volume: impl Into<Volume>,
+        volume: impl Into<Value<Volume>>,
         tween: AudioTween,
     ) -> Option<AudioCommandError> {
         self.handle

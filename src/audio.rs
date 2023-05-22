@@ -11,7 +11,9 @@ use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
 use bevy::prelude::{default, IntoSystemConfig};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
-use kira::{LoopBehavior, Volume};
+use kira::sound::{EndPosition, PlaybackPosition, Region};
+use kira::tween::Value;
+use kira::Volume;
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -27,7 +29,7 @@ pub(crate) enum AudioCommand {
 
 #[derive(Clone, Default)]
 pub(crate) struct PartialSoundSettings {
-    pub(crate) loop_behavior: Option<Option<f64>>,
+    pub(crate) loop_start: Option<Option<f64>>,
     pub(crate) volume: Option<Volume>,
     pub(crate) playback_rate: Option<f64>,
     pub(crate) start_position: Option<f64>,
@@ -101,24 +103,30 @@ impl From<&AudioTween> for kira::tween::Tween {
 
 impl PartialSoundSettings {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        if let Some(loop_behavior) = self.loop_behavior {
-            if let Some(start_position) = loop_behavior {
-                sound.settings.loop_behavior = Some(LoopBehavior { start_position })
+        if let Some(loop_start) = self.loop_start {
+            if let Some(start) = loop_start {
+                sound.settings.loop_region = Some(Region {
+                    start: PlaybackPosition::Seconds(start),
+                    end: EndPosition::EndOfAudio,
+                })
             } else {
-                sound.settings.loop_behavior = None;
+                sound.settings.loop_region = None;
             }
         }
         if let Some(volume) = self.volume {
-            sound.settings.volume = volume;
+            sound.settings.volume = Value::Fixed(volume);
         }
         if let Some(playback_rate) = self.playback_rate {
             sound.settings.playback_rate = playback_rate.into();
         }
-        if let Some(start_position) = self.start_position {
-            sound.settings.start_position = start_position;
+        if let Some(start) = self.start_position {
+            sound.settings.playback_region = Region {
+                start: PlaybackPosition::Seconds(start),
+                end: EndPosition::EndOfAudio,
+            };
         }
         if let Some(panning) = self.panning {
-            sound.settings.panning = panning;
+            sound.settings.panning = Value::Fixed(panning);
         }
         if let Some(reverse) = self.reverse {
             sound.settings.reverse = reverse;
@@ -176,14 +184,14 @@ impl<'a> PlayAudioCommand<'a> {
 
     /// Loop the playing sound.
     pub fn looped(&mut self) -> &mut Self {
-        self.settings.loop_behavior = Some(Some(0.0));
+        self.settings.loop_start = Some(Some(0.0));
 
         self
     }
 
     /// Loop the playing sound, starting from the given position.
     pub fn loop_from(&mut self, loop_start_position: f64) -> &mut Self {
-        self.settings.loop_behavior = Some(Some(loop_start_position));
+        self.settings.loop_start = Some(Some(loop_start_position));
 
         self
     }
@@ -396,17 +404,11 @@ impl From<&StaticSoundHandle> for PlaybackState {
     fn from(sound_handle: &StaticSoundHandle) -> Self {
         let position = sound_handle.position();
         match sound_handle.state() {
-            kira::sound::static_sound::PlaybackState::Playing => {
-                PlaybackState::Playing { position }
-            }
-            kira::sound::static_sound::PlaybackState::Paused => PlaybackState::Paused { position },
-            kira::sound::static_sound::PlaybackState::Stopped => PlaybackState::Stopped,
-            kira::sound::static_sound::PlaybackState::Pausing => {
-                PlaybackState::Pausing { position }
-            }
-            kira::sound::static_sound::PlaybackState::Stopping => {
-                PlaybackState::Stopping { position }
-            }
+            kira::sound::PlaybackState::Playing => PlaybackState::Playing { position },
+            kira::sound::PlaybackState::Paused => PlaybackState::Paused { position },
+            kira::sound::PlaybackState::Stopped => PlaybackState::Stopped,
+            kira::sound::PlaybackState::Pausing => PlaybackState::Pausing { position },
+            kira::sound::PlaybackState::Stopping => PlaybackState::Stopping { position },
         }
     }
 }
