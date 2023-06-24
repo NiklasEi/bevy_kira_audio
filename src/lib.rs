@@ -49,6 +49,7 @@ pub use audio::{
 pub use backend_settings::AudioSettings;
 pub use channel::AudioControl;
 pub use source::AudioSource;
+use spacial::cleanup_stopped_spacial_instances;
 
 /// Most commonly used types
 pub mod prelude {
@@ -166,6 +167,12 @@ impl Plugin for AudioPlugin {
                     .in_set(AudioSystemSet::InstanceCleanup),
             )
             .add_audio_channel::<MainTrack>()
+            .add_system(
+                cleanup_stopped_spacial_instances
+                    .in_base_set(CoreSet::PreUpdate)
+                    .in_set(AudioSystemSet::InstanceCleanup)
+                    .run_if(resource_exists::<SpacialAudio>()),
+            )
             .add_system(
                 run_spacial_audio
                     .in_base_set(CoreSet::PostUpdate)

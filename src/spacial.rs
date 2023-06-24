@@ -64,6 +64,24 @@ pub(crate) fn run_spacial_audio(
     emitters: Query<(&GlobalTransform, &AudioEmitter)>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
-    let receiver_transform = receiver.single();
-    spacial_audio.update(receiver_transform, &emitters, &mut audio_instances);
+    if let Ok(receiver_transform) = receiver.get_single() {
+        spacial_audio.update(receiver_transform, &emitters, &mut audio_instances);
+    }
+}
+
+pub(crate) fn cleanup_stopped_spacial_instances(
+    mut emitters: Query<&mut AudioEmitter>,
+    instances: ResMut<Assets<AudioInstance>>,
+) {
+    for mut emitter in emitters.iter_mut() {
+        let handles = &mut emitter.instances;
+
+        handles.retain(|handle| {
+            if let Some(instance) = instances.get(handle) {
+                instance.handle.state() != kira::sound::static_sound::PlaybackState::Stopped
+            } else {
+                false
+            }
+        });
+    }
 }
