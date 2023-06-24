@@ -19,7 +19,7 @@ flac = ["kira/flac"]
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 wav = ["kira/wav"]
-settings_loader = ["ron", "serde"]
+settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 
 [dependencies]
 bevy = { version = "0.10", default-features = false, features = ["bevy_asset"] }
