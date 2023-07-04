@@ -112,7 +112,10 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance) {
-                    if let kira::sound::PlaybackState::Paused = instance.handle.state() {
+                    if instance.handle.state() == kira::sound::PlaybackState::Paused
+                        || instance.handle.state() == kira::sound::PlaybackState::Pausing
+                        || instance.handle.state() == kira::sound::PlaybackState::Stopping
+                    {
                         if let Err(error) = instance.handle.resume(tween) {
                             error!("Failed to resume instance: {:?}", error);
                         }
