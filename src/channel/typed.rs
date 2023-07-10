@@ -15,7 +15,7 @@ use std::marker::PhantomData;
 
 /// Channel to play and control audio
 ///
-/// Add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
+/// Add your own channels via [`add_audio_channel`](crate::audio::AudioApp::add_audio_channel).
 /// By default, there is only the [`AudioChannel<MainTrack>`](crate::Audio) channel.
 #[derive(Resource)]
 pub struct AudioChannel<T> {

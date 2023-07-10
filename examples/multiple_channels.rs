@@ -8,13 +8,17 @@ use std::marker::PhantomData;
 // This is a bigger example with a GUI for full control over three audio channels
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
+        .add_plugins((DefaultPlugins, AudioPlugin))
         .init_resource::<LastAction>()
-        .add_system(prepare_audio_and_ui.on_startup())
-        .add_systems(create_row_systems::<FirstChannel>())
-        .add_systems(create_row_systems::<SecondChannel>())
-        .add_systems(create_row_systems::<ThirdChannel>())
+        .add_systems(Startup, prepare_audio_and_ui)
+        .add_systems(
+            Update,
+            (
+                create_row_systems::<FirstChannel>(),
+                create_row_systems::<SecondChannel>(),
+                create_row_systems::<ThirdChannel>(),
+            ),
+        )
         .add_audio_channel::<FirstChannel>()
         .add_audio_channel::<SecondChannel>()
         .add_audio_channel::<ThirdChannel>()
@@ -57,7 +61,7 @@ fn play_pause_button<T: Component + Default>(
     if channel_state.stopped {
         return;
     }
-    if interaction == &Interaction::Clicked {
+    if interaction == &Interaction::Pressed {
         if !last_action.action(&time) {
             return;
         }
@@ -88,7 +92,7 @@ fn stop_button<T: Component + Default>(
     if channel_state.stopped {
         return;
     }
-    if interaction == &Interaction::Clicked {
+    if interaction == &Interaction::Pressed {
         if !last_action.action(&time) {
             return;
         }
@@ -118,7 +122,7 @@ fn loop_button<T: Component + Default>(
     if channel_state.loop_started {
         return;
     }
-    if interaction == &Interaction::Clicked {
+    if interaction == &Interaction::Pressed {
         if !last_action.action(&time) {
             return;
         }
@@ -142,7 +146,7 @@ fn play_sound_button<T: Component + Default>(
     } else {
         NORMAL_BUTTON.into()
     };
-    if interaction == &Interaction::Clicked {
+    if interaction == &Interaction::Pressed {
         if !last_action.action(&time) {
             return;
         }
@@ -165,7 +169,7 @@ fn volume_buttons<T: Component + Default>(
         } else {
             NORMAL_BUTTON.into()
         };
-        if interaction == &Interaction::Clicked {
+        if interaction == &Interaction::Pressed {
             if !last_action.action(&time) {
                 return;
             }
@@ -280,7 +284,8 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>) {
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Column,
-                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
                 ..Default::default()
             },
             ..Default::default()
@@ -302,7 +307,8 @@ fn build_button_row<T: Component + Default + Clone>(
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Row,
-                size: Size::new(Val::Percent(100.), Val::Percent(33.3)),
+                width: Val::Percent(100.0),
+                height: Val::Percent(33.3),
                 ..Default::default()
             },
             ..Default::default()
@@ -311,7 +317,8 @@ fn build_button_row<T: Component + Default + Clone>(
             parent
                 .spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Px(120.0), Val::Percent(100.)),
+                        width: Val::Px(120.0),
+                        height: Val::Percent(100.0),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         ..Default::default()
@@ -395,7 +402,8 @@ fn spawn_button<T: Component + Clone>(
     parent
         .spawn(ButtonBundle {
             style: Style {
-                size: Size::new(Val::Px(100.0), Val::Px(65.0)),
+                width: Val::Px(100.0),
+                height: Val::Px(65.0),
                 margin: UiRect::all(Val::Auto),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,

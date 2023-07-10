@@ -5,10 +5,9 @@ use bevy_kira_audio::prelude::*;
 /// that is not known at compile time, you can create and use dynamic channels based on string keys.
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(start_background_audio.on_startup())
-        .add_system(plop)
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, start_background_audio)
+        .add_systems(Update, plop)
         .run()
 }
 

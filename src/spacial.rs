@@ -18,8 +18,7 @@ pub struct AudioEmitter {
 /// Component for the audio receiver
 ///
 /// Most likely you will want to add this component to your player or you camera.
-/// The entity needs a [`Transform`] and [`GlobalTransform`]. The view direction of the [`GlobalTransform`]
-/// will
+/// The entity needs a [`Transform`](bevy::prelude::Transform) and [`GlobalTransform`]. The view direction of the [`GlobalTransform`].
 #[derive(Component)]
 pub struct AudioReceiver;
 

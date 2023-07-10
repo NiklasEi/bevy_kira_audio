@@ -11,14 +11,12 @@
 //!
 //! fn main() {
 //!    App::new()
-//! #       .add_plugins(MinimalPlugins)
-//! #       .add_plugin(AssetPlugin::default())
+//! #       .add_plugins((MinimalPlugins, AssetPlugin::default(), AudioPlugin))
 //! # /*
 //!         .add_plugins(DefaultPlugins)
 //! # */
-//!         .add_plugin(AudioPlugin)
-//! #       .add_system(stop)
-//!         .add_system(start_background_audio.on_startup())
+//!         .add_systems(Startup, start_background_audio)
+//! #       .add_systems(Update, stop)
 //!         .run();
 //! }
 //!
@@ -98,7 +96,8 @@ use crate::source::settings_loader::SettingsLoader;
 use crate::source::wav_loader::WavLoader;
 use crate::spacial::{run_spacial_audio, SpacialAudio};
 use bevy::prelude::{
-    resource_exists, AddAsset, App, CoreSet, IntoSystemConfig, Plugin, Resource, SystemSet,
+    resource_exists, AddAsset, App, IntoSystemConfigs, Plugin, PostUpdate, PreUpdate, Resource,
+    SystemSet,
 };
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
@@ -118,11 +117,9 @@ pub use instance::AudioInstanceAssetsExt;
 /// fn main() {
 ///    let mut app = App::new();
 ///    app
-///         .add_plugins(MinimalPlugins)
-///         .add_plugin(AssetPlugin::default())
-///         .add_plugin(AudioPlugin)
-/// #       .add_system(stop)
-///         .add_system(start_background_audio.on_startup());
+///         .add_plugins((MinimalPlugins, AssetPlugin::default(), AudioPlugin))
+///         .add_systems(Startup, start_background_audio)
+///         .add_systems(Update, stop);
 ///    app.run();
 /// }
 ///
@@ -156,27 +153,22 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<DynamicAudioChannels>()
-            .add_system(
-                play_dynamic_channels
-                    .in_base_set(CoreSet::PostUpdate)
-                    .in_set(AudioSystemSet::PlayDynamicChannels),
-            )
-            .add_system(
-                cleanup_stopped_instances
-                    .in_base_set(CoreSet::PreUpdate)
-                    .in_set(AudioSystemSet::InstanceCleanup),
-            )
             .add_audio_channel::<MainTrack>()
-            .add_system(
-                cleanup_stopped_spacial_instances
-                    .in_base_set(CoreSet::PreUpdate)
-                    .in_set(AudioSystemSet::InstanceCleanup)
-                    .run_if(resource_exists::<SpacialAudio>()),
+            .add_systems(
+                PreUpdate,
+                (
+                    cleanup_stopped_instances.in_set(AudioSystemSet::InstanceCleanup),
+                    cleanup_stopped_spacial_instances
+                        .in_set(AudioSystemSet::InstanceCleanup)
+                        .run_if(resource_exists::<SpacialAudio>()),
+                ),
             )
-            .add_system(
-                run_spacial_audio
-                    .in_base_set(CoreSet::PostUpdate)
-                    .run_if(resource_exists::<SpacialAudio>()),
+            .add_systems(
+                PostUpdate,
+                (
+                    play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
+                    run_spacial_audio.run_if(resource_exists::<SpacialAudio>()),
+                ),
             );
     }
 }
@@ -184,11 +176,11 @@ impl Plugin for AudioPlugin {
 /// Labels for audio systems
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
 pub enum AudioSystemSet {
-    /// Label for systems in [`CoreStage::PreUpdate`] that clean up tracked audio instances
+    /// Label for systems in [`PreUpdate`] that clean up tracked audio instances
     InstanceCleanup,
-    /// Label for system in [`CoreStage::PostUpdate`] that processes audio commands for dynamic channels
+    /// Label for system in [`PostUpdate`] that processes audio commands for dynamic channels
     PlayDynamicChannels,
-    /// Label for systems in [`CoreStage::PostUpdate`] that process audio commands for typed channels
+    /// Label for systems in [`PostUpdate`] that process audio commands for typed channels
     PlayTypedChannels,
 }
 

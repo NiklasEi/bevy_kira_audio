@@ -5,9 +5,8 @@ use bevy_kira_audio::prelude::*;
 /// You can also easily apply settings when playing a sound (see the `settings` example).
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(play_audio.on_startup())
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, play_audio)
         .run();
 }
 

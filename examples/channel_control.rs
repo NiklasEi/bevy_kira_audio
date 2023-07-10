@@ -7,10 +7,9 @@ use bevy_kira_audio::prelude::*;
 // Right-click to resume the audio
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(play_loop.on_startup())
-        .add_system(channel_control)
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, play_loop)
+        .add_systems(Update, channel_control)
         .run()
 }
 

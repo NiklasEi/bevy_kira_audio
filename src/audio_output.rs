@@ -457,9 +457,7 @@ mod test {
     fn keeps_order_of_commands_to_retry() {
         // we only need this app to conveniently get a assets collection for `AudioSource`...
         let mut app = App::new();
-        app.add_plugins(MinimalPlugins)
-            .add_plugin(AssetPlugin::default())
-            .add_plugin(AudioPlugin);
+        app.add_plugins((MinimalPlugins, AssetPlugin::default(), AudioPlugin));
         let audio_source_assets = app.world.remove_resource::<Assets<AudioSource>>().unwrap();
         let mut audio_instance_assets = app
             .world
@@ -502,9 +500,7 @@ mod test {
     fn stop_command_removes_previous_play_commands() {
         // we only need this app to conveniently get a assets collection for `AudioSource`...
         let mut app = App::new();
-        app.add_plugins(MinimalPlugins)
-            .add_plugin(AssetPlugin::default())
-            .add_plugin(AudioPlugin);
+        app.add_plugins((MinimalPlugins, AssetPlugin::default(), AudioPlugin));
         let audio_source_assets = app.world.remove_resource::<Assets<AudioSource>>().unwrap();
         let mut audio_instance_assets = app
             .world
