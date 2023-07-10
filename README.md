@@ -22,9 +22,8 @@ use bevy::prelude::*;
 
 fn main() {
    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(start_background_audio.on_startup())
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, start_background_audio)
         .run();
 }
 
@@ -91,6 +90,7 @@ The main branch is compatible with the latest Bevy release.
 Compatibility of `bevy_kira_audio` versions:
 | `bevy_kira_audio` | `bevy`  |
 |  :--              |  :--    |
+| `0.16`            | `0.11`  |
 | `0.15`            | `0.10`  |
 | `0.13` - `0.14`   | `0.9`   |
 | `0.11` - `0.12`   | `0.8`   |

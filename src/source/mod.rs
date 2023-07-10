@@ -11,11 +11,11 @@ pub mod settings_loader;
 #[cfg(feature = "wav")]
 pub mod wav_loader;
 
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 use kira::sound::static_sound::StaticSoundData;
 
 /// A source of audio data
-#[derive(Clone, TypeUuid)]
+#[derive(Clone, TypeUuid, TypePath)]
 #[uuid = "6a9fc4ca-b5b5-94d6-613c-522e2d9fe86d"]
 pub struct AudioSource {
     /// The Kira sound making up this `AudioSource`

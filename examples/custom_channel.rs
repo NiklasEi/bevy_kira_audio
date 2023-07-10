@@ -3,11 +3,10 @@ use bevy_kira_audio::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
+        .add_plugins((DefaultPlugins, AudioPlugin))
         // add our custom audio channel
         .add_audio_channel::<Background>()
-        .add_system(play.on_startup())
+        .add_systems(Startup, play)
         .run();
 }
 

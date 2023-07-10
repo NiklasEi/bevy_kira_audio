@@ -6,12 +6,9 @@ use bevy_kira_audio::prelude::*;
 
 fn main() {
     App::new()
-        .insert_resource(Msaa::Off)
         .insert_resource(SpacialAudio { max_distance: 25. })
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_plugin(CameraPlugin)
-        .add_system(setup.on_startup())
+        .add_plugins((DefaultPlugins, AudioPlugin, CameraPlugin))
+        .add_systems(Startup, setup)
         .run()
 }
 
@@ -120,10 +117,8 @@ pub struct FlyCam;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputState>()
-            .add_system(initial_grab_cursor.on_startup())
-            .add_system(player_move)
-            .add_system(player_look)
-            .add_system(cursor_grab);
+            .add_systems(Startup, initial_grab_cursor)
+            .add_systems(Update, (player_move, player_look, cursor_grab));
     }
 }
 
@@ -185,7 +180,7 @@ fn player_move(
                         KeyCode::A => velocity -= right,
                         KeyCode::D => velocity += right,
                         KeyCode::Space => velocity += Vec3::Y,
-                        KeyCode::LShift => velocity -= Vec3::Y,
+                        KeyCode::ShiftLeft => velocity -= Vec3::Y,
                         _ => (),
                     },
                 }

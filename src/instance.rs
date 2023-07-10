@@ -5,7 +5,7 @@ use kira::tween::Value;
 use kira::{CommandError, Volume};
 use thiserror::Error;
 
-#[derive(bevy::reflect::TypeUuid)]
+#[derive(bevy::reflect::TypeUuid, bevy::reflect::TypePath)]
 #[uuid = "77f84bee-42d6-4d83-9aac-929a9360f696"]
 /// Asset for direct audio control
 pub struct AudioInstance {
