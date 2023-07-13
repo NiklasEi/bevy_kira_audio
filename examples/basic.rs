@@ -3,9 +3,8 @@ use bevy_kira_audio::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(play_loop.on_startup())
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, play_loop)
         .run()
 }
 

@@ -18,7 +18,7 @@
 //! # */
 //!         .add_plugin(AudioPlugin)
 //! #       .add_system(stop)
-//!         .add_system(start_background_audio.on_startup())
+//!         .add_systems(Startup, start_background_audio)
 //!         .run();
 //! }
 //!
@@ -47,6 +47,7 @@ pub use audio::{
     TweenCommand,
 };
 pub use backend_settings::AudioSettings;
+use bevy::app::{PostUpdate, PreUpdate};
 pub use channel::AudioControl;
 pub use source::AudioSource;
 use spacial::cleanup_stopped_spacial_instances;
@@ -98,7 +99,7 @@ use crate::source::settings_loader::SettingsLoader;
 use crate::source::wav_loader::WavLoader;
 use crate::spacial::{run_spacial_audio, SpacialAudio};
 use bevy::prelude::{
-    resource_exists, AddAsset, App, CoreSet, IntoSystemConfig, Plugin, Resource, SystemSet,
+    resource_exists, AddAsset, App, IntoSystemConfigs, Plugin, Resource, SystemSet,
 };
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
@@ -122,7 +123,7 @@ pub use instance::AudioInstanceAssetsExt;
 ///         .add_plugin(AssetPlugin::default())
 ///         .add_plugin(AudioPlugin)
 /// #       .add_system(stop)
-///         .add_system(start_background_audio.on_startup());
+///         .add_systems(Startup, start_background_audio);
 ///    app.run();
 /// }
 ///
@@ -156,27 +157,24 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<DynamicAudioChannels>()
-            .add_system(
-                play_dynamic_channels
-                    .in_base_set(CoreSet::PostUpdate)
-                    .in_set(AudioSystemSet::PlayDynamicChannels),
+            .add_systems(
+                PostUpdate,
+                play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
             )
-            .add_system(
-                cleanup_stopped_instances
-                    .in_base_set(CoreSet::PreUpdate)
-                    .in_set(AudioSystemSet::InstanceCleanup),
+            .add_systems(
+                PreUpdate,
+                cleanup_stopped_instances.in_set(AudioSystemSet::InstanceCleanup),
             )
             .add_audio_channel::<MainTrack>()
-            .add_system(
+            .add_systems(
+                PreUpdate,
                 cleanup_stopped_spacial_instances
-                    .in_base_set(CoreSet::PreUpdate)
                     .in_set(AudioSystemSet::InstanceCleanup)
                     .run_if(resource_exists::<SpacialAudio>()),
             )
-            .add_system(
-                run_spacial_audio
-                    .in_base_set(CoreSet::PostUpdate)
-                    .run_if(resource_exists::<SpacialAudio>()),
+            .add_systems(
+                PostUpdate,
+                run_spacial_audio.run_if(resource_exists::<SpacialAudio>()),
             );
     }
 }

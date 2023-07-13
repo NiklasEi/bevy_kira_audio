@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
+use kira::tween::Easing;
+use std::time::Duration;
 
 // This example demonstrates how to control an audio channel
 // This kind of control is deferred to the end of the current frame update
@@ -7,18 +9,21 @@ use bevy_kira_audio::prelude::*;
 // Right-click to resume the audio
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(play_loop.on_startup())
-        .add_system(channel_control)
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, play_loop)
+        .add_systems(Update, channel_control)
         .run()
 }
 
 fn channel_control(input: Res<Input<MouseButton>>, audio: Res<Audio>) {
     if input.just_pressed(MouseButton::Left) {
-        audio.pause().fade_out(AudioTween::default());
+        audio
+            .pause()
+            .fade_out(AudioTween::new(Duration::from_secs(2), Easing::Linear));
     } else if input.just_pressed(MouseButton::Right) {
-        audio.resume().fade_in(AudioTween::default());
+        audio
+            .resume()
+            .fade_in(AudioTween::new(Duration::from_secs(2), Easing::Linear));
     }
 }
 

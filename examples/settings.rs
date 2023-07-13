@@ -5,9 +5,8 @@ use std::time::Duration;
 /// This example shows the different settings that can be applied when playing a sound.
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(play_audio.on_startup())
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, play_audio)
         .run();
 }
 

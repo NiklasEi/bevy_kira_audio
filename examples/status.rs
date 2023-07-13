@@ -7,12 +7,9 @@ struct LoopAudioInstanceHandle(Handle<AudioInstance>);
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_system(start_audio.on_startup())
-        .add_system(display_help_text.on_startup())
-        .add_system(print_status)
-        .add_system(process_keyboard_input)
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, (start_audio, display_help_text))
+        .add_systems(Update, (print_status, process_keyboard_input))
         .run();
 }
 
@@ -56,10 +53,8 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                },
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..Default::default()

@@ -11,7 +11,6 @@ use bevy_kira_audio::prelude::*;
 /// Depending on your machine, the number of sounds you can play before audio issues appear may differ.
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
         // We need to increase the queue sizes of the audio backend.
         // The default is 128 per queue, which is way too low for playing as many sounds
         // as this example does.
@@ -19,10 +18,9 @@ fn main() {
             sound_capacity: 8192,
             command_capacity: 4096,
         })
-        .add_plugin(AudioPlugin)
-        .add_system(prepare.on_startup())
-        .add_system(check)
-        .add_system(play)
+        .add_plugins((DefaultPlugins, AudioPlugin))
+        .add_systems(Startup, prepare)
+        .add_systems(Update, (check, play))
         .run()
 }
 
@@ -54,6 +52,8 @@ fn check(
 
 fn play(handle: Option<Res<AudioHandle>>, audio: Res<Audio>) {
     if let Some(handle) = handle {
+        // the max number here depends on your hardware.
+        // If you get warnings and/or stuttered sounds try reducing the amount.
         for _ in 0..75 {
             audio.play(handle.0.clone());
         }
