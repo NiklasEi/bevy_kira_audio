@@ -2,6 +2,11 @@
 
 ## v0.16.0
 - Update to Bevy `0.11`
+- Spacial audio improvements ([#94](https://github.com/NiklasEi/bevy_kira_audio/pull/94))
+  - Check if receiver exists before updating
+  - Cleanup instances from spacial audio
+- Offer iterator over dynamic channel keys and values ([#69](https://github.com/NiklasEi/bevy_kira_audio/issues/69))
+- Allow resuming while pausing or stopping ([#98](https://github.com/NiklasEi/bevy_kira_audio/pull/98))
 
 ## v0.15.0
 - Update to Bevy `0.10`
