@@ -80,7 +80,7 @@ pub(crate) fn cleanup_stopped_spacial_instances(
             if let Some(instance) = instances.get(handle) {
                 instance.handle.state() != kira::sound::PlaybackState::Stopped
             } else {
-                false
+                true
             }
         });
     }
