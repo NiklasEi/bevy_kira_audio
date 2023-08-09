@@ -106,10 +106,18 @@ impl From<&AudioTween> for kira::tween::Tween {
 impl PartialSoundSettings {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
         if let Some(loop_start) = self.loop_start {
-            sound.settings.loop_region.get_or_insert_with(Default::default).start = loop_start.into();
+            sound
+                .settings
+                .loop_region
+                .get_or_insert_with(Default::default)
+                .start = loop_start.into();
         }
         if let Some(loop_end) = self.loop_end {
-            sound.settings.loop_region.get_or_insert_with(Default::default).end = EndPosition::Custom(loop_end.into());
+            sound
+                .settings
+                .loop_region
+                .get_or_insert_with(Default::default)
+                .end = EndPosition::Custom(loop_end.into());
         }
         if let Some(volume) = self.volume {
             sound.settings.volume = Value::Fixed(volume);
