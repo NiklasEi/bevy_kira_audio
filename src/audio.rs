@@ -208,15 +208,15 @@ impl<'a> PlayAudioCommand<'a> {
         self
     }
 
-    /// Loop the playing sound, starting from the given position.
+    /// Loop the playing sound, starting from the given position in seconds.
     pub fn loop_from(&mut self, loop_start_position: f64) -> &mut Self {
         self.settings.loop_start = Some(loop_start_position);
 
         self
     }
 
-    /// Loop the playing sound, ending at the given position.
-    pub fn loop_to(&mut self, loop_end_position: f64) -> &mut Self {
+    /// Loop the playing sound, ending at the given position in seconds.
+    pub fn loop_until(&mut self, loop_end_position: f64) -> &mut Self {
         self.settings.loop_end = Some(loop_end_position);
 
         self
@@ -457,7 +457,7 @@ pub trait AudioApp {
     /// fn main() {
     ///     App::new()
     ///         .add_plugins(DefaultPlugins)
-    ///         .add_plugin(AudioPlugin)
+    ///         .add_plugins(AudioPlugin)
     ///         .add_audio_channel::<Background>()
     ///         .add_systems(Startup, play)
     ///         .run();
