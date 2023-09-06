@@ -12,10 +12,13 @@ fn main() {
 
 /// Settings applied when playing a sound will overwrite the channel settings (like volume and panning)
 fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    // This is not nice to listen to, but demonstrates most settings
     audio
         .play(asset_server.load("sounds/loop.ogg"))
         // The first 0.5 seconds will not be looped and are the "intro"
         .loop_from(0.5)
+        // The loop only goes until the 10th second
+        .loop_until(10.0)
         // Fade-in with a dynamic easing
         .fade_in(AudioTween::new(
             Duration::from_secs(2),
