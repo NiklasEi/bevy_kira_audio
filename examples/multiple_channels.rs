@@ -247,7 +247,7 @@ impl<T> Default for ChannelAudioState<T> {
             stopped: true,
             loop_started: false,
             paused: false,
-            _marker: PhantomData::<T>::default(),
+            _marker: PhantomData::<T>,
         }
     }
 }
@@ -363,7 +363,7 @@ fn build_button_row<T: Component + Default + Clone>(
                 NORMAL_BUTTON.into(),
                 ChangeVolumeButton::<T> {
                     louder: true,
-                    _marker: PhantomData::default(),
+                    _marker: PhantomData,
                 },
                 font.clone(),
             );
@@ -373,7 +373,7 @@ fn build_button_row<T: Component + Default + Clone>(
                 NORMAL_BUTTON.into(),
                 ChangeVolumeButton::<T> {
                     louder: false,
-                    _marker: PhantomData::default(),
+                    _marker: PhantomData,
                 },
                 font.clone(),
             );
