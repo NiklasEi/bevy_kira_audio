@@ -457,7 +457,7 @@ pub trait AudioApp {
     /// fn main() {
     ///     App::new()
     ///         .add_plugins(DefaultPlugins)
-    ///         .add_plugin(AudioPlugin)
+    ///         .add_plugins(AudioPlugin)
     ///         .add_audio_channel::<Background>()
     ///         .add_systems(Startup, play)
     ///         .run();

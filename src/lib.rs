@@ -12,12 +12,12 @@
 //! fn main() {
 //!    App::new()
 //! #       .add_plugins(MinimalPlugins)
-//! #       .add_plugin(AssetPlugin::default())
+//! #       .add_plugins(AssetPlugin::default())
 //! # /*
 //!         .add_plugins(DefaultPlugins)
 //! # */
-//!         .add_plugin(AudioPlugin)
-//! #       .add_system(stop)
+//!         .add_plugins(AudioPlugin)
+//! #       .add_systems(Update, stop)
 //!         .add_systems(Startup, start_background_audio)
 //!         .run();
 //! }
@@ -120,9 +120,9 @@ pub use instance::AudioInstanceAssetsExt;
 ///    let mut app = App::new();
 ///    app
 ///         .add_plugins(MinimalPlugins)
-///         .add_plugin(AssetPlugin::default())
-///         .add_plugin(AudioPlugin)
-/// #       .add_system(stop)
+///         .add_plugins(AssetPlugin::default())
+///         .add_plugins(AudioPlugin)
+/// #       .add_systems(Update, stop)
 ///         .add_systems(Startup, start_background_audio);
 ///    app.run();
 /// }
