@@ -35,6 +35,7 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) start_position: Option<f64>,
     pub(crate) panning: Option<f64>,
     pub(crate) reverse: Option<bool>,
+    pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
 }
 
@@ -190,6 +191,13 @@ impl<'a> PlayAudioCommand<'a> {
     /// Loop the playing sound.
     pub fn looped(&mut self) -> &mut Self {
         self.settings.loop_start = Some(Some(0.0));
+
+        self
+    }
+
+    /// Start the sound paused.
+    pub fn paused(&mut self) -> &mut Self {
+        self.settings.paused = true;
 
         self
     }
