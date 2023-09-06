@@ -114,7 +114,12 @@ impl PartialSoundSettings {
             }
         }
         if let Some(volume) = self.volume {
-            sound.settings.volume = Value::Fixed(volume);
+            if let Value::Fixed(channel_volume) = sound.settings.volume {
+                sound.settings.volume =
+                    Value::Fixed((volume.as_amplitude() * channel_volume.as_amplitude()).into());
+            } else {
+                sound.settings.volume = Value::Fixed(volume);
+            }
         }
         if let Some(playback_rate) = self.playback_rate {
             sound.settings.playback_rate = playback_rate.into();
@@ -306,7 +311,7 @@ impl<'a, Fade> TweenCommand<'a, Fade> {
             kind,
             tween: None,
             que,
-            _marker: PhantomData::<Fade>::default(),
+            _marker: PhantomData::<Fade>,
         }
     }
 }

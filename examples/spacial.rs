@@ -210,7 +210,7 @@ fn player_look(
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
-        let mut delta_state = state.as_mut();
+        let delta_state = state.as_mut();
         for mut transform in query.iter_mut() {
             for ev in delta_state.reader_motion.iter(&motion) {
                 match window.cursor.grab_mode {

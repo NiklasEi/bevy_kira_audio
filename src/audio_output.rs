@@ -91,7 +91,7 @@ impl<B: Backend> AudioOutput<B> {
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+        if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.paused = true;
         } else {
             let channel_state = ChannelState {
@@ -123,7 +123,7 @@ impl<B: Backend> AudioOutput<B> {
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+        if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.paused = false;
         } else {
             self.channels
@@ -148,7 +148,7 @@ impl<B: Backend> AudioOutput<B> {
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+        if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.volume = volume;
         } else {
             let channel_state = ChannelState {
@@ -176,7 +176,7 @@ impl<B: Backend> AudioOutput<B> {
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+        if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.panning = panning;
         } else {
             let channel_state = ChannelState {
@@ -204,7 +204,7 @@ impl<B: Backend> AudioOutput<B> {
                 }
             }
         }
-        if let Some(mut channel_state) = self.channels.get_mut(channel) {
+        if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.playback_rate = playback_rate;
         } else {
             let channel_state = ChannelState {

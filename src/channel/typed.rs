@@ -29,7 +29,7 @@ impl<T> Default for AudioChannel<T> {
         AudioChannel::<T> {
             commands: Default::default(),
             states: Default::default(),
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 }
