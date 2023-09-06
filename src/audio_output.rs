@@ -232,6 +232,9 @@ impl<B: Backend> AudioOutput<B> {
                 sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
             }
         }
+        if partial_sound_settings.paused {
+            sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
+        }
         partial_sound_settings.apply(&mut sound);
         let sound_handle = self.manager.as_mut().unwrap().play(sound);
         if let Err(error) = sound_handle {
@@ -255,6 +258,17 @@ impl<B: Backend> AudioOutput<B> {
                 {
                     error!("Failed to set playback rate for instance: {:?}", error);
                 }
+            }
+        }
+        if partial_sound_settings.paused {
+            if let Err(error) = sound_handle.pause(kira::tween::Tween::default()) {
+                warn!("Failed to pause instance due to {:?}", error);
+            }
+            let playback_rate = partial_sound_settings.playback_rate.unwrap_or(1.0);
+            if let Err(error) =
+                sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default())
+            {
+                error!("Failed to set playback rate for instance: {:?}", error);
             }
         }
         let instance_handle = audio_instances.set(

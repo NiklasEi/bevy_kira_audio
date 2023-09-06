@@ -1,6 +1,7 @@
 # Changelog
 
 - Multiply instance volume with channel volume ([#103](https://github.com/NiklasEi/bevy_kira_audio/issues/103))
+- Allow playing a paused sound using `.play(...).paused()` ([#105](https://github.com/NiklasEi/bevy_kira_audio/issues/105))
 
 ## v0.16.0
 - Update to Bevy `0.11`
