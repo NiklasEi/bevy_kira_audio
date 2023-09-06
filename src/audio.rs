@@ -11,7 +11,7 @@ use bevy::asset::{Handle, HandleId};
 use bevy::ecs::system::Resource;
 use bevy::prelude::{default, IntoSystemConfigs, PostUpdate};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
-use kira::sound::{EndPosition, PlaybackPosition, Region};
+use kira::sound::EndPosition;
 use kira::tween::Value;
 use kira::Volume;
 use std::marker::PhantomData;
@@ -29,10 +29,12 @@ pub(crate) enum AudioCommand {
 
 #[derive(Clone, Default)]
 pub(crate) struct PartialSoundSettings {
-    pub(crate) loop_start: Option<Option<f64>>,
+    pub(crate) loop_start: Option<f64>,
+    pub(crate) loop_end: Option<f64>,
     pub(crate) volume: Option<Volume>,
     pub(crate) playback_rate: Option<f64>,
     pub(crate) start_position: Option<f64>,
+    pub(crate) end_position: Option<f64>,
     pub(crate) panning: Option<f64>,
     pub(crate) reverse: Option<bool>,
     pub(crate) paused: bool,
@@ -105,14 +107,18 @@ impl From<&AudioTween> for kira::tween::Tween {
 impl PartialSoundSettings {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
         if let Some(loop_start) = self.loop_start {
-            if let Some(start) = loop_start {
-                sound.settings.loop_region = Some(Region {
-                    start: PlaybackPosition::Seconds(start),
-                    end: EndPosition::EndOfAudio,
-                })
-            } else {
-                sound.settings.loop_region = None;
-            }
+            sound
+                .settings
+                .loop_region
+                .get_or_insert_with(Default::default)
+                .start = loop_start.into();
+        }
+        if let Some(loop_end) = self.loop_end {
+            sound
+                .settings
+                .loop_region
+                .get_or_insert_with(Default::default)
+                .end = EndPosition::Custom(loop_end.into());
         }
         if let Some(volume) = self.volume {
             if let Value::Fixed(channel_volume) = sound.settings.volume {
@@ -126,10 +132,10 @@ impl PartialSoundSettings {
             sound.settings.playback_rate = playback_rate.into();
         }
         if let Some(start) = self.start_position {
-            sound.settings.playback_region = Region {
-                start: PlaybackPosition::Seconds(start),
-                end: EndPosition::EndOfAudio,
-            };
+            sound.settings.playback_region.start = start.into();
+        }
+        if let Some(end) = self.end_position {
+            sound.settings.playback_region.end = EndPosition::Custom(end.into());
         }
         if let Some(panning) = self.panning {
             sound.settings.panning = Value::Fixed(panning);
@@ -190,7 +196,7 @@ impl<'a> PlayAudioCommand<'a> {
 
     /// Loop the playing sound.
     pub fn looped(&mut self) -> &mut Self {
-        self.settings.loop_start = Some(Some(0.0));
+        self.settings.loop_start = Some(0.0);
 
         self
     }
@@ -204,7 +210,14 @@ impl<'a> PlayAudioCommand<'a> {
 
     /// Loop the playing sound, starting from the given position.
     pub fn loop_from(&mut self, loop_start_position: f64) -> &mut Self {
-        self.settings.loop_start = Some(Some(loop_start_position));
+        self.settings.loop_start = Some(loop_start_position);
+
+        self
+    }
+
+    /// Loop the playing sound, ending at the given position.
+    pub fn loop_to(&mut self, loop_end_position: f64) -> &mut Self {
+        self.settings.loop_end = Some(loop_end_position);
 
         self
     }
@@ -226,6 +239,13 @@ impl<'a> PlayAudioCommand<'a> {
     /// Start the sound from the given position in seconds.
     pub fn start_from(&mut self, start_position: f64) -> &mut Self {
         self.settings.start_position = Some(start_position);
+
+        self
+    }
+
+    /// End the sound at the given position in seconds.
+    pub fn end_at(&mut self, end_position: f64) -> &mut Self {
+        self.settings.end_position = Some(end_position);
 
         self
     }
