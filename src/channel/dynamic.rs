@@ -5,7 +5,7 @@ use crate::audio::{
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
-use bevy::asset::{Handle, HandleId};
+use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
 use bevy::utils::hashbrown::hash_map::Iter;
 use bevy::utils::HashMap;
@@ -17,7 +17,7 @@ use std::collections::VecDeque;
 #[derive(Default)]
 pub struct DynamicAudioChannel {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
-    pub(crate) states: HashMap<HandleId, PlaybackState>,
+    pub(crate) states: HashMap<AssetId<AudioInstance>, PlaybackState>,
 }
 
 impl AudioCommandQue for DynamicAudioChannel {
@@ -235,13 +235,15 @@ impl DynamicAudioChannels {
 mod tests {
     use crate::channel::dynamic::DynamicAudioChannels;
     use crate::channel::*;
-    use bevy::asset::HandleId;
+    use bevy::asset::AssetId;
+    use bevy::utils::Uuid;
 
     #[test]
     fn state_is_queued_if_command_is_queued() {
         let mut audio = DynamicAudioChannels::default();
-        let audio_handle: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
+        let audio_handle: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(43290473942075938),
+        });
         let instance_handle = audio.create_channel("test").play(audio_handle).handle();
 
         assert_eq!(
@@ -253,7 +255,9 @@ mod tests {
     #[test]
     fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
         let mut audio = DynamicAudioChannels::default();
-        let instance_handle = Handle::<AudioInstance>::weak(HandleId::default::<AudioInstance>());
+        let instance_handle = Handle::<AudioInstance>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(43290473942075938),
+        });
 
         assert_eq!(
             audio.create_channel("test").state(&instance_handle),
@@ -264,7 +268,9 @@ mod tests {
     #[test]
     fn state_is_fetched_from_state_map() {
         let mut audio = DynamicAudioChannels::default();
-        let instance_handle = Handle::<AudioInstance>::weak(HandleId::default::<AudioInstance>());
+        let instance_handle = Handle::<AudioInstance>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(43290473942075938),
+        });
         audio.create_channel("test");
         audio.channels.get_mut("test").unwrap().states.insert(
             instance_handle.id(),
@@ -281,26 +287,30 @@ mod tests {
     fn finds_playing_sound() {
         let mut audio = DynamicAudioChannels::default();
         audio.create_channel("test");
-        audio
-            .channels
-            .get_mut("test")
-            .unwrap()
-            .states
-            .insert(HandleId::default::<AudioInstance>(), PlaybackState::Queued);
         audio.channels.get_mut("test").unwrap().states.insert(
-            HandleId::default::<AudioInstance>(),
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(143290473942075938),
+            },
+            PlaybackState::Queued,
+        );
+        audio.channels.get_mut("test").unwrap().states.insert(
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(243290473942075938),
+            },
             PlaybackState::Paused { position: 42. },
         );
-        audio
-            .channels
-            .get_mut("test")
-            .unwrap()
-            .states
-            .insert(HandleId::default::<AudioInstance>(), PlaybackState::Stopped);
+        audio.channels.get_mut("test").unwrap().states.insert(
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(343290473942075938),
+            },
+            PlaybackState::Stopped,
+        );
         assert!(!audio.channel("test").is_playing_sound());
 
         audio.channels.get_mut("test").unwrap().states.insert(
-            HandleId::default::<AudioInstance>(),
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(43290473942075938),
+            },
             PlaybackState::Playing { position: 42. },
         );
         assert!(audio.channel("test").is_playing_sound());

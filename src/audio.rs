@@ -7,9 +7,10 @@ use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use crate::AudioSystemSet;
 use bevy::app::{App, PreUpdate};
-use bevy::asset::{Handle, HandleId};
+use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
 use bevy::prelude::{default, IntoSystemConfigs, PostUpdate};
+use bevy::utils::Uuid;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::sound::EndPosition;
 use kira::tween::Value;
@@ -185,9 +186,11 @@ impl<'a> Drop for PlayAudioCommand<'a> {
 
 impl<'a> PlayAudioCommand<'a> {
     pub(crate) fn new(source: Handle<AudioSource>, que: &'a dyn AudioCommandQue) -> Self {
-        let handle_id = HandleId::random::<AudioInstance>();
+        let asset_id = AssetId::Uuid {
+            uuid: Uuid::new_v4(),
+        };
         Self {
-            instance_handle: Handle::<AudioInstance>::weak(handle_id),
+            instance_handle: Handle::<AudioInstance>::Weak(asset_id),
             source,
             settings: PartialSoundSettings::default(),
             que,

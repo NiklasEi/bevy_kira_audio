@@ -1,12 +1,11 @@
 use crate::{AudioTween, PlaybackState};
-use bevy::asset::{Assets, Handle};
+use bevy::asset::{Asset, Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
 use kira::tween::Value;
 use kira::{CommandError, Volume};
 use thiserror::Error;
 
-#[derive(bevy::reflect::TypeUuid, bevy::reflect::TypePath)]
-#[uuid = "77f84bee-42d6-4d83-9aac-929a9360f696"]
+#[derive(Asset, bevy::reflect::TypePath)]
 /// Asset for direct audio control
 pub struct AudioInstance {
     pub(crate) handle: StaticSoundHandle,

@@ -212,7 +212,7 @@ fn player_look(
     if let Ok(window) = primary_window.get_single() {
         let delta_state = state.as_mut();
         for mut transform in query.iter_mut() {
-            for ev in delta_state.reader_motion.iter(&motion) {
+            for ev in delta_state.reader_motion.read(&motion) {
                 match window.cursor.grab_mode {
                     CursorGrabMode::None => (),
                     _ => {
