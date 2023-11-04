@@ -43,7 +43,7 @@ fn check(
     mut commands: Commands,
 ) {
     if let Some(handle) = handle {
-        if asset_server.get_load_state(handle.0.id()) == LoadState::Loaded {
+        if asset_server.get_load_state(handle.0.id()) == Some(LoadState::Loaded) {
             commands.insert_resource(AudioHandle(handle.0.clone()));
             commands.remove_resource::<LoadingAudioHandle>();
         }
@@ -52,8 +52,9 @@ fn check(
 
 fn play(handle: Option<Res<AudioHandle>>, audio: Res<Audio>) {
     if let Some(handle) = handle {
-        // the max number here depends on your hardware.
-        // If you get warnings and/or stuttered sounds try reducing the amount.
+        // The max number here depends on your hardware.
+        // If you get warnings and/or stuttered sounds try reducing the amount and/or changing the
+        // capacities of the `AudioSettings` in the `main` method.
         for _ in 0..75 {
             audio.play(handle.0.clone());
         }

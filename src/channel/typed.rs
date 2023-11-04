@@ -5,7 +5,7 @@ use crate::audio::{
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
-use bevy::asset::{Handle, HandleId};
+use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
 use bevy::utils::HashMap;
 use kira::Volume;
@@ -20,7 +20,7 @@ use std::marker::PhantomData;
 #[derive(Resource)]
 pub struct AudioChannel<T> {
     pub(crate) commands: RwLock<VecDeque<AudioCommand>>,
-    pub(crate) states: HashMap<HandleId, PlaybackState>,
+    pub(crate) states: HashMap<AssetId<AudioInstance>, PlaybackState>,
     _marker: PhantomData<T>,
 }
 
@@ -190,13 +190,14 @@ mod test {
     use crate::channel::typed::AudioChannel;
     use crate::channel::*;
     use crate::Audio;
-    use bevy::asset::{Handle, HandleId};
+    use bevy::asset::{AssetId, Handle};
+    use bevy::utils::Uuid;
 
     #[test]
     fn state_is_queued_if_command_is_queued() {
         let audio = AudioChannel::<Audio>::default();
         let audio_handle: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::default::<AudioSource>());
+            Handle::<AudioSource>::Weak(AssetId::<AudioSource>::default());
         let instance_handle = audio.play(audio_handle).handle();
 
         assert_eq!(audio.state(&instance_handle), PlaybackState::Queued);
@@ -205,7 +206,7 @@ mod test {
     #[test]
     fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
         let audio = AudioChannel::<Audio>::default();
-        let instance_handle = Handle::weak(HandleId::random::<AudioInstance>());
+        let instance_handle = Handle::<AudioInstance>::Weak(AssetId::<AudioInstance>::default());
 
         assert_eq!(audio.state(&instance_handle), PlaybackState::Stopped);
     }
@@ -213,7 +214,7 @@ mod test {
     #[test]
     fn state_is_fetched_from_state_map() {
         let mut audio = AudioChannel::<Audio>::default();
-        let instance_handle = Handle::weak(HandleId::random::<AudioInstance>());
+        let instance_handle = Handle::<AudioInstance>::Weak(AssetId::<AudioInstance>::default());
         audio.states.insert(
             instance_handle.id(),
             PlaybackState::Pausing { position: 42. },
@@ -228,20 +229,30 @@ mod test {
     #[test]
     fn finds_playing_sound() {
         let mut audio = AudioChannel::<Audio>::default();
-        audio
-            .states
-            .insert(HandleId::random::<AudioInstance>(), PlaybackState::Queued);
         audio.states.insert(
-            HandleId::random::<AudioInstance>(),
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(43290473942075938),
+            },
+            PlaybackState::Queued,
+        );
+        audio.states.insert(
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(432952340473942075938),
+            },
             PlaybackState::Paused { position: 42. },
         );
-        audio
-            .states
-            .insert(HandleId::random::<AudioInstance>(), PlaybackState::Stopped);
+        audio.states.insert(
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(46254624324354345324),
+            },
+            PlaybackState::Stopped,
+        );
         assert!(!audio.is_playing_sound());
 
         audio.states.insert(
-            HandleId::random::<AudioInstance>(),
+            AssetId::Uuid {
+                uuid: Uuid::from_u128(70973842759324739),
+            },
             PlaybackState::Playing { position: 42. },
         );
         assert!(audio.is_playing_sound());

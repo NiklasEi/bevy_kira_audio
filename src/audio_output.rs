@@ -56,7 +56,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     match instance.handle.stop(tween) {
                         Err(CommandError::CommandQueueFull) => {
                             return AudioCommandResult::Retry;
@@ -82,7 +82,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instance_handles) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instance_handles.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     if kira::sound::PlaybackState::Playing == instance.handle.state() {
                         if let Err(error) = instance.handle.pause(tween) {
                             error!("Failed to pause instance: {:?}", error);
@@ -111,7 +111,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     if instance.handle.state() == kira::sound::PlaybackState::Paused
                         || instance.handle.state() == kira::sound::PlaybackState::Pausing
                         || instance.handle.state() == kira::sound::PlaybackState::Stopping
@@ -141,7 +141,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     if let Err(error) = instance.handle.set_volume(volume, tween) {
                         error!("Failed to set volume for instance: {:?}", error);
                     }
@@ -169,7 +169,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     if let Err(error) = instance.handle.set_panning(panning, tween) {
                         error!("Failed to set panning for instance: {:?}", error);
                     }
@@ -197,7 +197,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     if let Err(error) = instance.handle.set_playback_rate(playback_rate, tween) {
                         error!("Failed to set playback rate for instance: {:?}", error);
                     }
@@ -271,8 +271,8 @@ impl<B: Backend> AudioOutput<B> {
                 error!("Failed to set playback rate for instance: {:?}", error);
             }
         }
-        let instance_handle = audio_instances.set(
-            instance_handle,
+        audio_instances.insert(
+            &instance_handle,
             AudioInstance {
                 handle: sound_handle,
             },
@@ -462,8 +462,9 @@ mod test {
     use super::*;
     use crate::channel::AudioControl;
     use crate::{Audio, AudioPlugin};
-    use bevy::asset::{AssetPlugin, HandleId};
+    use bevy::asset::{AssetId, AssetPlugin};
     use bevy::prelude::*;
+    use bevy::utils::Uuid;
     use kira::manager::backend::mock::MockBackend;
     use kira::manager::AudioManagerSettings;
 
@@ -483,10 +484,12 @@ mod test {
             instances: HashMap::default(),
             channels: HashMap::default(),
         };
-        let audio_handle_one: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
-        let audio_handle_two: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
+        let audio_handle_one: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(1758302748397294),
+        });
+        let audio_handle_two: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(2537024739048739),
+        });
 
         let channel = AudioChannel::<Audio>::default();
         channel.play(audio_handle_one.clone());
@@ -526,10 +529,12 @@ mod test {
             instances: HashMap::default(),
             channels: HashMap::default(),
         };
-        let audio_handle_one: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
-        let audio_handle_two: Handle<AudioSource> =
-            Handle::<AudioSource>::weak(HandleId::random::<AudioSource>());
+        let audio_handle_one: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(13290473942075938),
+        });
+        let audio_handle_two: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
+            uuid: Uuid::from_u128(243290473942075938),
+        });
 
         let channel = AudioChannel::<Audio>::default();
         channel.play(audio_handle_one);

@@ -48,6 +48,7 @@ pub use audio::{
 };
 pub use backend_settings::AudioSettings;
 use bevy::app::{PostUpdate, PreUpdate};
+use bevy::asset::AssetApp;
 pub use channel::AudioControl;
 pub use source::AudioSource;
 use spacial::cleanup_stopped_spacial_instances;
@@ -98,9 +99,7 @@ use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
 use crate::spacial::{run_spacial_audio, SpacialAudio};
-use bevy::prelude::{
-    resource_exists, AddAsset, App, IntoSystemConfigs, Plugin, Resource, SystemSet,
-};
+use bevy::prelude::{resource_exists, App, IntoSystemConfigs, Plugin, Resource, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
 pub use channel::typed::AudioChannel;
@@ -141,8 +140,8 @@ pub struct AudioPlugin;
 impl Plugin for AudioPlugin {
     fn build(&self, app: &mut App) {
         app.init_non_send_resource::<AudioOutput>()
-            .add_asset::<AudioSource>()
-            .add_asset::<AudioInstance>();
+            .init_asset::<AudioSource>()
+            .init_asset::<AudioInstance>();
 
         #[cfg(feature = "mp3")]
         app.init_asset_loader::<Mp3Loader>();

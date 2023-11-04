@@ -327,7 +327,7 @@ fn build_button_row<T: Component + Default + Clone>(
                                 value: format!("Channel {}", 4 - channel_index),
                                 style: TextStyle {
                                     font_size: 20.0,
-                                    color: Color::rgb(0.2, 0.2, 0.2),
+                                    color: Color::rgb(0.9, 0.9, 0.9),
                                     font: font.clone(),
                                 },
                             }],

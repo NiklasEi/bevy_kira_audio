@@ -1,13 +1,15 @@
 use std::time::Duration;
 use std::{io::Cursor, path::PathBuf};
 
-use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
+use bevy::asset::io::Reader;
+use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext, ReadAssetBytesError};
 use bevy::utils::BoxedFuture;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
-use kira::sound::{EndPosition, PlaybackPosition, PlaybackRate, Region};
+use kira::sound::{EndPosition, FromFileError, PlaybackPosition, PlaybackRate, Region};
 use kira::tween::Tween;
 use kira::Volume;
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::AudioSource;
 
@@ -102,22 +104,47 @@ impl From<SoundSettings> for StaticSoundSettings {
     }
 }
 
+/// Possible errors that can be produced by [`OggLoader`]
+#[non_exhaustive]
+#[derive(Debug, Error)]
+pub enum SettingsLoaderError {
+    /// An [IO Error](std::io::Error)
+    #[error("Could not read the file: {0}")]
+    Io(#[from] std::io::Error),
+    /// An Error loading sound from a file. See [`FromFileError`]
+    #[error("Error while loading a sound: {0}")]
+    FileError(#[from] FromFileError),
+    /// Failed to read audio asset
+    #[error("Error while loading audio asset: {0}")]
+    ReadAssetError(#[from] ReadAssetBytesError),
+    /// A [RON Error](serde_ron::error::SpannedError)
+    #[error("Could not parse RON: {0}")]
+    RonError(#[from] ron::error::SpannedError),
+}
+
 impl AssetLoader for SettingsLoader {
+    type Asset = AudioSource;
+    type Settings = ();
+    type Error = SettingsLoaderError;
+
     fn load<'a>(
         &'a self,
-        bytes: &'a [u8],
+        reader: &'a mut Reader,
+        _settings: &'a (),
         load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<(), anyhow::Error>> {
+    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
-            let sound_settings: SoundSettings = ron::de::from_bytes(bytes)?;
-            let sound_bytes = load_context.read_asset_bytes(&sound_settings.file).await?;
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+            let sound_settings: SoundSettings = ron::de::from_bytes(&bytes)?;
+            let sound_bytes = load_context
+                .read_asset_bytes(sound_settings.file.clone())
+                .await?;
 
             let sound =
                 StaticSoundData::from_cursor(Cursor::new(sound_bytes), sound_settings.into())?;
 
-            load_context.set_default_asset(LoadedAsset::new(AudioSource { sound }));
-
-            Ok(())
+            Ok(AudioSource { sound })
         })
     }
 
