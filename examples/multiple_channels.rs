@@ -32,7 +32,7 @@ fn create_row_systems<T: Component + Default>() -> SystemConfigs {
 }
 
 fn play_pause_button<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
+    channel: Res<OldAudioChannel<T>>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
@@ -70,7 +70,7 @@ fn play_pause_button<T: Component + Default>(
 }
 
 fn stop_button<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
+    channel: Res<OldAudioChannel<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
@@ -97,7 +97,7 @@ fn stop_button<T: Component + Default>(
 }
 
 fn loop_button<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
+    channel: Res<OldAudioChannel<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
@@ -128,7 +128,7 @@ fn loop_button<T: Component + Default>(
 }
 
 fn play_sound_button<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
+    channel: Res<OldAudioChannel<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
@@ -152,7 +152,7 @@ fn play_sound_button<T: Component + Default>(
 }
 
 fn volume_buttons<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
+    channel: Res<OldAudioChannel<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,

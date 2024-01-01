@@ -1,15 +1,15 @@
 //! Common audio types
 
-use crate::audio_output::{play_audio_channel, update_instance_states};
-use crate::channel::typed::AudioChannel;
+use crate::audio_output::play_audio_channel;
+use crate::channel::typed::OldAudioChannel;
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use crate::AudioSystemSet;
-use bevy::app::{App, PreUpdate};
+use bevy::app::App;
 use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
-use bevy::prelude::{default, IntoSystemConfigs, PostUpdate};
+use bevy::prelude::{default, Bundle, Component, IntoSystemConfigs, PostUpdate};
 use bevy::utils::Uuid;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::sound::EndPosition;
@@ -386,8 +386,63 @@ pub enum AudioCommandResult {
     Retry,
 }
 
+#[derive(Bundle)]
+pub struct AudioBundle {
+    pub settings: PlaybackSettings,
+    pub state: PlaybackState,
+    pub source: Handle<AudioSource>,
+}
+
+impl Default for AudioBundle {
+    fn default() -> Self {
+        Self {
+            settings: default(),
+            state: PlaybackState::Queued,
+            source: default(),
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct PlaybackSettings {
+    pub loop_settings: Option<LoopSettings>,
+    pub paused: bool,
+    pub playback_rate: f64,
+}
+
+impl Default for PlaybackSettings {
+    fn default() -> Self {
+        Self {
+            loop_settings: None,
+            paused: false,
+            playback_rate: 1.0,
+        }
+    }
+}
+
+impl PlaybackSettings {
+    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
+        if let Some(loop_settings) = &self.loop_settings {
+            sound
+                .settings
+                .loop_region
+                .get_or_insert_with(Default::default)
+                .start = loop_settings.start.into();
+            if let Some(end) = loop_settings.end {
+                sound.settings.loop_region.unwrap().end = EndPosition::Custom(end.into());
+            }
+        }
+    }
+}
+
+#[derive(Component, Default)]
+pub struct LoopSettings {
+    start: f64,
+    end: Option<f64>,
+}
+
 /// Playback status of a currently playing sound.
-#[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Component)]
 pub enum PlaybackState {
     /// The instance is paused.
     Paused {
@@ -466,13 +521,14 @@ pub trait AudioApp {
     ///         .run();
     /// }
     ///
-    /// fn play(background: Res<AudioChannel<Background>>, asset_server: Res<AssetServer>) {
+    /// fn play(background: Res<OldAudioChannel<Background>>, asset_server: Res<AssetServer>) {
     ///     background.play(asset_server.load("sounds/loop.ogg"));
     /// }
     ///
     /// #[derive(Resource)]
     /// struct Background;
     /// ```
+    #[deprecated]
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
 }
 
@@ -482,10 +538,6 @@ impl AudioApp for App {
             PostUpdate,
             play_audio_channel::<T>.in_set(AudioSystemSet::PlayTypedChannels),
         )
-        .add_systems(
-            PreUpdate,
-            update_instance_states::<T>.after(AudioSystemSet::InstanceCleanup),
-        )
-        .insert_resource(AudioChannel::<T>::default())
+        .insert_resource(OldAudioChannel::<T>::default())
     }
 }

@@ -1,20 +1,22 @@
 //! The internal audio systems and resource
 
-use crate::audio::{map_tween, AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings};
+use crate::audio::{
+    map_tween, AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings, PlaybackSettings,
+};
 use std::any::TypeId;
 
 use crate::backend_settings::AudioSettings;
 use crate::channel::dynamic::DynamicAudioChannels;
-use crate::channel::typed::AudioChannel;
 use crate::channel::{Channel, ChannelState};
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::PlaybackState;
+use crate::{AudioChannel, OldAudioChannel, PlaybackState};
 use bevy::asset::{Assets, Handle};
 use bevy::ecs::change_detection::{NonSendMut, ResMut};
-use bevy::ecs::system::{NonSend, Res, Resource};
+use bevy::ecs::system::{EntityCommands, Res, Resource};
 use bevy::ecs::world::{FromWorld, World};
 use bevy::log::{error, warn};
+use bevy::prelude::{Commands, Entity, Query, Without};
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
 use kira::{sound::PlaybackRate, CommandError, Volume};
@@ -290,7 +292,7 @@ impl<B: Backend> AudioOutput<B> {
     pub(crate) fn play_channel<T: Resource>(
         &mut self,
         audio_sources: &Assets<AudioSource>,
-        channel: &AudioChannel<T>,
+        channel: &OldAudioChannel<T>,
         audio_instances: &mut Assets<AudioInstance>,
     ) {
         if self.manager.is_none() {
@@ -406,6 +408,72 @@ impl<B: Backend> AudioOutput<B> {
             });
         }
     }
+
+    pub(crate) fn play_new(
+        &mut self,
+        audio_sources: &Assets<AudioSource>,
+        source: &Handle<AudioSource>,
+        settings: &PlaybackSettings,
+        audio_entity_commands: &mut EntityCommands,
+    ) {
+        let Some(audio_source) = audio_sources.get(source) else {
+            return;
+        };
+        let mut sound = audio_source.sound.clone();
+
+        if settings.paused {
+            sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
+        }
+        settings.apply(&mut sound);
+        let sound_handle = self.manager.as_mut().unwrap().play(sound);
+        if let Err(error) = sound_handle {
+            warn!("Failed to play sound due to {:?}", error);
+            return;
+        }
+        let mut sound_handle = sound_handle.unwrap();
+
+        if settings.paused {
+            if let Err(error) = sound_handle.pause(kira::tween::Tween::default()) {
+                warn!("Failed to pause instance due to {:?}", error);
+            }
+            if let Err(error) = sound_handle
+                .set_playback_rate(settings.playback_rate, kira::tween::Tween::default())
+            {
+                error!("Failed to set playback rate for instance: {:?}", error);
+            }
+        }
+        audio_entity_commands.insert(AudioInstance {
+            handle: sound_handle,
+        });
+    }
+}
+
+pub fn start_audio_playback(
+    mut commands: Commands,
+    queued_audio: Query<(Entity, &Handle<AudioSource>, &PlaybackSettings), Without<AudioInstance>>,
+    mut audio_output: NonSendMut<AudioOutput>,
+    audio_sources: Option<Res<Assets<AudioSource>>>,
+) {
+    if let Some(audio_sources) = audio_sources {
+        for (audio_entity, source, settings) in &queued_audio {
+            audio_output.play_new(
+                &audio_sources,
+                source,
+                settings,
+                &mut commands.entity(audio_entity),
+            );
+        }
+    };
+}
+
+pub(crate) fn update_instance_states(
+    mut commands: Commands,
+    audio_instances: Query<(Entity, &AudioInstance)>,
+) {
+    for (audio_entity, instance) in &audio_instances {
+        let state = PlaybackState::from(&instance.handle);
+        commands.entity(audio_entity).insert(state);
+    }
 }
 
 pub(crate) fn play_dynamic_channels(
@@ -421,7 +489,7 @@ pub(crate) fn play_dynamic_channels(
 
 pub(crate) fn play_audio_channel<T: Resource>(
     mut audio_output: NonSendMut<AudioOutput>,
-    channel: Res<AudioChannel<T>>,
+    channel: Res<OldAudioChannel<T>>,
     audio_sources: Option<Res<Assets<AudioSource>>>,
     mut instances: ResMut<Assets<AudioInstance>>,
 ) {
@@ -437,29 +505,10 @@ pub(crate) fn cleanup_stopped_instances(
     audio_output.cleanup_stopped_instances(&mut instances);
 }
 
-pub(crate) fn update_instance_states<T: Resource>(
-    audio_output: NonSend<AudioOutput>,
-    audio_instances: Res<Assets<AudioInstance>>,
-    mut channel: ResMut<AudioChannel<T>>,
-) {
-    if let Some(instances) = audio_output
-        .instances
-        .get(&Channel::Typed(TypeId::of::<T>()))
-    {
-        channel.states.clear();
-        for instance_handle in instances.iter() {
-            let state = audio_instances
-                .get(instance_handle)
-                .map(|instance| instance.state())
-                .unwrap_or(PlaybackState::Stopped);
-            channel.states.insert(instance_handle.id(), state);
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::channel::typed::OldAudioChannel;
     use crate::channel::AudioControl;
     use crate::{Audio, AudioPlugin};
     use bevy::asset::{AssetId, AssetPlugin};
@@ -491,7 +540,7 @@ mod test {
             uuid: Uuid::from_u128(2537024739048739),
         });
 
-        let channel = AudioChannel::<Audio>::default();
+        let channel = OldAudioChannel::<Audio>::default();
         channel.play(audio_handle_one.clone());
         channel.play(audio_handle_two.clone());
 
@@ -536,7 +585,7 @@ mod test {
             uuid: Uuid::from_u128(243290473942075938),
         });
 
-        let channel = AudioChannel::<Audio>::default();
+        let channel = OldAudioChannel::<Audio>::default();
         channel.play(audio_handle_one);
         channel.stop();
         channel.play(audio_handle_two.clone());

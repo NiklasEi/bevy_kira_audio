@@ -42,14 +42,11 @@ mod instance;
 mod source;
 mod spacial;
 
-pub use audio::{
-    AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
-    TweenCommand,
-};
+pub use audio::*;
 pub use backend_settings::AudioSettings;
 use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
-pub use channel::AudioControl;
+pub use channel::*;
 pub use source::AudioSource;
 use spacial::cleanup_stopped_spacial_instances;
 
@@ -65,7 +62,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::channel::dynamic::{DynamicAudioChannel, DynamicAudioChannels};
     #[doc(hidden)]
-    pub use crate::channel::typed::AudioChannel;
+    pub use crate::channel::typed::OldAudioChannel;
     #[doc(hidden)]
     pub use crate::channel::AudioControl;
     #[doc(hidden)]
@@ -86,7 +83,10 @@ pub mod prelude {
     };
 }
 
-use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
+use crate::audio_output::{
+    cleanup_stopped_instances, play_dynamic_channels, start_audio_playback, update_instance_states,
+    AudioOutput,
+};
 
 #[cfg(feature = "flac")]
 use crate::source::flac_loader::FlacLoader;
@@ -102,7 +102,7 @@ use crate::spacial::{run_spacial_audio, SpacialAudio};
 use bevy::prelude::{resource_exists, App, IntoSystemConfigs, Plugin, Resource, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
-pub use channel::typed::AudioChannel;
+pub use channel::typed::OldAudioChannel;
 pub use instance::AudioInstance;
 pub use instance::AudioInstanceAssetsExt;
 
@@ -155,7 +155,16 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
+        app.add_systems(
+            PostUpdate,
+            start_audio_playback.in_set(AudioSystemSet::PlayTypedChannels),
+        );
+
         app.init_resource::<DynamicAudioChannels>()
+            .add_systems(
+                PreUpdate,
+                update_instance_states.after(AudioSystemSet::InstanceCleanup),
+            )
             .add_systems(
                 PostUpdate,
                 play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
@@ -191,16 +200,16 @@ pub enum AudioSystemSet {
 
 /// The default audio channel
 ///
-/// Alias for the [`AudioChannel<MainTrack>`] resource. Use it to play and control sound on the main track.
+/// Alias for the [`OldAudioChannel<MainTrack>`] resource. Use it to play and control sound on the main track.
 /// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
-pub type Audio = AudioChannel<MainTrack>;
+pub type Audio = OldAudioChannel<MainTrack>;
 
 /// Type for the default audio channel
 ///
-/// Use it via the [`AudioChannel<MainTrack>`] resource to play and control sound on the main track.
+/// Use it via the [`OldAudioChannel<MainTrack>`] resource to play and control sound on the main track.
 /// You can add your own channels via [`add_audio_channel`](AudioApp::add_audio_channel).
 ///
-/// You can use [`Audio`] as a type alias for [`AudioChannel<MainTrack>`]
+/// You can use [`Audio`] as a type alias for [`OldAudioChannel<MainTrack>`]
 #[derive(Resource)]
 pub struct MainTrack;
 

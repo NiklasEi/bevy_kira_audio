@@ -5,10 +5,13 @@ use crate::audio::{AudioCommand, FadeIn, FadeOut, PlayAudioCommand, TweenCommand
 use crate::instance::AudioInstance;
 use crate::{AudioSource, PlaybackState};
 use bevy::asset::Handle;
+use bevy::prelude::{Bundle, Component};
+use bevy::utils::default;
 use kira::sound::static_sound::StaticSoundData;
 use kira::tween::Value;
 use kira::Volume;
 use std::any::TypeId;
+use std::marker::PhantomData;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Channel {
@@ -16,11 +19,40 @@ pub enum Channel {
     Dynamic(String),
 }
 
-pub(crate) struct ChannelState {
-    pub(crate) paused: bool,
-    pub(crate) volume: Volume,
-    pub(crate) playback_rate: f64,
-    pub(crate) panning: f64,
+#[derive(Bundle)]
+pub struct AudioChannelBundle<C: Component> {
+    state: ChannelState,
+    channel: AudioChannel<C>,
+}
+
+impl<C: Component> Default for AudioChannelBundle<C> {
+    fn default() -> Self {
+        Self {
+            state: default(),
+            channel: AudioChannel::<C>::default(),
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct AudioChannel<C: Component> {
+    _marker: PhantomData<C>,
+}
+
+impl<C: Component> Default for AudioChannel<C> {
+    fn default() -> Self {
+        Self {
+            _marker: PhantomData,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct ChannelState {
+    pub paused: bool,
+    pub volume: Volume,
+    pub playback_rate: f64,
+    pub panning: f64,
 }
 
 impl Default for ChannelState {
