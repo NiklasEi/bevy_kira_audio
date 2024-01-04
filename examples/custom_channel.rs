@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use bevy_kira_audio::{
-    AudioBundle, AudioChannel, AudioChannelBundle, ChannelState, LoopSettings, PlaybackSettings,
+    AudioBundle, AudioChannel, AudioChannelBundle, AudioRegion, ChannelState, PlaybackSettings,
 };
 
 fn main() {
@@ -20,7 +20,7 @@ fn play(mut commands: Commands, asset_server: Res<AssetServer>) {
         AudioBundle {
             source: asset_server.load("sounds/loop.ogg"),
             settings: PlaybackSettings {
-                loop_settings: Some(LoopSettings::default()),
+                loop_region: Some(AudioRegion::default()),
                 ..default()
             },
             ..default()

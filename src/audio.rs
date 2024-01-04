@@ -5,7 +5,7 @@ use crate::channel::typed::OldAudioChannel;
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::AudioSystemSet;
+use crate::{AudioSystemSet, ChannelState};
 use bevy::app::App;
 use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
@@ -405,24 +405,36 @@ impl Default for AudioBundle {
 
 #[derive(Component)]
 pub struct PlaybackSettings {
-    pub loop_settings: Option<LoopSettings>,
+    pub loop_region: Option<AudioRegion>,
+    pub custom_playback_region: Option<AudioRegion>,
     pub paused: bool,
     pub playback_rate: f64,
+    pub volume: f64,
 }
 
 impl Default for PlaybackSettings {
     fn default() -> Self {
         Self {
-            loop_settings: None,
+            loop_region: None,
+            custom_playback_region: None,
             paused: false,
             playback_rate: 1.0,
+            volume: 1.0,
         }
     }
 }
 
 impl PlaybackSettings {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        if let Some(loop_settings) = &self.loop_settings {
+        self.apply_with_channel_state(&ChannelState::default(), sound);
+    }
+
+    pub(crate) fn apply_with_channel_state(
+        &self,
+        channel_state: &ChannelState,
+        sound: &mut StaticSoundData,
+    ) {
+        if let Some(loop_settings) = &self.loop_region {
             sound
                 .settings
                 .loop_region
@@ -432,11 +444,34 @@ impl PlaybackSettings {
                 sound.settings.loop_region.unwrap().end = EndPosition::Custom(end.into());
             }
         }
+        sound.settings.volume =
+            Value::Fixed((self.volume * channel_state.volume.as_amplitude()).into());
+        sound.settings.playback_rate =
+            Value::Fixed((self.playback_rate * channel_state.playback_rate).into());
+        if let Some(region) = &self.custom_playback_region {
+            sound.settings.playback_region.start = region.start.into();
+            if let Some(end) = region.end {
+                sound.settings.playback_region.end = EndPosition::Custom(end.into());
+            }
+        }
+        // if let Some(panning) = self.panning {
+        //     sound.settings.panning = Value::Fixed(panning);
+        // }
+        // if let Some(reverse) = self.reverse {
+        //     sound.settings.reverse = reverse;
+        // }
+        // if let Some(AudioTween { duration, easing }) = self.fade_in {
+        //     sound.settings.fade_in_tween = Some(kira::tween::Tween {
+        //         duration,
+        //         easing,
+        //         ..default()
+        //     });
+        // }
     }
 }
 
 #[derive(Component, Default)]
-pub struct LoopSettings {
+pub struct AudioRegion {
     start: f64,
     end: Option<f64>,
 }
