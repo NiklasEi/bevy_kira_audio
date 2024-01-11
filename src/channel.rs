@@ -11,7 +11,6 @@ use kira::sound::static_sound::StaticSoundData;
 use kira::tween::Value;
 use kira::Volume;
 use std::any::TypeId;
-use std::marker::PhantomData;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Channel {
@@ -20,44 +19,40 @@ pub enum Channel {
 }
 
 #[derive(Bundle)]
-pub struct AudioChannelBundle<C: Component> {
-    state: ChannelState,
-    channel: AudioChannel<C>,
+pub struct AudioChannelBundle {
+    state: ChannelSettings,
+    channel: AudioChannel,
 }
 
-impl<C: Component> Default for AudioChannelBundle<C> {
-    fn default() -> Self {
+impl AudioChannelBundle {
+    pub fn new<C: Component>() -> Self {
         Self {
             state: default(),
-            channel: AudioChannel::<C>::default(),
+            channel: AudioChannel::new::<C>(),
         }
     }
 }
 
 #[derive(Component)]
-pub struct AudioChannel<C: Component> {
-    _marker: PhantomData<C>,
-}
+pub struct AudioChannel(TypeId);
 
-impl<C: Component> Default for AudioChannel<C> {
-    fn default() -> Self {
-        Self {
-            _marker: PhantomData,
-        }
+impl AudioChannel {
+    pub fn new<C: Component>() -> Self {
+        Self(TypeId::of::<C>())
     }
 }
 
-#[derive(Component)]
-pub struct ChannelState {
+#[derive(Component, Clone, Debug)]
+pub struct ChannelSettings {
     pub paused: bool,
     pub volume: Volume,
     pub playback_rate: f64,
     pub panning: f64,
 }
 
-impl Default for ChannelState {
+impl Default for ChannelSettings {
     fn default() -> Self {
-        ChannelState {
+        ChannelSettings {
             paused: false,
             volume: 1.0.into(),
             playback_rate: 1.0,
@@ -66,7 +61,7 @@ impl Default for ChannelState {
     }
 }
 
-impl ChannelState {
+impl ChannelSettings {
     pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
         sound.settings.volume = Value::Fixed(self.volume);
         sound.settings.playback_rate = self.playback_rate.into();

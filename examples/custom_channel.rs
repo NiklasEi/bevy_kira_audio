@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use bevy_kira_audio::{
-    AudioBundle, AudioChannel, AudioChannelBundle, AudioRegion, ChannelState, PlaybackSettings,
+    AudioBundle, AudioChannel, AudioChannelBundle, AudioRegion, ChannelSettings, PlaybackSettings,
 };
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
 
 // Use the channel via the `AudioChannel<Background>` resource
 fn play(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(AudioChannelBundle::<Background>::default());
+    commands.spawn(AudioChannelBundle::new::<Background>());
     commands.spawn((
         AudioBundle {
             source: asset_server.load("sounds/loop.ogg"),
@@ -25,7 +25,7 @@ fn play(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..default()
         },
-        AudioChannel::<Background>::default(),
+        AudioChannel::new::<Background>(),
     ));
 }
 
@@ -42,7 +42,7 @@ fn on_click_single(mut audio: Query<&mut AudioInstance>, input: Res<Input<MouseB
 }
 
 fn on_click_channel(
-    mut channel: Query<&mut ChannelState, With<AudioChannel<Background>>>,
+    mut channel: Query<&mut ChannelSettings, (With<AudioChannel>, With<Background>)>,
     input: Res<Input<MouseButton>>,
 ) {
     let Ok(mut audio_channel) = channel.get_single_mut() else {

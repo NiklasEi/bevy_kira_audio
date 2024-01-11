@@ -7,7 +7,7 @@ use std::any::TypeId;
 
 use crate::backend_settings::AudioSettings;
 use crate::channel::dynamic::DynamicAudioChannels;
-use crate::channel::{Channel, ChannelState};
+use crate::channel::{Channel, ChannelSettings};
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use crate::{AudioChannel, OldAudioChannel, PlaybackState};
@@ -29,7 +29,7 @@ use std::collections::HashMap;
 pub(crate) struct AudioOutput<B: Backend = DefaultBackend> {
     manager: Option<AudioManager<B>>,
     instances: HashMap<Channel, Vec<Handle<AudioInstance>>>,
-    channels: HashMap<Channel, ChannelState>,
+    channels: HashMap<Channel, ChannelSettings>,
 }
 
 impl FromWorld for AudioOutput {
@@ -96,7 +96,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.paused = true;
         } else {
-            let channel_state = ChannelState {
+            let channel_state = ChannelSettings {
                 paused: true,
                 ..Default::default()
             };
@@ -129,7 +129,7 @@ impl<B: Backend> AudioOutput<B> {
             channel_state.paused = false;
         } else {
             self.channels
-                .insert(channel.clone(), ChannelState::default());
+                .insert(channel.clone(), ChannelSettings::default());
         }
     }
 
@@ -153,7 +153,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.volume = volume;
         } else {
-            let channel_state = ChannelState {
+            let channel_state = ChannelSettings {
                 volume,
                 ..Default::default()
             };
@@ -181,7 +181,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.panning = panning;
         } else {
-            let channel_state = ChannelState {
+            let channel_state = ChannelSettings {
                 panning,
                 ..Default::default()
             };
@@ -209,7 +209,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(channel_state) = self.channels.get_mut(channel) {
             channel_state.playback_rate = playback_rate;
         } else {
-            let channel_state = ChannelState {
+            let channel_state = ChannelSettings {
                 playback_rate,
                 ..Default::default()
             };
@@ -413,7 +413,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         audio_sources: &Assets<AudioSource>,
         source: &Handle<AudioSource>,
-        settings: &PlaybackSettings,
+        mut settings: PlaybackSettings,
         audio_entity_commands: &mut EntityCommands,
     ) {
         let Some(audio_source) = audio_sources.get(source) else {
@@ -421,6 +421,7 @@ impl<B: Backend> AudioOutput<B> {
         };
         let mut sound = audio_source.sound.clone();
 
+        settings.apply_channel_settings(&ChannelSettings::default());
         if settings.paused {
             sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
         }
@@ -459,7 +460,7 @@ pub fn start_audio_playback(
             audio_output.play_new(
                 &audio_sources,
                 source,
-                settings,
+                settings.clone(),
                 &mut commands.entity(audio_entity),
             );
         }

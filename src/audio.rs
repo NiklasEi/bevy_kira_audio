@@ -5,16 +5,19 @@ use crate::channel::typed::OldAudioChannel;
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::{AudioSystemSet, ChannelState};
-use bevy::app::App;
+use crate::{AudioChannel, AudioSystemSet, ChannelSettings};
+use bevy::app::{App, Startup};
 use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
-use bevy::prelude::{default, Bundle, Component, IntoSystemConfigs, PostUpdate};
+use bevy::prelude::{
+    default, Bundle, Commands, Component, In, IntoSystem, IntoSystemConfigs, PostUpdate,
+};
 use bevy::utils::Uuid;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::sound::EndPosition;
 use kira::tween::Value;
 use kira::Volume;
+use std::any::TypeId;
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -403,13 +406,16 @@ impl Default for AudioBundle {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct PlaybackSettings {
     pub loop_region: Option<AudioRegion>,
     pub custom_playback_region: Option<AudioRegion>,
     pub paused: bool,
+    pub reverse: bool,
     pub playback_rate: f64,
     pub volume: f64,
+    pub panning: f64,
+    pub fade_in: Option<AudioTween>,
 }
 
 impl Default for PlaybackSettings {
@@ -417,23 +423,26 @@ impl Default for PlaybackSettings {
         Self {
             loop_region: None,
             custom_playback_region: None,
+            fade_in: None,
             paused: false,
+            reverse: false,
             playback_rate: 1.0,
             volume: 1.0,
+            panning: 0.5,
         }
     }
 }
 
 impl PlaybackSettings {
-    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
-        self.apply_with_channel_state(&ChannelState::default(), sound);
+    pub fn apply_channel_settings(&mut self, channel_state: &ChannelSettings) {
+        self.paused = self.paused || channel_state.paused;
+        self.volume = self.volume * channel_state.volume.as_amplitude();
+        self.playback_rate = self.playback_rate * channel_state.playback_rate;
+        // Todo: combine panning?
+        //self.panning =
     }
 
-    pub(crate) fn apply_with_channel_state(
-        &self,
-        channel_state: &ChannelState,
-        sound: &mut StaticSoundData,
-    ) {
+    pub(crate) fn apply(&self, sound: &mut StaticSoundData) {
         if let Some(loop_settings) = &self.loop_region {
             sound
                 .settings
@@ -444,33 +453,28 @@ impl PlaybackSettings {
                 sound.settings.loop_region.unwrap().end = EndPosition::Custom(end.into());
             }
         }
-        sound.settings.volume =
-            Value::Fixed((self.volume * channel_state.volume.as_amplitude()).into());
-        sound.settings.playback_rate =
-            Value::Fixed((self.playback_rate * channel_state.playback_rate).into());
+        sound.settings.volume = Value::Fixed(self.volume.into());
+        sound.settings.playback_rate = Value::Fixed(self.playback_rate.into());
         if let Some(region) = &self.custom_playback_region {
             sound.settings.playback_region.start = region.start.into();
             if let Some(end) = region.end {
                 sound.settings.playback_region.end = EndPosition::Custom(end.into());
             }
         }
-        // if let Some(panning) = self.panning {
-        //     sound.settings.panning = Value::Fixed(panning);
-        // }
-        // if let Some(reverse) = self.reverse {
-        //     sound.settings.reverse = reverse;
-        // }
-        // if let Some(AudioTween { duration, easing }) = self.fade_in {
-        //     sound.settings.fade_in_tween = Some(kira::tween::Tween {
-        //         duration,
-        //         easing,
-        //         ..default()
-        //     });
-        // }
+        if self.reverse {
+            sound.settings.reverse = true;
+        }
+        if let Some(AudioTween { duration, easing }) = self.fade_in {
+            sound.settings.fade_in_tween = Some(kira::tween::Tween {
+                duration,
+                easing,
+                ..default()
+            });
+        }
     }
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub struct AudioRegion {
     start: f64,
     end: Option<f64>,
@@ -565,6 +569,11 @@ pub trait AudioApp {
     /// ```
     #[deprecated]
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
+
+    fn register_audio_channel<C: Component + Default>(
+        &mut self,
+        settings: ChannelSettings,
+    ) -> &mut Self;
 }
 
 impl AudioApp for App {
@@ -575,4 +584,21 @@ impl AudioApp for App {
         )
         .insert_resource(OldAudioChannel::<T>::default())
     }
+
+    fn register_audio_channel<C: Component + Default>(
+        &mut self,
+        settings: ChannelSettings,
+    ) -> &mut Self {
+        self.add_systems(
+            Startup,
+            (move || settings.clone()).pipe(setup_audio_channel::<C>),
+        )
+    }
+}
+
+fn setup_audio_channel<C: Component + Default>(
+    In(settings): In<ChannelSettings>,
+    mut commands: Commands,
+) {
+    commands.spawn((AudioChannel::new::<C>(), settings, C::default()));
 }
