@@ -104,7 +104,7 @@ impl From<SoundSettings> for StaticSoundSettings {
     }
 }
 
-/// Possible errors that can be produced by [`OggLoader`]
+/// Possible errors that can be produced by [`SettingsLoader`]
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum SettingsLoaderError {

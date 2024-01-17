@@ -12,7 +12,7 @@ use crate::source::AudioSource;
 #[derive(Default)]
 pub struct WavLoader;
 
-/// Possible errors that can be produced by [`OggLoader`]
+/// Possible errors that can be produced by [`WavLoader`]
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum WavLoaderError {
