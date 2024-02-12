@@ -26,7 +26,7 @@ fn start_background_audio(
 fn plop(
     handle: Res<AudioHandle>,
     audio: Res<DynamicAudioChannels>,
-    input: Res<Input<MouseButton>>,
+    input: Res<ButtonInput<MouseButton>>,
 ) {
     if input.just_pressed(MouseButton::Left) {
         audio.channel("example").play(handle.0.clone());

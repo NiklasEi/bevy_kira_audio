@@ -85,14 +85,10 @@ fn setup(
         ..default()
     });
     commands.spawn(PbrBundle {
-        mesh: meshes.add(
-            shape::Plane {
-                size: 50.,
-                subdivisions: 0,
-            }
-            .into(),
-        ),
-        material: materials.add(Color::DARK_GREEN.into()),
+        mesh: meshes.add(Cuboid {
+            half_size: Vec3::new(25., 0., 25.),
+        }),
+        material: materials.add(Color::DARK_GREEN),
         ..default()
     });
 }
@@ -131,7 +127,7 @@ fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow
 }
 
 fn cursor_grab(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
 ) {
     if let Ok(mut window) = primary_window.get_single_mut() {
@@ -159,7 +155,7 @@ fn toggle_grab_cursor(window: &mut Window) {
 
 /// Handles keyboard input and movement
 fn player_move(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut query: Query<&mut Transform, With<FlyCam>>,
@@ -175,10 +171,10 @@ fn player_move(
                 match window.cursor.grab_mode {
                     CursorGrabMode::None => (),
                     _ => match key {
-                        KeyCode::W => velocity += forward,
-                        KeyCode::S => velocity -= forward,
-                        KeyCode::A => velocity -= right,
-                        KeyCode::D => velocity += right,
+                        KeyCode::KeyW => velocity += forward,
+                        KeyCode::KeyS => velocity -= forward,
+                        KeyCode::KeyA => velocity -= right,
+                        KeyCode::KeyD => velocity += right,
                         KeyCode::Space => velocity += Vec3::Y,
                         KeyCode::ShiftLeft => velocity -= Vec3::Y,
                         _ => (),
