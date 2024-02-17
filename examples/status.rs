@@ -20,17 +20,17 @@ fn start_audio(mut commands: Commands, asset_server: Res<AssetServer>, audio: Re
     commands.insert_resource(LoopAudioInstanceHandle(instance_handle));
 }
 
-fn process_keyboard_input(audio: Res<Audio>, kb: Res<Input<KeyCode>>) {
-    if kb.just_pressed(KeyCode::P) {
+fn process_keyboard_input(audio: Res<Audio>, kb: Res<ButtonInput<KeyCode>>) {
+    if kb.just_pressed(KeyCode::KeyP) {
         audio.pause().linear_fade_out(Duration::from_millis(500));
         println!("Audio pausing...");
-    } else if kb.just_pressed(KeyCode::S) {
+    } else if kb.just_pressed(KeyCode::KeyS) {
         audio.stop().fade_out(AudioTween::new(
             Duration::from_secs(1),
             AudioEasing::InOutPowi(2),
         ));
         println!("Audio stopping...");
-    } else if kb.just_pressed(KeyCode::R) {
+    } else if kb.just_pressed(KeyCode::KeyR) {
         audio.resume().fade_in(AudioTween::new(
             Duration::from_millis(500),
             AudioEasing::InOutPowi(4),
@@ -99,7 +99,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                             },
                         },
                     ],
-                    alignment: TextAlignment::Center,
+                    justify: JustifyText::Center,
                     ..Default::default()
                 },
                 ..Default::default()

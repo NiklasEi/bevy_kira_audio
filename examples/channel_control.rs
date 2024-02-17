@@ -15,7 +15,7 @@ fn main() {
         .run()
 }
 
-fn channel_control(input: Res<Input<MouseButton>>, audio: Res<Audio>) {
+fn channel_control(input: Res<ButtonInput<MouseButton>>, audio: Res<Audio>) {
     if input.just_pressed(MouseButton::Left) {
         audio
             .pause()

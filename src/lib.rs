@@ -27,7 +27,7 @@
 //! }
 //!
 //! # fn stop(mut events: EventWriter<AppExit>) {
-//! #     events.send(AppExit)
+//! #     events.send(AppExit);
 //! # }
 //! ```
 
@@ -131,7 +131,7 @@ pub use instance::AudioInstanceAssetsExt;
 /// }
 ///
 /// # fn stop(mut events: EventWriter<AppExit>) {
-/// #     events.send(AppExit)
+/// #     events.send(AppExit);
 /// # }
 /// ```
 #[derive(Default)]
@@ -169,11 +169,11 @@ impl Plugin for AudioPlugin {
                 PreUpdate,
                 cleanup_stopped_spacial_instances
                     .in_set(AudioSystemSet::InstanceCleanup)
-                    .run_if(resource_exists::<SpacialAudio>()),
+                    .run_if(resource_exists::<SpacialAudio>),
             )
             .add_systems(
                 PostUpdate,
-                run_spacial_audio.run_if(resource_exists::<SpacialAudio>()),
+                run_spacial_audio.run_if(resource_exists::<SpacialAudio>),
             );
     }
 }

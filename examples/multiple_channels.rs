@@ -420,7 +420,7 @@ fn spawn_button<T: Component + Clone>(
                                 font: font.clone(),
                             },
                         }],
-                        alignment: TextAlignment::Center,
+                        justify: JustifyText::Center,
                         ..Default::default()
                     },
                     ..Default::default()

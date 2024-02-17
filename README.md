@@ -11,7 +11,7 @@ Sound can be played in channels. Each channel has controls to pause or stop play
 
 ## Usage
 
-*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file](https://github.com/bevyengine/bevy/blob/v0.12.0/Cargo.toml#L33-L57) for a list of all default features of version `0.12` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to `false` for the Bevy dependency. You can take a look at [bevy_game_template's cargo file as an example](https://github.com/NiklasEi/bevy_game_template/blob/main/Cargo.toml).*
+*Note: the Bevy feature `bevy_audio` is enabled by default and not compatible with this plugin. Make sure to not have the `bevy_audio` feature enabled if you want to use `bevy_kira_audio`. The same goes for Bevy's `vorbis` feature. See [Bevys' Cargo file][bevy_default_features] for a list of all default features of version `0.12` and list them manually in your Cargo file excluding the ones you do not want. Make sure to set `default-features` to `false` for the Bevy dependency. You can take a look at [bevy_game_template's cargo file as an example](https://github.com/NiklasEi/bevy_game_template/blob/main/Cargo.toml).*
 
 
 To play audio, you usually want to load audio files as assets. This requires `AssetLoaders`. `bevy_kira_audio` comes with loaders for most common audio formats. You can enable them with the features `ogg` (enabled by default), `mp3`, `wav`, or `flac`. The following example assumes that the feature `ogg` is enabled.
@@ -88,19 +88,21 @@ There is limited spacial audio support. Currently, only the volume of audio and 
 The main branch is compatible with the latest Bevy release.
 
 Compatibility of `bevy_kira_audio` versions:
-| `bevy_kira_audio` | `bevy`  |
-|  :--              |  :--    |
-| `0.18`            | `0.12`  |
-| `0.16` - `0.17`   | `0.11`  |
-| `0.15`            | `0.10`  |
-| `0.13` - `0.14`   | `0.9`   |
-| `0.11` - `0.12`   | `0.8`   |
-| `0.9` - `0.10`    | `0.7`   |
-| `0.8`             | `0.6`   |
-| `0.4` - `0.7`     | `0.5`   |
-| `0.3`             | `0.4`   |
-| `main`            | `0.12`  |
-| `bevy_main`       | `main`  |
+
+| Bevy version | `bevy_kira_audio` version |
+|:-------------|:--------------------------|
+| `0.13`       | `0.19`                    |
+| `0.12`       | `0.18`                    |
+| `0.11`       | `0.16` - `0.17`           |
+| `0.10`       | `0.15`                    |
+| `0.9`        | `0.13` - `0.14`           |
+| `0.8`        | `0.11` - `0.12`           |
+| `0.7`        | `0.9` - `0.10`            |
+| `0.6`        | `0.8`                     |
+| `0.5`        | `0.4` - `0.7`             |
+| `0.4`        | `0.3`                     |
+| `0.13`       | `main`                    |
+| `main`       | `bevy_main`               |
 
 ## License
 
@@ -122,3 +124,4 @@ additional terms or conditions.
 
 
 [kira]: https://github.com/tesselode/kira
+[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.13.0/Cargo.toml#L55-L80
