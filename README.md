@@ -89,20 +89,20 @@ The main branch is compatible with the latest Bevy release.
 
 Compatibility of `bevy_kira_audio` versions:
 
-| `bevy_kira_audio` | `bevy` |
-|:------------------|:-------|
-| `0.19`            | `0.13` |
-| `0.18`            | `0.12` |
-| `0.16` - `0.17`   | `0.11` |
-| `0.15`            | `0.10` |
-| `0.13` - `0.14`   | `0.9`  |
-| `0.11` - `0.12`   | `0.8`  |
-| `0.9` - `0.10`    | `0.7`  |
-| `0.8`             | `0.6`  |
-| `0.4` - `0.7`     | `0.5`  |
-| `0.3`             | `0.4`  |
-| `main`            | `0.13` |
-| `bevy_main`       | `main` |
+| Bevy version | `bevy_kira_audio` version |
+|:-------------|:--------------------------|
+| `0.13`       | `0.19`                    |
+| `0.12`       | `0.18`                    |
+| `0.11`       | `0.16` - `0.17`           |
+| `0.10`       | `0.15`                    |
+| `0.9`        | `0.13` - `0.14`           |
+| `0.8`        | `0.11` - `0.12`           |
+| `0.7`        | `0.9` - `0.10`            |
+| `0.6`        | `0.8`                     |
+| `0.5`        | `0.4` - `0.7`             |
+| `0.4`        | `0.3`                     |
+| `0.13`       | `main`                    |
+| `main`       | `bevy_main`               |
 
 ## License
 
@@ -124,4 +124,4 @@ additional terms or conditions.
 
 
 [kira]: https://github.com/tesselode/kira
-[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.12.0/Cargo.toml#L33-L57
+[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.13.0/Cargo.toml#L55-L80

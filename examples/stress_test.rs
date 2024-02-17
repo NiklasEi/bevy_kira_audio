@@ -32,7 +32,7 @@ struct AudioHandle(Handle<AudioSource>);
 
 fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Audio>) {
     // Stop our ears from exploding...
-    // Playing multiple sounds in the same frame gets
+    // Playing multiple sounds in the same frame can get quite loud
     audio.set_volume(0.001);
     commands.insert_resource(LoadingAudioHandle(asset_server.load("sounds/plop.ogg")))
 }
@@ -55,7 +55,7 @@ fn play(handle: Option<Res<AudioHandle>>, audio: Res<Audio>) {
         // The max number here depends on your hardware.
         // If you get warnings and/or stuttered sounds try reducing the amount and/or changing the
         // capacities of the `AudioSettings` in the `main` method.
-        for _ in 0..75 {
+        for _ in 0..100 {
             audio.play(handle.0.clone());
         }
     }
