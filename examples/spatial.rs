@@ -6,7 +6,7 @@ use bevy_kira_audio::prelude::*;
 
 fn main() {
     App::new()
-        .insert_resource(SpacialAudio { max_distance: 25. })
+        .insert_resource(SpatialAudio { max_distance: 25. })
         .add_plugins((DefaultPlugins, AudioPlugin, CameraPlugin))
         .add_systems(Startup, setup)
         .run()

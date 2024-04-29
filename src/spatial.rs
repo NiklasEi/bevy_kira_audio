@@ -23,16 +23,16 @@ pub struct AudioEmitter {
 #[derive(Component)]
 pub struct AudioReceiver;
 
-/// Configuration resource for spacial audio
+/// Configuration resource for spatial audio
 ///
-/// If this resource is not added to the ECS, spacial audio is not applied.
+/// If this resource is not added to the ECS, spatial audio is not applied.
 #[derive(Resource)]
-pub struct SpacialAudio {
+pub struct SpatialAudio {
     /// The volume will change from `1` at distance `0` to `0` at distance `max_distance`
     pub max_distance: f32,
 }
 
-impl SpacialAudio {
+impl SpatialAudio {
     pub(crate) fn update(
         &self,
         receiver_transform: &GlobalTransform,
@@ -58,18 +58,18 @@ impl SpacialAudio {
     }
 }
 
-pub(crate) fn run_spacial_audio(
-    spacial_audio: Res<SpacialAudio>,
+pub(crate) fn run_spatial_audio(
+    spatial_audio: Res<SpatialAudio>,
     receiver: Query<&GlobalTransform, With<AudioReceiver>>,
     emitters: Query<(&GlobalTransform, &AudioEmitter)>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Ok(receiver_transform) = receiver.get_single() {
-        spacial_audio.update(receiver_transform, &emitters, &mut audio_instances);
+        spatial_audio.update(receiver_transform, &emitters, &mut audio_instances);
     }
 }
 
-pub(crate) fn cleanup_stopped_spacial_instances(
+pub(crate) fn cleanup_stopped_spatial_instances(
     mut emitters: Query<&mut AudioEmitter>,
     instances: ResMut<Assets<AudioInstance>>,
 ) {

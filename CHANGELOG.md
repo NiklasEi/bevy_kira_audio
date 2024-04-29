@@ -13,21 +13,21 @@
 
 ## v0.16.0
 - Update to Bevy `0.11`
-- Spacial audio improvements ([#94](https://github.com/NiklasEi/bevy_kira_audio/pull/94))
+- Spatial audio improvements ([#94](https://github.com/NiklasEi/bevy_kira_audio/pull/94))
   - Check if receiver exists before updating
-  - Cleanup instances from spacial audio
+  - Cleanup instances from spatial audio
 - Offer iterator over dynamic channel keys and values ([#69](https://github.com/NiklasEi/bevy_kira_audio/issues/69))
 - Allow resuming while pausing or stopping ([#98](https://github.com/NiklasEi/bevy_kira_audio/pull/98))
 
 ## v0.15.0
 - Update to Bevy `0.10`
-- Fix: stop spacial audio from getting louder again at large distances ([#88](https://github.com/NiklasEi/bevy_kira_audio/issues/88))
+- Fix: stop spatial audio from getting louder again at large distances ([#88](https://github.com/NiklasEi/bevy_kira_audio/issues/88))
 
 ## v0.14.0
-- Limited support for spacial audio
-  - Add `Emitter` and `Receiver` components to spacial entities
+- Limited support for spatial audio
+  - Add `Emitter` and `Receiver` components to spatial entities
   - Audio volume and panning will be automatically changed
-  - New example [`spacial.rs`](examples/spacial.rs)
+  - New example [`spatial.rs`](examples/spatial.rs)
 - Support for setting volume in Decibels ([#81](https://github.com/NiklasEi/bevy_kira_audio/issues/81))
 - Reexport some used Kira types ([#73](https://github.com/NiklasEi/bevy_kira_audio/issues/73))
 

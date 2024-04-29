@@ -49,7 +49,7 @@ features = [
     "tonemapping_luts",
     "ktx2",
     "zstd",
-    "multi-threaded"
+    "multi-threaded",
 ]
 
 [[example]]
@@ -98,6 +98,6 @@ path = "examples/channel_control.rs"
 required-features = ["ogg"]
 
 [[example]]
-name = "spacial"
-path = "examples/spacial.rs"
+name = "spatial"
+path = "examples/spatial.rs"
 required-features = ["ogg"]
