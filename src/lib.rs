@@ -40,7 +40,7 @@ mod backend_settings;
 mod channel;
 mod instance;
 mod source;
-mod spacial;
+mod spatial;
 
 pub use audio::{
     AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
@@ -51,7 +51,7 @@ use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
 pub use source::AudioSource;
-use spacial::cleanup_stopped_spacial_instances;
+use spatial::cleanup_stopped_spatial_instances;
 
 /// Most commonly used types
 pub mod prelude {
@@ -73,7 +73,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
-    pub use crate::spacial::{AudioEmitter, AudioReceiver, SpacialAudio};
+    pub use crate::spatial::{AudioEmitter, AudioReceiver, SpatialAudio};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
@@ -98,7 +98,7 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use crate::spacial::{run_spacial_audio, SpacialAudio};
+use crate::spatial::{run_spatial_audio, SpatialAudio};
 use bevy::prelude::{resource_exists, App, IntoSystemConfigs, Plugin, Resource, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
@@ -167,13 +167,13 @@ impl Plugin for AudioPlugin {
             .add_audio_channel::<MainTrack>()
             .add_systems(
                 PreUpdate,
-                cleanup_stopped_spacial_instances
+                cleanup_stopped_spatial_instances
                     .in_set(AudioSystemSet::InstanceCleanup)
-                    .run_if(resource_exists::<SpacialAudio>),
+                    .run_if(resource_exists::<SpatialAudio>),
             )
             .add_systems(
                 PostUpdate,
-                run_spacial_audio.run_if(resource_exists::<SpacialAudio>),
+                run_spatial_audio.run_if(resource_exists::<SpatialAudio>),
             );
     }
 }
