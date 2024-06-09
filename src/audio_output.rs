@@ -464,18 +464,21 @@ mod test {
     use crate::{Audio, AudioPlugin};
     use bevy::asset::{AssetId, AssetPlugin};
     use bevy::prelude::*;
-    use bevy::utils::Uuid;
     use kira::manager::backend::mock::MockBackend;
     use kira::manager::AudioManagerSettings;
+    use uuid::Uuid;
 
     #[test]
     fn keeps_order_of_commands_to_retry() {
         // we only need this app to conveniently get a assets collection for `AudioSource`...
         let mut app = App::new();
         app.add_plugins((MinimalPlugins, AssetPlugin::default(), AudioPlugin));
-        let audio_source_assets = app.world.remove_resource::<Assets<AudioSource>>().unwrap();
+        let audio_source_assets = app
+            .world_mut()
+            .remove_resource::<Assets<AudioSource>>()
+            .unwrap();
         let mut audio_instance_assets = app
-            .world
+            .world_mut()
             .remove_resource::<Assets<AudioInstance>>()
             .unwrap();
 
@@ -484,12 +487,10 @@ mod test {
             instances: HashMap::default(),
             channels: HashMap::default(),
         };
-        let audio_handle_one: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
-            uuid: Uuid::from_u128(1758302748397294),
-        });
-        let audio_handle_two: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
-            uuid: Uuid::from_u128(2537024739048739),
-        });
+        let audio_handle_one: Handle<AudioSource> =
+            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(1758302748397294)));
+        let audio_handle_two: Handle<AudioSource> =
+            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(2537024739048739)));
 
         let channel = AudioChannel::<Audio>::default();
         channel.play(audio_handle_one.clone());
@@ -518,9 +519,12 @@ mod test {
         // we only need this app to conveniently get a assets collection for `AudioSource`...
         let mut app = App::new();
         app.add_plugins((MinimalPlugins, AssetPlugin::default(), AudioPlugin));
-        let audio_source_assets = app.world.remove_resource::<Assets<AudioSource>>().unwrap();
+        let audio_source_assets = app
+            .world_mut()
+            .remove_resource::<Assets<AudioSource>>()
+            .unwrap();
         let mut audio_instance_assets = app
-            .world
+            .world_mut()
             .remove_resource::<Assets<AudioInstance>>()
             .unwrap();
 
@@ -529,12 +533,10 @@ mod test {
             instances: HashMap::default(),
             channels: HashMap::default(),
         };
-        let audio_handle_one: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
-            uuid: Uuid::from_u128(13290473942075938),
-        });
-        let audio_handle_two: Handle<AudioSource> = Handle::<AudioSource>::Weak(AssetId::Uuid {
-            uuid: Uuid::from_u128(243290473942075938),
-        });
+        let audio_handle_one: Handle<AudioSource> =
+            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(13290473942075938)));
+        let audio_handle_two: Handle<AudioSource> =
+            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(243290473942075938)));
 
         let channel = AudioChannel::<Audio>::default();
         channel.play(audio_handle_one);
