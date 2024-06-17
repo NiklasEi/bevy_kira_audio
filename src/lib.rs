@@ -27,7 +27,7 @@
 //! }
 //!
 //! # fn stop(mut events: EventWriter<AppExit>) {
-//! #     events.send(AppExit);
+//! #     events.send(AppExit::Success);
 //! # }
 //! ```
 
@@ -131,7 +131,7 @@ pub use instance::AudioInstanceAssetsExt;
 /// }
 ///
 /// # fn stop(mut events: EventWriter<AppExit>) {
-/// #     events.send(AppExit);
+/// #     events.send(AppExit::Success);
 /// # }
 /// ```
 #[derive(Default)]
