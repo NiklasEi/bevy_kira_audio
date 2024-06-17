@@ -9,7 +9,7 @@ fn main() {
         .insert_resource(SpatialAudio { max_distance: 25. })
         .add_plugins((DefaultPlugins, AudioPlugin, CameraPlugin))
         .add_systems(Startup, setup)
-        .run()
+        .run();
 }
 
 fn setup(
@@ -73,7 +73,7 @@ fn setup(
                 style: TextStyle {
                     font: asset_server.load("fonts/monogram.ttf"),
                     font_size: 40.0,
-                    color: Color::rgb(0.9, 0.9, 0.9),
+                    color: Color::linear_rgb(0.9, 0.9, 0.9),
                 },
             }],
             ..default()
@@ -88,7 +88,7 @@ fn setup(
         mesh: meshes.add(Cuboid {
             half_size: Vec3::new(25., 0., 25.),
         }),
-        material: materials.add(Color::DARK_GREEN),
+        material: materials.add(StandardMaterial::from_color(LinearRgba::GREEN)),
         ..default()
     });
 }

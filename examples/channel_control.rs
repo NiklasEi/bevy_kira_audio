@@ -12,7 +12,7 @@ fn main() {
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, play_loop)
         .add_systems(Update, channel_control)
-        .run()
+        .run();
 }
 
 fn channel_control(input: Res<ButtonInput<MouseButton>>, audio: Res<Audio>) {

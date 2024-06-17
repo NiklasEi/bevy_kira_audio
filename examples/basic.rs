@@ -5,7 +5,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, play_loop)
-        .run()
+        .run();
 }
 
 // `Audio` is an alias for `AudioChannel<MainTrack>`, which is the default channel added by the audio plugin
