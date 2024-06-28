@@ -71,6 +71,21 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::instance::{AudioCommandError, AudioInstance, AudioInstanceAssetsExt};
     #[doc(hidden)]
+    #[cfg(feature = "flac")]
+    pub use crate::source::flac_loader::*;
+    #[doc(hidden)]
+    #[cfg(feature = "mp3")]
+    pub use crate::source::mp3_loader::*;
+    #[doc(hidden)]
+    #[cfg(feature = "ogg")]
+    pub use crate::source::ogg_loader::*;
+    #[doc(hidden)]
+    #[cfg(feature = "settings_loader")]
+    pub use crate::source::settings_loader::*;
+    #[doc(hidden)]
+    #[cfg(feature = "wav")]
+    pub use crate::source::wav_loader::*;
+    #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
     pub use crate::spatial::{AudioEmitter, AudioReceiver, SpatialAudio};
@@ -80,7 +95,7 @@ pub mod prelude {
         dsp::Frame,
         sound::{
             static_sound::{StaticSoundData, StaticSoundSettings},
-            Sound, SoundData,
+            FromFileError, Sound, SoundData,
         },
         Volume,
     };
