@@ -21,6 +21,7 @@ pub enum OggLoaderError {
     FileError(#[from] FromFileError),
 }
 
+/// Asset loader for OGG files.
 #[derive(Default)]
 pub struct OggLoader;
 

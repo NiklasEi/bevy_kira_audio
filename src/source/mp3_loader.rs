@@ -9,6 +9,7 @@ use thiserror::Error;
 
 use crate::source::AudioSource;
 
+/// Asset loader for MP3 files.
 #[derive(Default)]
 pub struct Mp3Loader;
 

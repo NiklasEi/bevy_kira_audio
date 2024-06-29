@@ -13,6 +13,7 @@ use thiserror::Error;
 
 use crate::AudioSource;
 
+/// Asset loader for sound settings files.
 #[derive(Default)]
 pub struct SettingsLoader;
 

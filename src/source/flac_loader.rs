@@ -21,6 +21,7 @@ pub enum FlacLoaderError {
     FileError(#[from] FromFileError),
 }
 
+/// Asset loader for FLAC files.
 #[derive(Default)]
 pub struct FlacLoader;
 

@@ -9,6 +9,7 @@ use thiserror::Error;
 
 use crate::source::AudioSource;
 
+/// Asset loader for WAV files.
 #[derive(Default)]
 pub struct WavLoader;
 
