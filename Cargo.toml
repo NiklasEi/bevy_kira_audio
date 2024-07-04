@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.20.0-rc.1"
+version = "0.20.0"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,7 @@ wav = ["kira/wav"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 
 [dependencies]
-bevy = { version = "0.14.0-rc.3", default-features = false, features = ["bevy_asset"] }
+bevy = { version = "0.14.0", default-features = false, features = ["bevy_asset"] }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
 kira = { version = "0.8", default-features = false, features = ["cpal"] }
@@ -32,7 +32,7 @@ parking_lot = "0.12"
 thiserror = "1.0"
 
 [dev-dependencies.bevy]
-version = "0.14.0-rc.3"
+version = "0.14.0"
 default-features = false
 features = [
     "bevy_asset",
