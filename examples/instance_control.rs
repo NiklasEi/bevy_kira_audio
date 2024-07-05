@@ -9,7 +9,7 @@ fn main() {
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, play_loop)
         .add_systems(Update, instance_control)
-        .run()
+        .run();
 }
 
 fn instance_control(

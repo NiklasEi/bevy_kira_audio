@@ -8,7 +8,7 @@ fn main() {
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, start_background_audio)
         .add_systems(Update, plop)
-        .run()
+        .run();
 }
 
 fn start_background_audio(

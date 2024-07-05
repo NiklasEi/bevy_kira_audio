@@ -10,13 +10,13 @@ use bevy::app::{App, PreUpdate};
 use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
 use bevy::prelude::{default, IntoSystemConfigs, PostUpdate};
-use bevy::utils::Uuid;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::sound::EndPosition;
 use kira::tween::Value;
 use kira::Volume;
 use std::marker::PhantomData;
 use std::time::Duration;
+use uuid::Uuid;
 
 pub(crate) enum AudioCommand {
     Play(PlayAudioSettings),
@@ -186,9 +186,7 @@ impl<'a> Drop for PlayAudioCommand<'a> {
 
 impl<'a> PlayAudioCommand<'a> {
     pub(crate) fn new(source: Handle<AudioSource>, que: &'a dyn AudioCommandQue) -> Self {
-        let asset_id = AssetId::Uuid {
-            uuid: Uuid::new_v4(),
-        };
+        let asset_id = AssetId::from(Uuid::new_v4());
         Self {
             instance_handle: Handle::<AudioInstance>::Weak(asset_id),
             source,

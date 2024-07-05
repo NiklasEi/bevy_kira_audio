@@ -21,7 +21,7 @@ fn main() {
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, prepare)
         .add_systems(Update, (check, play))
-        .run()
+        .run();
 }
 
 #[derive(Resource)]

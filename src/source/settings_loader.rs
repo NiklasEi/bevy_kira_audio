@@ -3,7 +3,6 @@ use std::{io::Cursor, path::PathBuf};
 
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext, ReadAssetBytesError};
-use bevy::utils::BoxedFuture;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use kira::sound::{EndPosition, FromFileError, PlaybackPosition, PlaybackRate, Region};
 use kira::tween::Tween;
@@ -128,25 +127,22 @@ impl AssetLoader for SettingsLoader {
     type Settings = ();
     type Error = SettingsLoaderError;
 
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let sound_settings: SoundSettings = ron::de::from_bytes(&bytes)?;
-            let sound_bytes = load_context
-                .read_asset_bytes(sound_settings.file.clone())
-                .await?;
+        load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+        let sound_settings: SoundSettings = ron::de::from_bytes(&bytes)?;
+        let sound_bytes = load_context
+            .read_asset_bytes(sound_settings.file.clone())
+            .await?;
 
-            let sound =
-                StaticSoundData::from_cursor(Cursor::new(sound_bytes), sound_settings.into())?;
+        let sound = StaticSoundData::from_cursor(Cursor::new(sound_bytes), sound_settings.into())?;
 
-            Ok(AudioSource { sound })
-        })
+        Ok(AudioSource { sound })
     }
 
     fn extensions(&self) -> &[&str] {

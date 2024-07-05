@@ -191,7 +191,7 @@ mod test {
     use crate::channel::*;
     use crate::Audio;
     use bevy::asset::{AssetId, Handle};
-    use bevy::utils::Uuid;
+    use uuid::Uuid;
 
     #[test]
     fn state_is_queued_if_command_is_queued() {
@@ -230,29 +230,21 @@ mod test {
     fn finds_playing_sound() {
         let mut audio = AudioChannel::<Audio>::default();
         audio.states.insert(
-            AssetId::Uuid {
-                uuid: Uuid::from_u128(43290473942075938),
-            },
+            Uuid::from_u128(43290473942075938).into(),
             PlaybackState::Queued,
         );
         audio.states.insert(
-            AssetId::Uuid {
-                uuid: Uuid::from_u128(432952340473942075938),
-            },
+            Uuid::from_u128(432952340473942075938).into(),
             PlaybackState::Paused { position: 42. },
         );
         audio.states.insert(
-            AssetId::Uuid {
-                uuid: Uuid::from_u128(46254624324354345324),
-            },
+            Uuid::from_u128(46254624324354345324).into(),
             PlaybackState::Stopped,
         );
         assert!(!audio.is_playing_sound());
 
         audio.states.insert(
-            AssetId::Uuid {
-                uuid: Uuid::from_u128(70973842759324739),
-            },
+            Uuid::from_u128(70973842759324739).into(),
             PlaybackState::Playing { position: 42. },
         );
         assert!(audio.is_playing_sound());

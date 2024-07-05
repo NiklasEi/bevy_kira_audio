@@ -36,16 +36,16 @@ fn play_pause_button<T: Component + Default>(
     mut channel_state: ResMut<ChannelAudioState<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlayPauseButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut UiImage), With<PlayPauseButton<T>>>,
     mut play_pause_text: Query<&mut Text, With<PlayPauseButton<T>>>,
 ) {
-    let (interaction, mut color) = interaction_query.single_mut();
-    *color = if channel_state.stopped {
-        DISABLED_BUTTON.into()
+    let (interaction, mut image) = interaction_query.single_mut();
+    image.color = if channel_state.stopped {
+        DISABLED_BUTTON
     } else if interaction == &Interaction::Hovered {
-        HOVERED_BUTTON.into()
+        HOVERED_BUTTON
     } else {
-        NORMAL_BUTTON.into()
+        NORMAL_BUTTON
     };
     let mut text = play_pause_text.single_mut();
     text.sections.first_mut().unwrap().value = if channel_state.paused {
@@ -74,15 +74,15 @@ fn stop_button<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut UiImage), With<StopButton<T>>>,
 ) {
-    let (interaction, mut color) = interaction_query.single_mut();
-    *color = if channel_state.stopped {
-        DISABLED_BUTTON.into()
+    let (interaction, mut image) = interaction_query.single_mut();
+    image.color = if channel_state.stopped {
+        DISABLED_BUTTON
     } else if interaction == &Interaction::Hovered {
-        HOVERED_BUTTON.into()
+        HOVERED_BUTTON
     } else {
-        NORMAL_BUTTON.into()
+        NORMAL_BUTTON
     };
     if channel_state.stopped {
         return;
@@ -102,17 +102,17 @@ fn loop_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StartLoopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut UiImage), With<StartLoopButton<T>>>,
 ) {
-    let (interaction, mut color) = interaction_query.single_mut();
-    *color = if !channel_state.loop_started {
+    let (interaction, mut image) = interaction_query.single_mut();
+    image.color = if !channel_state.loop_started {
         if interaction == &Interaction::Hovered {
-            HOVERED_BUTTON.into()
+            HOVERED_BUTTON
         } else {
-            NORMAL_BUTTON.into()
+            NORMAL_BUTTON
         }
     } else {
-        DISABLED_BUTTON.into()
+        DISABLED_BUTTON
     };
     if channel_state.loop_started {
         return;
@@ -133,13 +133,13 @@ fn play_sound_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlaySoundButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut UiImage), With<PlaySoundButton<T>>>,
 ) {
-    let (interaction, mut color) = interaction_query.single_mut();
-    *color = if interaction == &Interaction::Hovered {
-        HOVERED_BUTTON.into()
+    let (interaction, mut image) = interaction_query.single_mut();
+    image.color = if interaction == &Interaction::Hovered {
+        HOVERED_BUTTON
     } else {
-        NORMAL_BUTTON.into()
+        NORMAL_BUTTON
     };
     if interaction == &Interaction::Pressed {
         if !last_action.action(&time) {
@@ -156,13 +156,13 @@ fn volume_buttons<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor, &ChangeVolumeButton<T>)>,
+    mut interaction_query: Query<(&Interaction, &mut UiImage, &ChangeVolumeButton<T>)>,
 ) {
-    for (interaction, mut color, volume) in &mut interaction_query {
-        *color = if interaction == &Interaction::Hovered {
-            HOVERED_BUTTON.into()
+    for (interaction, mut image, volume) in &mut interaction_query {
+        image.color = if interaction == &Interaction::Hovered {
+            HOVERED_BUTTON
         } else {
-            NORMAL_BUTTON.into()
+            NORMAL_BUTTON
         };
         if interaction == &Interaction::Pressed {
             if !last_action.action(&time) {
@@ -252,9 +252,9 @@ impl<T> Default for ChannelAudioState<T> {
     }
 }
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const DISABLED_BUTTON: Color = Color::rgb(0.5, 0.5, 0.5);
+const NORMAL_BUTTON: Color = Color::linear_rgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::linear_rgb(0.25, 0.25, 0.25);
+const DISABLED_BUTTON: Color = Color::linear_rgb(0.5, 0.5, 0.5);
 
 fn prepare_audio_and_ui(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let loop_handle = asset_server.load("sounds/loop.ogg");
@@ -327,7 +327,7 @@ fn build_button_row<T: Component + Default + Clone>(
                                 value: format!("Channel {}", 4 - channel_index),
                                 style: TextStyle {
                                     font_size: 20.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
+                                    color: Color::linear_rgb(0.9, 0.9, 0.9),
                                     font: font.clone(),
                                 },
                             }],
@@ -339,28 +339,28 @@ fn build_button_row<T: Component + Default + Clone>(
             spawn_button(
                 parent,
                 "Sound",
-                DISABLED_BUTTON.into(),
+                DISABLED_BUTTON,
                 PlaySoundButton::<T>::default(),
                 font.clone(),
             );
             spawn_button(
                 parent,
                 "Loop",
-                DISABLED_BUTTON.into(),
+                DISABLED_BUTTON,
                 StartLoopButton::<T>::default(),
                 font.clone(),
             );
             spawn_button(
                 parent,
                 "Pause",
-                DISABLED_BUTTON.into(),
+                DISABLED_BUTTON,
                 PlayPauseButton::<T>::default(),
                 font.clone(),
             );
             spawn_button(
                 parent,
                 "Vol. up",
-                NORMAL_BUTTON.into(),
+                NORMAL_BUTTON,
                 ChangeVolumeButton::<T> {
                     louder: true,
                     _marker: PhantomData,
@@ -370,7 +370,7 @@ fn build_button_row<T: Component + Default + Clone>(
             spawn_button(
                 parent,
                 "Vol. down",
-                NORMAL_BUTTON.into(),
+                NORMAL_BUTTON,
                 ChangeVolumeButton::<T> {
                     louder: false,
                     _marker: PhantomData,
@@ -380,7 +380,7 @@ fn build_button_row<T: Component + Default + Clone>(
             spawn_button(
                 parent,
                 "Stop",
-                DISABLED_BUTTON.into(),
+                DISABLED_BUTTON,
                 StopButton::<T>::default(),
                 font.clone(),
             );
@@ -390,7 +390,7 @@ fn build_button_row<T: Component + Default + Clone>(
 fn spawn_button<T: Component + Clone>(
     parent: &mut ChildBuilder,
     text: &str,
-    background_color: BackgroundColor,
+    color: Color,
     marker: T,
     font: Handle<Font>,
 ) {
@@ -404,7 +404,7 @@ fn spawn_button<T: Component + Clone>(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            background_color,
+            image: UiImage::default().with_color(color),
             ..Default::default()
         })
         .insert(marker.clone())
@@ -416,7 +416,7 @@ fn spawn_button<T: Component + Clone>(
                             value: text.to_string(),
                             style: TextStyle {
                                 font_size: 20.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
+                                color: Color::linear_rgb(0.9, 0.9, 0.9),
                                 font: font.clone(),
                             },
                         }],

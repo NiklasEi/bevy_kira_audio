@@ -59,7 +59,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            background_color: Color::rgba(0., 0., 0., 0.).into(),
+            background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
             ..Default::default()
         })
         .with_children(|parent| {
@@ -71,7 +71,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                             style: TextStyle {
                                 font: monogram.clone(),
                                 font_size: 40.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
+                                color: Color::linear_rgb(0.9, 0.9, 0.9),
                             },
                         },
                         TextSection {
@@ -79,7 +79,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                             style: TextStyle {
                                 font: monogram.clone(),
                                 font_size: 40.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
+                                color: Color::linear_rgb(0.9, 0.9, 0.9),
                             },
                         },
                         TextSection {
@@ -87,7 +87,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                             style: TextStyle {
                                 font: monogram.clone(),
                                 font_size: 40.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
+                                color: Color::linear_rgb(0.9, 0.9, 0.9),
                             },
                         },
                         TextSection {
@@ -95,7 +95,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
                             style: TextStyle {
                                 font: monogram.clone(),
                                 font_size: 40.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
+                                color: Color::linear_rgb(0.9, 0.9, 0.9),
                             },
                         },
                     ],
