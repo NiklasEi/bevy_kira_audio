@@ -23,25 +23,36 @@ pub struct AudioEmitter {
 #[derive(Component)]
 pub struct AudioReceiver;
 
-/// Configuration resource for spatial audio
+/// Configuration resource for global spatial audio radius
 ///
-/// If this resource is not added to the ECS, spatial audio is not applied.
+/// If neither this resource or the [`SpatialRadius`] component for entity exists in the ECS,
+/// spatial audio is not applied.
 #[derive(Resource)]
-pub struct SpatialAudio {
-    /// The volume will change from `1` at distance `0` to `0` at distance `max_distance`
-    pub max_distance: f32,
+pub struct GlobalSpatialRadius {
+    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
+    pub radius: f32,
 }
 
-impl SpatialAudio {
+/// Component for per-entity spatial audio radius
+///
+/// If neither this component or the [`GlobalSpatialRadius`] resource exists in the ECS, spatial
+/// audio is not applied.
+#[derive(Component)]
+pub struct SpatialRadius {
+    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
+    pub radius: f32,
+}
+
+impl GlobalSpatialRadius {
     pub(crate) fn update(
         &self,
         receiver_transform: &GlobalTransform,
-        emitters: &Query<(&GlobalTransform, &AudioEmitter)>,
+        emitters: &Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
         audio_instances: &mut Assets<AudioInstance>,
     ) {
-        for (emitter_transform, emitter) in emitters {
+        for (emitter_transform, emitter, range) in emitters {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let volume = (1. - sound_path.length() / self.max_distance)
+            let volume = (1. - sound_path.length() / range.map_or(self.radius, |r| r.radius))
                 .clamp(0., 1.)
                 .powi(2);
 
@@ -59,9 +70,9 @@ impl SpatialAudio {
 }
 
 pub(crate) fn run_spatial_audio(
-    spatial_audio: Res<SpatialAudio>,
+    spatial_audio: Res<GlobalSpatialRadius>,
     receiver: Query<&GlobalTransform, With<AudioReceiver>>,
-    emitters: Query<(&GlobalTransform, &AudioEmitter)>,
+    emitters: Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Ok(receiver_transform) = receiver.get_single() {
