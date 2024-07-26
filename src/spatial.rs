@@ -82,3 +82,10 @@ pub(crate) fn cleanup_stopped_spatial_instances(
         });
     });
 }
+
+pub(crate) fn spatial_audio_enabled(
+    global: Option<Res<GlobalSpatialRadius>>,
+    local: Query<(), With<SpatialRadius>>,
+) -> bool {
+    global.is_some() || !local.is_empty()
+}
