@@ -6,7 +6,7 @@ use bevy_kira_audio::prelude::*;
 
 fn main() {
     App::new()
-        .insert_resource(SpatialAudio { max_distance: 25. })
+        .insert_resource(GlobalSpatialRadius { radius: 25. })
         .add_plugins((DefaultPlugins, AudioPlugin, CameraPlugin))
         .add_systems(Startup, setup)
         .run();
@@ -32,7 +32,8 @@ fn setup(
         })
         .insert(AudioEmitter {
             instances: vec![cooking],
-        });
+        })
+        .insert(SpatialRadius { radius: 10.0 });
     // Emitter Nr. 2
     let elevator_music = audio
         .play(asset_server.load("sounds/loop.ogg"))

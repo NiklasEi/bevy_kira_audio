@@ -51,7 +51,6 @@ use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
 pub use source::AudioSource;
-use spatial::cleanup_stopped_spatial_instances;
 
 /// Most commonly used types
 pub mod prelude {
@@ -88,7 +87,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
-    pub use crate::spatial::{AudioEmitter, AudioReceiver, SpatialAudio};
+    pub use crate::spatial::{AudioEmitter, AudioReceiver, GlobalSpatialRadius, SpatialRadius};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
@@ -113,8 +112,7 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use crate::spatial::{run_spatial_audio, SpatialAudio};
-use bevy::prelude::{resource_exists, App, IntoSystemConfigs, Plugin, Resource, SystemSet};
+use bevy::prelude::{App, IntoSystemConfigs, Plugin, Resource, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
 pub use channel::typed::AudioChannel;
@@ -170,7 +168,8 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
-        app.init_resource::<DynamicAudioChannels>()
+        app.add_plugins(spatial::SpatialAudioPlugin)
+            .init_resource::<DynamicAudioChannels>()
             .add_systems(
                 PostUpdate,
                 play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
@@ -179,17 +178,7 @@ impl Plugin for AudioPlugin {
                 PreUpdate,
                 cleanup_stopped_instances.in_set(AudioSystemSet::InstanceCleanup),
             )
-            .add_audio_channel::<MainTrack>()
-            .add_systems(
-                PreUpdate,
-                cleanup_stopped_spatial_instances
-                    .in_set(AudioSystemSet::InstanceCleanup)
-                    .run_if(resource_exists::<SpatialAudio>),
-            )
-            .add_systems(
-                PostUpdate,
-                run_spatial_audio.run_if(resource_exists::<SpatialAudio>),
-            );
+            .add_audio_channel::<MainTrack>();
     }
 }
 

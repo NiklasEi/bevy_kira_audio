@@ -1,7 +1,19 @@
-use crate::{AudioInstance, AudioTween};
-use bevy::asset::{Assets, Handle};
-use bevy::ecs::component::Component;
-use bevy::prelude::{GlobalTransform, Query, Res, ResMut, Resource, With};
+use crate::{AudioInstance, AudioSystemSet, AudioTween};
+use bevy::prelude::*;
+
+pub(crate) struct SpatialAudioPlugin;
+
+impl Plugin for SpatialAudioPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            PreUpdate,
+            cleanup_stopped_spatial_instances
+                .in_set(AudioSystemSet::InstanceCleanup)
+                .run_if(spatial_audio_enabled),
+        )
+        .add_systems(PostUpdate, run_spatial_audio.run_if(spatial_audio_enabled));
+    }
+}
 
 /// Component for audio emitters
 ///
@@ -23,27 +35,39 @@ pub struct AudioEmitter {
 #[derive(Component)]
 pub struct AudioReceiver;
 
-/// Configuration resource for spatial audio
+/// Configuration resource for global spatial audio radius
 ///
-/// If this resource is not added to the ECS, spatial audio is not applied.
+/// If neither this resource or the [`SpatialRadius`] component for entity exists in the ECS,
+/// spatial audio is not applied.
 #[derive(Resource)]
-pub struct SpatialAudio {
-    /// The volume will change from `1` at distance `0` to `0` at distance `max_distance`
-    pub max_distance: f32,
+pub struct GlobalSpatialRadius {
+    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
+    pub radius: f32,
 }
 
-impl SpatialAudio {
-    pub(crate) fn update(
-        &self,
-        receiver_transform: &GlobalTransform,
-        emitters: &Query<(&GlobalTransform, &AudioEmitter)>,
-        audio_instances: &mut Assets<AudioInstance>,
-    ) {
-        for (emitter_transform, emitter) in emitters {
+/// Component for per-entity spatial audio radius
+///
+/// If neither this component or the [`GlobalSpatialRadius`] resource exists in the ECS, spatial
+/// audio is not applied.
+#[derive(Component)]
+pub struct SpatialRadius {
+    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
+    pub radius: f32,
+}
+
+fn run_spatial_audio(
+    spatial_audio: Res<GlobalSpatialRadius>,
+    receiver: Query<&GlobalTransform, With<AudioReceiver>>,
+    emitters: Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
+    mut audio_instances: ResMut<Assets<AudioInstance>>,
+) {
+    if let Ok(receiver_transform) = receiver.get_single() {
+        for (emitter_transform, emitter, range) in emitters.iter() {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let volume = (1. - sound_path.length() / self.max_distance)
-                .clamp(0., 1.)
-                .powi(2);
+            let volume = (1.
+                - sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
+            .clamp(0., 1.)
+            .powi(2);
 
             let right_ear_angle = receiver_transform.right().angle_between(sound_path);
             let panning = (right_ear_angle.cos() + 1.) / 2.;
@@ -58,30 +82,22 @@ impl SpatialAudio {
     }
 }
 
-pub(crate) fn run_spatial_audio(
-    spatial_audio: Res<SpatialAudio>,
-    receiver: Query<&GlobalTransform, With<AudioReceiver>>,
-    emitters: Query<(&GlobalTransform, &AudioEmitter)>,
-    mut audio_instances: ResMut<Assets<AudioInstance>>,
-) {
-    if let Ok(receiver_transform) = receiver.get_single() {
-        spatial_audio.update(receiver_transform, &emitters, &mut audio_instances);
-    }
-}
-
-pub(crate) fn cleanup_stopped_spatial_instances(
+fn cleanup_stopped_spatial_instances(
     mut emitters: Query<&mut AudioEmitter>,
     instances: ResMut<Assets<AudioInstance>>,
 ) {
-    for mut emitter in emitters.iter_mut() {
-        let handles = &mut emitter.instances;
-
-        handles.retain(|handle| {
-            if let Some(instance) = instances.get(handle) {
-                instance.handle.state() != kira::sound::PlaybackState::Stopped
-            } else {
-                true
-            }
+    emitters.iter_mut().for_each(|mut emitter| {
+        emitter.instances.retain(|handle| {
+            instances.get(handle).map_or(true, |instance| {
+                !matches!(instance.handle.state(), kira::sound::PlaybackState::Stopped)
+            })
         });
-    }
+    });
+}
+
+fn spatial_audio_enabled(
+    global: Option<Res<GlobalSpatialRadius>>,
+    local: Query<(), With<SpatialRadius>>,
+) -> bool {
+    global.is_some() || !local.is_empty()
 }
