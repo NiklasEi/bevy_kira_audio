@@ -51,7 +51,6 @@ use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
 pub use source::AudioSource;
-use spatial::{cleanup_stopped_spatial_instances, spatial_audio_enabled};
 
 /// Most commonly used types
 pub mod prelude {
@@ -113,7 +112,6 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use crate::spatial::run_spatial_audio;
 use bevy::prelude::{App, IntoSystemConfigs, Plugin, Resource, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
@@ -170,7 +168,8 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
-        app.init_resource::<DynamicAudioChannels>()
+        app.add_plugins(spatial::SpatialAudioPlugin)
+            .init_resource::<DynamicAudioChannels>()
             .add_systems(
                 PostUpdate,
                 play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
@@ -179,14 +178,7 @@ impl Plugin for AudioPlugin {
                 PreUpdate,
                 cleanup_stopped_instances.in_set(AudioSystemSet::InstanceCleanup),
             )
-            .add_audio_channel::<MainTrack>()
-            .add_systems(
-                PreUpdate,
-                cleanup_stopped_spatial_instances
-                    .in_set(AudioSystemSet::InstanceCleanup)
-                    .run_if(spatial_audio_enabled),
-            )
-            .add_systems(PostUpdate, run_spatial_audio.run_if(spatial_audio_enabled));
+            .add_audio_channel::<MainTrack>();
     }
 }
 

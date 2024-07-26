@@ -1,7 +1,19 @@
-use crate::{AudioInstance, AudioTween};
-use bevy::asset::{Assets, Handle};
-use bevy::ecs::component::Component;
-use bevy::prelude::{GlobalTransform, Query, Res, ResMut, Resource, With};
+use crate::{AudioInstance, AudioSystemSet, AudioTween};
+use bevy::prelude::*;
+
+pub(crate) struct SpatialAudioPlugin;
+
+impl Plugin for SpatialAudioPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            PreUpdate,
+            cleanup_stopped_spatial_instances
+                .in_set(AudioSystemSet::InstanceCleanup)
+                .run_if(spatial_audio_enabled),
+        )
+        .add_systems(PostUpdate, run_spatial_audio.run_if(spatial_audio_enabled));
+    }
+}
 
 /// Component for audio emitters
 ///
@@ -43,7 +55,7 @@ pub struct SpatialRadius {
     pub radius: f32,
 }
 
-pub(crate) fn run_spatial_audio(
+fn run_spatial_audio(
     spatial_audio: Res<GlobalSpatialRadius>,
     receiver: Query<&GlobalTransform, With<AudioReceiver>>,
     emitters: Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
@@ -70,7 +82,7 @@ pub(crate) fn run_spatial_audio(
     }
 }
 
-pub(crate) fn cleanup_stopped_spatial_instances(
+fn cleanup_stopped_spatial_instances(
     mut emitters: Query<&mut AudioEmitter>,
     instances: ResMut<Assets<AudioInstance>>,
 ) {
@@ -83,7 +95,7 @@ pub(crate) fn cleanup_stopped_spatial_instances(
     });
 }
 
-pub(crate) fn spatial_audio_enabled(
+fn spatial_audio_enabled(
     global: Option<Res<GlobalSpatialRadius>>,
     local: Query<(), With<SpatialRadius>>,
 ) -> bool {
