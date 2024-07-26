@@ -74,15 +74,11 @@ pub(crate) fn cleanup_stopped_spatial_instances(
     mut emitters: Query<&mut AudioEmitter>,
     instances: ResMut<Assets<AudioInstance>>,
 ) {
-    for mut emitter in emitters.iter_mut() {
-        let handles = &mut emitter.instances;
-
-        handles.retain(|handle| {
-            if let Some(instance) = instances.get(handle) {
-                instance.handle.state() != kira::sound::PlaybackState::Stopped
-            } else {
-                true
-            }
+    emitters.iter_mut().for_each(|mut emitter| {
+        emitter.instances.retain(|handle| {
+            instances.get(handle).map_or(true, |instance| {
+                !matches!(instance.handle.state(), kira::sound::PlaybackState::Stopped)
+            })
         });
-    }
+    });
 }
