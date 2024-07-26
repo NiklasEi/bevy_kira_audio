@@ -43,18 +43,19 @@ pub struct SpatialRadius {
     pub radius: f32,
 }
 
-impl GlobalSpatialRadius {
-    pub(crate) fn update(
-        &self,
-        receiver_transform: &GlobalTransform,
-        emitters: &Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
-        audio_instances: &mut Assets<AudioInstance>,
-    ) {
-        for (emitter_transform, emitter, range) in emitters {
+pub(crate) fn run_spatial_audio(
+    spatial_audio: Res<GlobalSpatialRadius>,
+    receiver: Query<&GlobalTransform, With<AudioReceiver>>,
+    emitters: Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
+    mut audio_instances: ResMut<Assets<AudioInstance>>,
+) {
+    if let Ok(receiver_transform) = receiver.get_single() {
+        for (emitter_transform, emitter, range) in emitters.iter() {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let volume = (1. - sound_path.length() / range.map_or(self.radius, |r| r.radius))
-                .clamp(0., 1.)
-                .powi(2);
+            let volume = (1.
+                - sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
+            .clamp(0., 1.)
+            .powi(2);
 
             let right_ear_angle = receiver_transform.right().angle_between(sound_path);
             let panning = (right_ear_angle.cos() + 1.) / 2.;
@@ -66,17 +67,6 @@ impl GlobalSpatialRadius {
                 }
             }
         }
-    }
-}
-
-pub(crate) fn run_spatial_audio(
-    spatial_audio: Res<GlobalSpatialRadius>,
-    receiver: Query<&GlobalTransform, With<AudioReceiver>>,
-    emitters: Query<(&GlobalTransform, &AudioEmitter, Option<&SpatialRadius>)>,
-    mut audio_instances: ResMut<Assets<AudioInstance>>,
-) {
-    if let Ok(receiver_transform) = receiver.get_single() {
-        spatial_audio.update(receiver_transform, &emitters, &mut audio_instances);
     }
 }
 
