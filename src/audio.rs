@@ -11,7 +11,7 @@ use bevy::asset::{AssetId, Handle};
 use bevy::ecs::system::Resource;
 use bevy::prelude::{default, IntoSystemConfigs, PostUpdate};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
-use kira::sound::EndPosition;
+use kira::sound::{EndPosition, PlaybackPosition};
 use kira::tween::Value;
 use kira::Volume;
 use std::marker::PhantomData;
@@ -133,11 +133,24 @@ impl PartialSoundSettings {
             sound.settings.playback_rate = playback_rate.into();
         }
         if let Some(start) = self.start_position {
-            sound.settings.playback_region.start = start.into();
+            sound.settings.start_position = PlaybackPosition::Seconds(start);
         }
+
         if let Some(end) = self.end_position {
-            sound.settings.playback_region.end = EndPosition::Custom(end.into());
+            let end_frame = (end * sound.sample_rate as f64).round() as usize;
+
+            if let Some(start) = self.start_position {
+                let start_frame = (start * sound.sample_rate as f64).round() as usize;
+
+                sound.slice = Some((start_frame, end_frame));
+            } else {
+                sound.slice = Some((0, end_frame));
+            }
+        } else if let Some(start) = self.start_position {
+            let start_frame = (start * sound.sample_rate as f64).round() as usize;
+            sound.slice = Some((start_frame, sound.frames.len()));
         }
+
         if let Some(panning) = self.panning {
             sound.settings.panning = Value::Fixed(panning);
         }

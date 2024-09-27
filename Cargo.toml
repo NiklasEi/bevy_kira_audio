@@ -22,10 +22,12 @@ wav = ["kira/wav"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 
 [dependencies]
-bevy = { version = "0.14.0", default-features = false, features = ["bevy_asset"] }
+bevy = { version = "0.14.0", default-features = false, features = [
+    "bevy_asset",
+] }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
-kira = { version = "0.8", default-features = false, features = ["cpal"] }
+kira = { version = "0.9", default-features = false, features = ["cpal"] }
 ron = { version = "0.8", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
@@ -49,7 +51,7 @@ features = [
     "tonemapping_luts",
     "ktx2",
     "zstd",
-    "multi_threaded"
+    "multi_threaded",
 ]
 
 [[example]]
