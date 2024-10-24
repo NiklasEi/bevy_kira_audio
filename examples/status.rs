@@ -49,60 +49,25 @@ fn print_status(audio: Res<Audio>, loop_audio: Res<LoopAudioInstanceHandle>) {
 
 fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     let monogram = asset_server.load("fonts/monogram.ttf");
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
     commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn(Node {
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..Default::default()
-            },
-            background_color: Color::linear_rgba(0., 0., 0., 0.).into(),
-            ..Default::default()
         })
-        .with_children(|parent| {
-            parent.spawn(TextBundle {
-                text: Text {
-                    sections: vec![
-                        TextSection {
-                            value: "Press 'P' to pause\n".to_string(),
-                            style: TextStyle {
-                                font: monogram.clone(),
-                                font_size: 40.0,
-                                color: Color::linear_rgb(0.9, 0.9, 0.9),
-                            },
-                        },
-                        TextSection {
-                            value: "Press 'R' to resume\n".to_string(),
-                            style: TextStyle {
-                                font: monogram.clone(),
-                                font_size: 40.0,
-                                color: Color::linear_rgb(0.9, 0.9, 0.9),
-                            },
-                        },
-                        TextSection {
-                            value: "Press 'S' to stop\n\n".to_string(),
-                            style: TextStyle {
-                                font: monogram.clone(),
-                                font_size: 40.0,
-                                color: Color::linear_rgb(0.9, 0.9, 0.9),
-                            },
-                        },
-                        TextSection {
-                            value: "Check your console for the audio state".to_string(),
-                            style: TextStyle {
-                                font: monogram.clone(),
-                                font_size: 40.0,
-                                color: Color::linear_rgb(0.9, 0.9, 0.9),
-                            },
-                        },
-                    ],
-                    justify: JustifyText::Center,
-                    ..Default::default()
-                },
-                ..Default::default()
-            });
-        });
+        .with_child((Text("Press 'P' to pause\nPress 'R' to resume\nPress 'S' to stop\n\nCheck your console for the audio state".to_owned()),
+            TextFont {
+                font: monogram.clone(),
+                font_size: 40.0,
+                ..default()
+            },
+                TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
+                TextLayout {
+                    justify:JustifyText::Center,
+                    ..default()
+                }
+            ));
 }

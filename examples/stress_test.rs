@@ -1,4 +1,3 @@
-use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
@@ -43,7 +42,11 @@ fn check(
     mut commands: Commands,
 ) {
     if let Some(handle) = handle {
-        if asset_server.get_load_state(handle.0.id()) == Some(LoadState::Loaded) {
+        if asset_server
+            .get_load_state(handle.0.id())
+            .map(|state| state.is_loaded())
+            .unwrap_or(false)
+        {
             commands.insert_resource(AudioHandle(handle.0.clone()));
             commands.remove_resource::<LoadingAudioHandle>();
         }
