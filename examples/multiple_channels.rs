@@ -36,7 +36,7 @@ fn play_pause_button<T: Component + Default>(
     mut channel_state: ResMut<ChannelAudioState<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<PlayPauseButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<PlayPauseButton<T>>>,
     mut play_pause_text: Query<&mut TextSpan, With<PlayPauseButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
@@ -74,7 +74,7 @@ fn stop_button<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<StopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<StopButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if channel_state.stopped {
@@ -102,7 +102,7 @@ fn loop_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<StartLoopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<StartLoopButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if !channel_state.loop_started {
@@ -133,7 +133,7 @@ fn play_sound_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<PlaySoundButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<PlaySoundButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if interaction == &Interaction::Hovered {
@@ -156,7 +156,7 @@ fn volume_buttons<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage, &ChangeVolumeButton<T>)>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode, &ChangeVolumeButton<T>)>,
 ) {
     for (interaction, mut image, volume) in &mut interaction_query {
         image.color = if interaction == &Interaction::Hovered {
@@ -390,7 +390,7 @@ fn spawn_button<T: Component + Clone>(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            UiImage::default().with_color(color),
+            ImageNode::default().with_color(color),
             Button,
         ))
         .insert(marker.clone())
