@@ -2,7 +2,7 @@ use std::time::Duration;
 use std::{io::Cursor, path::PathBuf};
 
 use bevy::asset::io::Reader;
-use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext, ReadAssetBytesError};
+use bevy::asset::{AssetLoader, LoadContext, ReadAssetBytesError};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use kira::sound::{EndPosition, FromFileError, PlaybackPosition, PlaybackRate, Region};
 use kira::tween::Tween;
@@ -127,11 +127,11 @@ impl AssetLoader for SettingsLoader {
     type Settings = ();
     type Error = SettingsLoaderError;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &(),
+        load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;

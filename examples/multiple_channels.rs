@@ -36,8 +36,8 @@ fn play_pause_button<T: Component + Default>(
     mut channel_state: ResMut<ChannelAudioState<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<PlayPauseButton<T>>>,
-    mut play_pause_text: Query<&mut Text, With<PlayPauseButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<PlayPauseButton<T>>>,
+    mut play_pause_text: Query<&mut TextSpan, With<PlayPauseButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if channel_state.stopped {
@@ -48,7 +48,7 @@ fn play_pause_button<T: Component + Default>(
         NORMAL_BUTTON
     };
     let mut text = play_pause_text.single_mut();
-    text.sections.first_mut().unwrap().value = if channel_state.paused {
+    text.0 = if channel_state.paused {
         "Play".to_owned()
     } else {
         "Pause".to_owned()
@@ -74,7 +74,7 @@ fn stop_button<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<StopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<StopButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if channel_state.stopped {
@@ -102,7 +102,7 @@ fn loop_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<StartLoopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<StartLoopButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if !channel_state.loop_started {
@@ -133,7 +133,7 @@ fn play_sound_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage), With<PlaySoundButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<PlaySoundButton<T>>>,
 ) {
     let (interaction, mut image) = interaction_query.single_mut();
     image.color = if interaction == &Interaction::Hovered {
@@ -156,7 +156,7 @@ fn volume_buttons<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut UiImage, &ChangeVolumeButton<T>)>,
+    mut interaction_query: Query<(&Interaction, &mut ImageNode, &ChangeVolumeButton<T>)>,
 ) {
     for (interaction, mut image, volume) in &mut interaction_query {
         image.color = if interaction == &Interaction::Hovered {
@@ -183,10 +183,10 @@ struct LastAction(f64);
 
 impl LastAction {
     fn action(&mut self, time: &Time) -> bool {
-        if time.elapsed_seconds_f64() - self.0 < 0.2 {
+        if time.elapsed_secs_f64() - self.0 < 0.2 {
             return false;
         }
-        self.0 = time.elapsed_seconds_f64();
+        self.0 = time.elapsed_secs_f64();
 
         true
     }
@@ -273,16 +273,13 @@ fn prepare_audio_and_ui(mut commands: Commands, asset_server: ResMut<AssetServer
 
 fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>) {
     let font = asset_server.load("fonts/monogram.ttf");
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                display: Display::Flex,
-                flex_direction: FlexDirection::Column,
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..Default::default()
-            },
+        .spawn(Node {
+            display: Display::Flex,
+            flex_direction: FlexDirection::Column,
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
             ..Default::default()
         })
         .with_children(|parent| {
@@ -298,43 +295,32 @@ fn build_button_row<T: Component + Default + Clone>(
     channel_index: u8,
 ) {
     parent
-        .spawn(NodeBundle {
-            style: Style {
-                display: Display::Flex,
-                flex_direction: FlexDirection::Row,
-                width: Val::Percent(100.),
-                height: Val::Percent(33.3),
-                ..Default::default()
-            },
+        .spawn(Node {
+            display: Display::Flex,
+            flex_direction: FlexDirection::Row,
+            width: Val::Percent(100.),
+            height: Val::Percent(33.3),
             ..Default::default()
         })
         .with_children(|parent| {
             parent
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Px(120.0),
-                        height: Val::Percent(100.),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..Default::default()
-                    },
+                .spawn(Node {
+                    width: Val::Px(120.0),
+                    height: Val::Percent(100.),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
                     ..Default::default()
                 })
                 .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text {
-                            sections: vec![TextSection {
-                                value: format!("Channel {}", 4 - channel_index),
-                                style: TextStyle {
-                                    font_size: 20.0,
-                                    color: Color::linear_rgb(0.9, 0.9, 0.9),
-                                    font: font.clone(),
-                                },
-                            }],
+                    parent.spawn((
+                        Text::new(format!("Channel {}", 4 - channel_index)),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 20.0,
                             ..Default::default()
                         },
-                        ..Default::default()
-                    });
+                        TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
+                    ));
                 });
             spawn_button(
                 parent,
@@ -395,8 +381,8 @@ fn spawn_button<T: Component + Clone>(
     font: Handle<Font>,
 ) {
     parent
-        .spawn(ButtonBundle {
-            style: Style {
+        .spawn((
+            Node {
                 width: Val::Px(100.0),
                 height: Val::Px(65.0),
                 margin: UiRect::all(Val::Auto),
@@ -404,27 +390,22 @@ fn spawn_button<T: Component + Clone>(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            image: UiImage::default().with_color(color),
-            ..Default::default()
-        })
+            ImageNode::default().with_color(color),
+            Button,
+        ))
         .insert(marker.clone())
         .with_children(|parent| {
             parent
-                .spawn(TextBundle {
-                    text: Text {
-                        sections: vec![TextSection {
-                            value: text.to_string(),
-                            style: TextStyle {
-                                font_size: 20.0,
-                                color: Color::linear_rgb(0.9, 0.9, 0.9),
-                                font: font.clone(),
-                            },
-                        }],
-                        justify: JustifyText::Center,
+                .spawn((
+                    Text::new(String::new()),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 20.0,
                         ..Default::default()
                     },
-                    ..Default::default()
-                })
-                .insert(marker);
+                    TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
+                    TextLayout::new_with_justify(JustifyText::Center),
+                ))
+                .with_child((TextSpan::new(text), marker));
         });
 }

@@ -42,4 +42,11 @@ fn play_loop(mut commands: Commands, asset_server: Res<AssetServer>, audio: Res<
         .looped()
         .handle();
     commands.insert_resource(InstanceHandle(handle));
+    commands.spawn(Camera2d);
+    commands.spawn(Text::new(
+        r#"
+    This example demonstrates how to control a single audio instance
+
+    Left-click to toggle the audio"#,
+    ));
 }
