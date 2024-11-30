@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.20.0"
+version = "0.21.0"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -22,34 +22,51 @@ wav = ["kira/wav"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 
 [dependencies]
-bevy = { version = "0.14.0", default-features = false, features = ["bevy_asset"] }
+bevy = { version = "0.15.0", default-features = false, features = ["bevy_asset"] }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
-kira = { version = "0.8", default-features = false, features = ["cpal"] }
+kira = { version = "0.8.7", default-features = false, features = ["cpal"] }
 ron = { version = "0.8", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
 thiserror = "1.0"
 
 [dev-dependencies.bevy]
-version = "0.14.0"
+version = "0.15.0"
 default-features = false
+# default features minus "bevy_audio" and "vorbis"
 features = [
+    "android-game-activity",
+    "animation",
     "bevy_asset",
-    "bevy_winit",
-    "bevy_render",
-    "x11",
-    "bevy_ui",
-    "bevy_text",
+    "bevy_color",
     "bevy_core_pipeline",
-    "bevy_sprite",
+    "bevy_gilrs",
+    "bevy_gizmos",
     "bevy_gltf",
-    "bevy_scene",
+    "bevy_mesh_picking_backend",
     "bevy_pbr",
+    "bevy_picking",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_sprite_picking_backend",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_ui_picking_backend",
+    "bevy_window",
+    "bevy_winit",
+    "custom_cursor",
+    "default_font",
+    "hdr",
+    "multi_threaded",
+    "png",
+    "smaa_luts",
+    "sysinfo_plugin",
     "tonemapping_luts",
-    "ktx2",
-    "zstd",
-    "multi_threaded"
+    "webgl2",
+    "x11",
 ]
 
 [[example]]

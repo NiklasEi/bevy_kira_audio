@@ -1,4 +1,3 @@
-use bevy::ecs::event::ManualEventReader;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
@@ -25,11 +24,10 @@ fn setup(
         .looped()
         .handle();
     commands
-        .spawn(SceneBundle {
-            scene: asset_server.load("models/panStew.glb#Scene0"),
-            transform: Transform::from_xyz(-5.0, 0., 0.),
-            ..default()
-        })
+        .spawn((
+            SceneRoot(asset_server.load("models/panStew.glb#Scene0")),
+            Transform::from_xyz(-5.0, 0., 0.),
+        ))
         .insert(AudioEmitter {
             instances: vec![cooking],
         })
@@ -40,58 +38,40 @@ fn setup(
         .looped()
         .handle();
     commands
-        .spawn(SceneBundle {
-            scene: asset_server.load("models/boxOpen.glb#Scene0"),
-            transform: Transform::from_xyz(10., 0., 0.),
-            ..default()
-        })
+        .spawn((
+            SceneRoot(asset_server.load("models/boxOpen.glb#Scene0")),
+            Transform::from_xyz(10., 0., 0.),
+        ))
         .insert(AudioEmitter {
             instances: vec![elevator_music],
         });
     // Our camera will be the receiver
     commands
-        .spawn(Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.5, 10.0),
-            ..default()
-        })
+        .spawn((Camera3d::default(), Transform::from_xyz(0.0, 0.5, 10.0)))
         .insert(AudioReceiver)
         .insert(FlyCam);
 
     // Other scene setup...
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
+    commands.spawn((
+        PointLight {
             intensity: 1500.0,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        Transform::from_xyz(4.0, 8.0, 4.0),
+    ));
+    commands.spawn( (Text::new("WASD to move horizontally\nSPACE to ascend\nLSHIFT to descend\nESC to grab/release cursor."), TextFont{
+        font:asset_server.load("fonts/monogram.ttf"),
+        font_size: 40.0,
         ..default()
-    });
-    commands.spawn( TextBundle {
-        text: Text {
-            sections: vec![TextSection {
-                value: "WASD to move horizontally\nSPACE to ascend\nLSHIFT to descend\nESC to grab/release cursor.".to_string(),
-                style: TextStyle {
-                    font: asset_server.load("fonts/monogram.ttf"),
-                    font_size: 40.0,
-                    color: Color::linear_rgb(0.9, 0.9, 0.9),
-                },
-            }],
-            ..default()
-        },
-        style: Style {
-            margin: UiRect::all(Val::Px(15.)),
-          ..default()
-        },
-        ..default()
-    });
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid {
+    }, TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
+                    Node {margin: UiRect::all(Val::Px(15.)), ..default()}));
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid {
             half_size: Vec3::new(25., 0., 25.),
-        }),
-        material: materials.add(StandardMaterial::from_color(LinearRgba::GREEN)),
-        ..default()
-    });
+        })),
+        MeshMaterial3d(materials.add(StandardMaterial::from_color(LinearRgba::GREEN))),
+    ));
 }
 
 // only camera handling code from here on...
@@ -142,14 +122,14 @@ fn cursor_grab(
 
 /// Grabs/ungrabs mouse cursor
 fn toggle_grab_cursor(window: &mut Window) {
-    match window.cursor.grab_mode {
+    match window.cursor_options.grab_mode {
         CursorGrabMode::None => {
-            window.cursor.grab_mode = CursorGrabMode::Confined;
-            window.cursor.visible = false;
+            window.cursor_options.grab_mode = CursorGrabMode::Confined;
+            window.cursor_options.visible = false;
         }
         _ => {
-            window.cursor.grab_mode = CursorGrabMode::None;
-            window.cursor.visible = true;
+            window.cursor_options.grab_mode = CursorGrabMode::None;
+            window.cursor_options.visible = true;
         }
     }
 }
@@ -169,7 +149,7 @@ fn player_move(
             let right = Vec3::new(local_z.z, 0., -local_z.x);
 
             for key in keys.get_pressed() {
-                match window.cursor.grab_mode {
+                match window.cursor_options.grab_mode {
                     CursorGrabMode::None => (),
                     _ => match key {
                         KeyCode::KeyW => velocity += forward,
@@ -185,7 +165,7 @@ fn player_move(
 
             velocity = velocity.normalize_or_zero();
 
-            transform.translation += velocity * time.delta_seconds() * SPEED;
+            transform.translation += velocity * time.delta_secs() * SPEED;
         }
     } else {
         warn!("Primary window not found for `player_move`!");
@@ -194,7 +174,6 @@ fn player_move(
 
 #[derive(Resource, Default)]
 struct InputState {
-    reader_motion: ManualEventReader<MouseMotion>,
     pitch: f32,
     yaw: f32,
 }
@@ -203,14 +182,14 @@ struct InputState {
 fn player_look(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
-    motion: Res<Events<MouseMotion>>,
+    mut motion: EventReader<MouseMotion>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         let delta_state = state.as_mut();
         for mut transform in query.iter_mut() {
-            for ev in delta_state.reader_motion.read(&motion) {
-                match window.cursor.grab_mode {
+            for ev in motion.read() {
+                match window.cursor_options.grab_mode {
                     CursorGrabMode::None => (),
                     _ => {
                         // Using smallest of height or width ensures equal vertical and horizontal sensitivity

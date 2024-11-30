@@ -1,4 +1,3 @@
-use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
@@ -34,7 +33,15 @@ fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Au
     // Stop our ears from exploding...
     // Playing multiple sounds in the same frame can get quite loud
     audio.set_volume(0.001);
-    commands.insert_resource(LoadingAudioHandle(asset_server.load("sounds/plop.ogg")))
+    commands.insert_resource(LoadingAudioHandle(asset_server.load("sounds/plop.ogg")));
+
+    commands.spawn(Camera2d);
+    commands.spawn(Text::new(
+        r#"
+    This is a stress test playing 100 sounds every frame
+
+    Milage may vary; be sure to run in release mode!"#,
+    ));
 }
 
 fn check(
@@ -43,7 +50,11 @@ fn check(
     mut commands: Commands,
 ) {
     if let Some(handle) = handle {
-        if asset_server.get_load_state(handle.0.id()) == Some(LoadState::Loaded) {
+        if asset_server
+            .get_load_state(handle.0.id())
+            .map(|state| state.is_loaded())
+            .unwrap_or(false)
+        {
             commands.insert_resource(AudioHandle(handle.0.clone()));
             commands.remove_resource::<LoadingAudioHandle>();
         }

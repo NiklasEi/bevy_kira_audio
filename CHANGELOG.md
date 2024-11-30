@@ -1,8 +1,11 @@
 # Changelog
 
-## v0.21.0
 - add `SpatialRadius` to control spatial audio distance range per entity
 - rename `SpatialAudio` to `GlobalSpatialRadius` and rename it's field `max_distance` to `radius`
+
+
+## v0.21.0 - 30.11.2024
+- Update to Bevy `0.15`
 
 ## v0.20.0 - 04.07.2024
 - Update to Bevy `0.14`

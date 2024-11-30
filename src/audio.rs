@@ -178,7 +178,7 @@ pub struct PlayAudioCommand<'a> {
     pub(crate) que: &'a dyn AudioCommandQue,
 }
 
-impl<'a> Drop for PlayAudioCommand<'a> {
+impl Drop for PlayAudioCommand<'_> {
     fn drop(&mut self) {
         self.que.que(AudioCommand::Play(self.into()));
     }
@@ -328,7 +328,7 @@ pub struct TweenCommand<'a, Fade> {
     _marker: PhantomData<Fade>,
 }
 
-impl<'a, Fade> Drop for TweenCommand<'a, Fade> {
+impl<Fade> Drop for TweenCommand<'_, Fade> {
     fn drop(&mut self) {
         self.que.que(self.kind.to_command(self.tween.take()));
     }
@@ -345,7 +345,7 @@ impl<'a, Fade> TweenCommand<'a, Fade> {
     }
 }
 
-impl<'a> TweenCommand<'a, FadeIn> {
+impl TweenCommand<'_, FadeIn> {
     /// Set how long will the sound fade in linearly.
     pub fn linear_fade_in(&mut self, duration: Duration) -> &mut Self {
         self.tween = Some(AudioTween::linear(duration));
@@ -362,7 +362,7 @@ impl<'a> TweenCommand<'a, FadeIn> {
     }
 }
 
-impl<'a> TweenCommand<'a, FadeOut> {
+impl TweenCommand<'_, FadeOut> {
     /// Set how long will the sound fade out linearly.
     pub fn linear_fade_out(&mut self, duration: Duration) -> &mut Self {
         self.tween = Some(AudioTween::linear(duration));
