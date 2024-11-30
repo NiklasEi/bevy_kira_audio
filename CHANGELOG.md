@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.21.0 - 30.11.2024
+- Update to Bevy `0.15`
+
 ## v0.20.0 - 04.07.2024
 - Update to Bevy `0.14`
 - Asset loaders are now public
