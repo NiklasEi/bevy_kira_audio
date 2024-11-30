@@ -27,7 +27,16 @@ fn channel_control(input: Res<ButtonInput<MouseButton>>, audio: Res<Audio>) {
     }
 }
 
-fn play_loop(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+fn play_loop(mut commands: Commands, asset_server: Res<AssetServer>, audio: Res<Audio>) {
     audio.play(asset_server.load("sounds/loop.ogg")).looped();
     audio.play(asset_server.load("sounds/sound.ogg"));
+    commands.spawn(Camera2d);
+    commands.spawn(Text::new(
+        r#"
+    This example demonstrates how to control an audio channel
+    The audio commands have 2s linear fade in/out
+
+    Left-click to pause the audio
+    Right-click to resume the audio"#,
+    ));
 }
