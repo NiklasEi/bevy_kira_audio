@@ -17,7 +17,7 @@ pub struct AudioSettings {
     /// Note that configuring a channel will cause one command per sound in the channel!
     pub command_capacity: usize,
     /// The maximum number of sounds that can be playing at a time.
-    pub sound_capacity: usize,
+    pub sound_capacity: u16,
 }
 
 impl Default for AudioSettings {

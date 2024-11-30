@@ -14,10 +14,10 @@ use bevy::asset::{Assets, Handle};
 use bevy::ecs::change_detection::{NonSendMut, ResMut};
 use bevy::ecs::system::{NonSend, Res, Resource};
 use bevy::ecs::world::{FromWorld, World};
-use bevy::log::{error, warn};
+use bevy::log::warn;
 use kira::manager::backend::{Backend, DefaultBackend};
 use kira::manager::AudioManager;
-use kira::{sound::PlaybackRate, CommandError, Volume};
+use kira::{sound::PlaybackRate, Volume};
 use std::collections::HashMap;
 
 /// Non-send resource that acts as audio output
@@ -57,15 +57,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances {
                 if let Some(instance) = audio_instances.get_mut(instance.id()) {
-                    match instance.handle.stop(tween) {
-                        Err(CommandError::CommandQueueFull) => {
-                            return AudioCommandResult::Retry;
-                        }
-                        Err(error) => {
-                            error!("Failed to stop instance: {:?}", error);
-                        }
-                        _ => (),
-                    }
+                    instance.handle.stop(tween);
                 }
             }
         }
@@ -84,9 +76,7 @@ impl<B: Backend> AudioOutput<B> {
             for instance in instance_handles.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance.id()) {
                     if kira::sound::PlaybackState::Playing == instance.handle.state() {
-                        if let Err(error) = instance.handle.pause(tween) {
-                            error!("Failed to pause instance: {:?}", error);
-                        }
+                        instance.handle.pause(tween);
                     }
                 }
             }
@@ -116,9 +106,7 @@ impl<B: Backend> AudioOutput<B> {
                         || instance.handle.state() == kira::sound::PlaybackState::Pausing
                         || instance.handle.state() == kira::sound::PlaybackState::Stopping
                     {
-                        if let Err(error) = instance.handle.resume(tween) {
-                            error!("Failed to resume instance: {:?}", error);
-                        }
+                        instance.handle.resume(tween);
                     }
                 }
             }
@@ -142,9 +130,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance.id()) {
-                    if let Err(error) = instance.handle.set_volume(volume, tween) {
-                        error!("Failed to set volume for instance: {:?}", error);
-                    }
+                    instance.handle.set_volume(volume, tween);
                 }
             }
         }
@@ -170,9 +156,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance.id()) {
-                    if let Err(error) = instance.handle.set_panning(panning, tween) {
-                        error!("Failed to set panning for instance: {:?}", error);
-                    }
+                    instance.handle.set_panning(panning, tween);
                 }
             }
         }
@@ -198,9 +182,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
                 if let Some(instance) = audio_instances.get_mut(instance.id()) {
-                    if let Err(error) = instance.handle.set_playback_rate(playback_rate, tween) {
-                        error!("Failed to set playback rate for instance: {:?}", error);
-                    }
+                    instance.handle.set_playback_rate(playback_rate, tween);
                 }
             }
         }
@@ -244,32 +226,17 @@ impl<B: Backend> AudioOutput<B> {
         let mut sound_handle = sound_handle.unwrap();
         if let Some(channel_state) = self.channels.get(channel) {
             if channel_state.paused {
-                if let Err(error) = sound_handle.pause(kira::tween::Tween::default()) {
-                    warn!(
-                        "Failed to pause instance (channel was paused) due to {:?}",
-                        error
-                    );
-                }
+                sound_handle.pause(kira::tween::Tween::default());
                 let playback_rate = partial_sound_settings
                     .playback_rate
                     .unwrap_or(channel_state.playback_rate);
-                if let Err(error) =
-                    sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default())
-                {
-                    error!("Failed to set playback rate for instance: {:?}", error);
-                }
+                sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default());
             }
         }
         if partial_sound_settings.paused {
-            if let Err(error) = sound_handle.pause(kira::tween::Tween::default()) {
-                warn!("Failed to pause instance due to {:?}", error);
-            }
+            sound_handle.pause(kira::tween::Tween::default());
             let playback_rate = partial_sound_settings.playback_rate.unwrap_or(1.0);
-            if let Err(error) =
-                sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default())
-            {
-                error!("Failed to set playback rate for instance: {:?}", error);
-            }
+            sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default());
         }
         audio_instances.insert(
             &instance_handle,
