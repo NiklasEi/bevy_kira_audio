@@ -1,5 +1,7 @@
 # Changelog
 
+- fix spatial audio when position of receiver and emitter are the same ([#135](https://github.com/NiklasEi/bevy_kira_audio/issues/135))
+
 ## v0.21.0 - 30.11.2024
 - Update to Bevy `0.15`
 

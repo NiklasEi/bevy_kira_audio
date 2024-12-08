@@ -1,7 +1,9 @@
 use crate::{AudioInstance, AudioTween};
 use bevy::asset::{Assets, Handle};
 use bevy::ecs::component::Component;
+use bevy::math::Vec3;
 use bevy::prelude::{GlobalTransform, Query, Res, ResMut, Resource, With};
+use std::f32::consts::PI;
 
 /// Component for audio emitters
 ///
@@ -45,7 +47,11 @@ impl SpatialAudio {
                 .clamp(0., 1.)
                 .powi(2);
 
-            let right_ear_angle = receiver_transform.right().angle_between(sound_path);
+            let right_ear_angle = if sound_path == Vec3::ZERO {
+                PI / 2.
+            } else {
+                receiver_transform.right().angle_between(sound_path)
+            };
             let panning = (right_ear_angle.cos() + 1.) / 2.;
 
             for instance in emitter.instances.iter() {
