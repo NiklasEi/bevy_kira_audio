@@ -69,7 +69,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::channel::AudioControl;
     #[doc(hidden)]
-    pub use crate::instance::{AudioCommandError, AudioInstance, AudioInstanceAssetsExt};
+    pub use crate::instance::{AudioInstance, AudioInstanceAssetsExt};
     #[doc(hidden)]
     #[cfg(feature = "flac")]
     pub use crate::source::flac_loader::*;
@@ -92,12 +92,11 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
-        dsp::Frame,
         sound::{
             static_sound::{StaticSoundData, StaticSoundSettings},
             FromFileError, Sound, SoundData,
         },
-        Volume,
+        Frame, Volume,
     };
 }
 
