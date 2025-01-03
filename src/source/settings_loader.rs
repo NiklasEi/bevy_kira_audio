@@ -4,7 +4,7 @@ use std::{io::Cursor, path::PathBuf};
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext, ReadAssetBytesError};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
-use kira::sound::{EndPosition, FromFileError, PlaybackPosition, PlaybackRate, Region};
+use kira::sound::{FromFileError, PlaybackPosition, PlaybackRate, Region};
 use kira::tween::Tween;
 use kira::Volume;
 use serde::Deserialize;
@@ -26,9 +26,9 @@ struct SoundSettings {
     /// Location of the sound file.
     file: PathBuf,
 
-    /// The region of the sound that should be played.
-    #[serde(default = "default_full_file")]
-    pub playback_region: Region,
+    /// The second from which the sound should be started.
+    #[serde(default)]
+    pub start_position: f64,
 
     /// The portion of the sound that should be looped.
     #[serde(default)]
@@ -70,13 +70,6 @@ struct SoundSettings {
     pub fade_in_tween: Option<u64>,
 }
 
-fn default_full_file() -> Region {
-    Region {
-        start: PlaybackPosition::Samples(0),
-        end: EndPosition::EndOfAudio,
-    }
-}
-
 fn default_one() -> f64 {
     1.0
 }
@@ -89,7 +82,7 @@ impl From<SoundSettings> for StaticSoundSettings {
     fn from(settings: SoundSettings) -> Self {
         let mut static_sound_settings = StaticSoundSettings::new();
 
-        static_sound_settings.playback_region = settings.playback_region;
+        static_sound_settings.start_position = PlaybackPosition::Seconds(settings.start_position);
         static_sound_settings.volume = Volume::from(settings.volume).into();
         static_sound_settings.playback_rate = PlaybackRate::from(settings.playback_rate).into();
         static_sound_settings.panning = settings.panning.into();
@@ -140,7 +133,8 @@ impl AssetLoader for SettingsLoader {
             .read_asset_bytes(sound_settings.file.clone())
             .await?;
 
-        let sound = StaticSoundData::from_cursor(Cursor::new(sound_bytes), sound_settings.into())?;
+        let mut sound = StaticSoundData::from_cursor(Cursor::new(sound_bytes))?;
+        sound.settings = sound_settings.into();
 
         Ok(AudioSource { sound })
     }

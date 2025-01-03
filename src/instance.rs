@@ -2,8 +2,7 @@ use crate::{AudioTween, PlaybackState};
 use bevy::asset::{Asset, Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
 use kira::tween::Value;
-use kira::{CommandError, Volume};
-use thiserror::Error;
+use kira::Volume;
 
 #[derive(Asset, bevy::reflect::TypePath)]
 /// Asset for direct audio control
@@ -11,50 +10,20 @@ pub struct AudioInstance {
     pub(crate) handle: StaticSoundHandle,
 }
 
-/// Errors that can occur when directly controlling audio
-#[derive(Error, Debug)]
-pub enum AudioCommandError {
-    /// The audio command que of the audio manager is full
-    #[error("the audio thread could not handle the command, because its command que is full")]
-    CommandQueueFull,
-
-    /// Something went wrong when handling the command in the audio thread
-    #[error("an error occurred while handling the command in the audio thread")]
-    AudioThreadError,
-}
-
-impl From<CommandError> for AudioCommandError {
-    fn from(kira_error: CommandError) -> Self {
-        match kira_error {
-            CommandError::CommandQueueFull => AudioCommandError::CommandQueueFull,
-            _ => AudioCommandError::AudioThreadError,
-        }
-    }
-}
-
 impl AudioInstance {
     /// Pause the audio instance with the given easing
-    pub fn pause(&mut self, tween: AudioTween) -> Option<AudioCommandError> {
-        self.handle
-            .pause(tween.into())
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn pause(&mut self, tween: AudioTween) {
+        self.handle.pause(tween.into());
     }
 
     /// Resume the audio instance with the given easing
-    pub fn resume(&mut self, tween: AudioTween) -> Option<AudioCommandError> {
-        self.handle
-            .resume(tween.into())
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn resume(&mut self, tween: AudioTween) {
+        self.handle.resume(tween.into());
     }
 
     /// Stop the audio instance with the given easing
-    pub fn stop(&mut self, tween: AudioTween) -> Option<AudioCommandError> {
-        self.handle
-            .stop(tween.into())
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn stop(&mut self, tween: AudioTween) {
+        self.handle.stop(tween.into());
     }
 
     /// Get the state of the audio instance
@@ -65,30 +34,16 @@ impl AudioInstance {
     /// Set the volume of the audio instance
     ///
     /// Default is `1.0`
-    pub fn set_volume(
-        &mut self,
-        volume: impl Into<Value<Volume>>,
-        tween: AudioTween,
-    ) -> Option<AudioCommandError> {
-        self.handle
-            .set_volume(volume, tween.into())
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn set_volume(&mut self, volume: impl Into<Value<Volume>>, tween: AudioTween) {
+        self.handle.set_volume(volume, tween.into());
     }
 
     /// Sets the playback rate of the sound.
     ///
     /// Changing the playback rate will change both the speed
     /// and pitch of the sound.
-    pub fn set_playback_rate(
-        &mut self,
-        playback_rate: f64,
-        tween: AudioTween,
-    ) -> Option<AudioCommandError> {
-        self.handle
-            .set_playback_rate(playback_rate, tween.into())
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn set_playback_rate(&mut self, playback_rate: f64, tween: AudioTween) {
+        self.handle.set_playback_rate(playback_rate, tween.into());
     }
 
     /// Sets the panning of the sound
@@ -96,27 +51,18 @@ impl AudioInstance {
     /// `0.0` is hard left,
     /// `0.5` is center (default)
     /// `1.0` is hard right.
-    pub fn set_panning(&mut self, panning: f64, tween: AudioTween) -> Option<AudioCommandError> {
-        self.handle
-            .set_panning(panning, tween.into())
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn set_panning(&mut self, panning: f64, tween: AudioTween) {
+        self.handle.set_panning(panning, tween.into());
     }
 
     /// Sets the playback position to the specified time in seconds.
-    pub fn seek_to(&mut self, position: f64) -> Option<AudioCommandError> {
-        self.handle
-            .seek_to(position)
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn seek_to(&mut self, position: f64) {
+        self.handle.seek_to(position);
     }
 
     /// Moves the playback position by the specified amount of time in seconds.
-    pub fn seek_by(&mut self, amount: f64) -> Option<AudioCommandError> {
-        self.handle
-            .seek_by(amount)
-            .err()
-            .map(|kira_error| kira_error.into())
+    pub fn seek_by(&mut self, amount: f64) {
+        self.handle.seek_by(amount);
     }
 }
 
