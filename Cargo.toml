@@ -20,6 +20,7 @@ mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 wav = ["kira/wav"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
+android_shared_stdcxx = ["kira/android_shared_stdcxx"]
 
 [dependencies]
 bevy = { version = "0.15.0", default-features = false, features = ["bevy_asset"] }
