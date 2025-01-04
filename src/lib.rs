@@ -51,6 +51,10 @@ use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
 pub use source::AudioSource;
+pub use spatial::{
+    DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
+    SpatialRadius,
+};
 
 /// Most commonly used types
 pub mod prelude {
@@ -87,7 +91,10 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
-    pub use crate::spatial::{AudioEmitter, AudioReceiver, GlobalSpatialRadius, SpatialRadius};
+    pub use crate::spatial::{
+        DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
+        SpatialRadius,
+    };
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
@@ -167,8 +174,7 @@ impl Plugin for AudioPlugin {
         #[cfg(feature = "settings_loader")]
         app.init_asset_loader::<SettingsLoader>();
 
-        app.add_plugins(spatial::SpatialAudioPlugin)
-            .init_resource::<DynamicAudioChannels>()
+        app.init_resource::<DynamicAudioChannels>()
             .add_systems(
                 PostUpdate,
                 play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
