@@ -6,7 +6,6 @@ use bevy_kira_audio::prelude::*;
 /// This example demonstrates the basic spatial audio support in `bevy_kira_audio`.
 /// It adds `SpatialAudioPlugin` then spawns entities with `SpatialAudioEmitter`
 /// and a receiver with the `SpatialAudioReceiver` component.
-
 fn main() {
     App::new()
         .add_plugins((
