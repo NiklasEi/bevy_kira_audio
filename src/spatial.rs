@@ -103,9 +103,10 @@ fn run_spatial_audio(
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
             let progress = (sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
                 .clamp(0., 1.);
-            let volume: f32 = (1.
-                - EasingCurve::new(0., 1., damping_curve.0).sample_unchecked(progress))
-            .clamp(0., 1.);
+            let volume: f32 = 1.
+                - EasingCurve::new(0., 1., damping_curve.0)
+                    .sample_unchecked(progress)
+                    .clamp(0., 1.);
 
             let right_ear_angle = if sound_path == Vec3::ZERO {
                 PI / 2.
