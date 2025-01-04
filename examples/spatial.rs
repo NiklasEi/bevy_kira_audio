@@ -3,10 +3,17 @@ use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 use bevy_kira_audio::prelude::*;
 
+/// This example demonstrates the basic spatial audio support in `bevy_kira_audio`.
+/// It adds `SpatialAudioPlugin` then spawns entities with `SpatialAudioEmitter`
+/// and a receiver with the `SpatialAudioReceiver` component.
 fn main() {
     App::new()
-        .insert_resource(SpatialAudio { max_distance: 25. })
-        .add_plugins((DefaultPlugins, AudioPlugin, CameraPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            AudioPlugin,
+            SpatialAudioPlugin,
+            CameraPlugin,
+        ))
         .add_systems(Startup, setup)
         .run();
 }
@@ -23,31 +30,33 @@ fn setup(
         .play(asset_server.load("sounds/cooking.ogg"))
         .looped()
         .handle();
-    commands
-        .spawn((
-            SceneRoot(asset_server.load("models/panStew.glb#Scene0")),
-            Transform::from_xyz(-5.0, 0., 0.),
-        ))
-        .insert(AudioEmitter {
+    commands.spawn((
+        SceneRoot(asset_server.load("models/panStew.glb#Scene0")),
+        Transform::from_xyz(-5.0, 0., 0.),
+        SpatialAudioEmitter {
             instances: vec![cooking],
-        });
+        },
+        // at a distance of more than 10, we will not hear this emitter anymore
+        SpatialRadius { radius: 10.0 },
+    ));
     // Emitter Nr. 2
     let elevator_music = audio
         .play(asset_server.load("sounds/loop.ogg"))
         .looped()
         .handle();
-    commands
-        .spawn((
-            SceneRoot(asset_server.load("models/boxOpen.glb#Scene0")),
-            Transform::from_xyz(10., 0., 0.),
-        ))
-        .insert(AudioEmitter {
+    commands.spawn((
+        SceneRoot(asset_server.load("models/boxOpen.glb#Scene0")),
+        Transform::from_xyz(10., 0., 0.),
+        SpatialAudioEmitter {
             instances: vec![elevator_music],
-        });
-    // Our camera will be the receiver
+        },
+    ));
+    // If an emitter has no SpatialRadius, the resource DefaultSpatialRadius is used instead.
+    // It defaults to a spatial radius of 25.
+    // Our camera will be the receiver.
     commands
         .spawn((Camera3d::default(), Transform::from_xyz(0.0, 0.5, 10.0)))
-        .insert(AudioReceiver)
+        .insert(SpatialAudioReceiver)
         .insert(FlyCam);
 
     // Other scene setup...

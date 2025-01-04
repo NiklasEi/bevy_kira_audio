@@ -1,51 +1,99 @@
-use crate::{AudioInstance, AudioTween};
+use crate::{AudioInstance, AudioSystemSet, AudioTween};
+use bevy::app::{App, Plugin, PostUpdate, PreUpdate};
 use bevy::asset::{Assets, Handle};
 use bevy::ecs::component::Component;
+use bevy::ecs::{
+    change_detection::{Res, ResMut},
+    query::With,
+    schedule::IntoSystemConfigs,
+    system::{Query, Resource},
+};
 use bevy::math::Vec3;
-use bevy::prelude::{GlobalTransform, Query, Res, ResMut, Resource, With};
+use bevy::transform::components::{GlobalTransform, Transform};
 use std::f32::consts::PI;
+
+/// This plugin adds basic spatial audio.
+///
+/// Add `SpatialAudioEmitter` components to entities that emit spacial audio.
+/// One entity, usually the "Player" or the Camera should get the `SpatialAudioReceiver` component.
+///
+/// See the `spacial` example of `bevy_kira_audio`.
+pub struct SpatialAudioPlugin;
+
+impl Plugin for SpatialAudioPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<DefaultSpatialRadius>()
+            .add_systems(
+                PreUpdate,
+                cleanup_stopped_spatial_instances.in_set(AudioSystemSet::InstanceCleanup),
+            )
+            .add_systems(PostUpdate, run_spatial_audio);
+    }
+}
 
 /// Component for audio emitters
 ///
 /// Add [`Handle<AudioInstance>`]s to control their pan and volume based on emitter
 /// and receiver positions.
-#[derive(Component, Default)]
-pub struct AudioEmitter {
+#[derive(Component)]
+#[require(Transform)]
+pub struct SpatialAudioEmitter {
     /// Audio instances that are played by this emitter
     ///
     /// The same instance should only be on one emitter.
     pub instances: Vec<Handle<AudioInstance>>,
 }
 
-/// Component for the audio receiver
+/// Component for the spatial audio receiver.
 ///
 /// Most likely you will want to add this component to your player or you camera.
-/// The entity needs a [`Transform`] and [`GlobalTransform`]. The view direction of the [`GlobalTransform`]
-/// will
+/// There can only ever be one entity with this component at a given time!
 #[derive(Component)]
-pub struct AudioReceiver;
+#[require(Transform)]
+pub struct SpatialAudioReceiver;
 
-/// Configuration resource for spatial audio
+/// Configuration resource for global spatial audio radius
 ///
-/// If this resource is not added to the ECS, spatial audio is not applied.
+/// This resource has to exist for spatial audio and will be initialized by the `SpatialAudioPlugin`.
+/// If an emitter does not have a `SpatialRadius`, the `GlobalSpatialRadius` is used.
 #[derive(Resource)]
-pub struct SpatialAudio {
-    /// The volume will change from `1` at distance `0` to `0` at distance `max_distance`
-    pub max_distance: f32,
+pub struct DefaultSpatialRadius {
+    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
+    pub radius: f32,
 }
 
-impl SpatialAudio {
-    pub(crate) fn update(
-        &self,
-        receiver_transform: &GlobalTransform,
-        emitters: &Query<(&GlobalTransform, &AudioEmitter)>,
-        audio_instances: &mut Assets<AudioInstance>,
-    ) {
-        for (emitter_transform, emitter) in emitters {
+impl Default for DefaultSpatialRadius {
+    fn default() -> Self {
+        Self { radius: 25.0 }
+    }
+}
+
+/// Component for per-entity spatial audio radius
+///
+/// If an emitter does not have this component, the [`DefaultSpatialRadius`] is used instead.
+#[derive(Component)]
+pub struct SpatialRadius {
+    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
+    pub radius: f32,
+}
+
+fn run_spatial_audio(
+    spatial_audio: Res<DefaultSpatialRadius>,
+    receiver: Query<&GlobalTransform, With<SpatialAudioReceiver>>,
+    emitters: Query<(
+        &GlobalTransform,
+        &SpatialAudioEmitter,
+        Option<&SpatialRadius>,
+    )>,
+    mut audio_instances: ResMut<Assets<AudioInstance>>,
+) {
+    if let Ok(receiver_transform) = receiver.get_single() {
+        for (emitter_transform, emitter, range) in emitters.iter() {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let volume = (1. - sound_path.length() / self.max_distance)
-                .clamp(0., 1.)
-                .powi(2);
+            let volume = (1.
+                - sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
+            .clamp(0., 1.)
+            .powi(2);
 
             let right_ear_angle = if sound_path == Vec3::ZERO {
                 PI / 2.
@@ -64,30 +112,15 @@ impl SpatialAudio {
     }
 }
 
-pub(crate) fn run_spatial_audio(
-    spatial_audio: Res<SpatialAudio>,
-    receiver: Query<&GlobalTransform, With<AudioReceiver>>,
-    emitters: Query<(&GlobalTransform, &AudioEmitter)>,
-    mut audio_instances: ResMut<Assets<AudioInstance>>,
-) {
-    if let Ok(receiver_transform) = receiver.get_single() {
-        spatial_audio.update(receiver_transform, &emitters, &mut audio_instances);
-    }
-}
-
-pub(crate) fn cleanup_stopped_spatial_instances(
-    mut emitters: Query<&mut AudioEmitter>,
+fn cleanup_stopped_spatial_instances(
+    mut emitters: Query<&mut SpatialAudioEmitter>,
     instances: ResMut<Assets<AudioInstance>>,
 ) {
-    for mut emitter in emitters.iter_mut() {
-        let handles = &mut emitter.instances;
-
-        handles.retain(|handle| {
-            if let Some(instance) = instances.get(handle) {
-                instance.handle.state() != kira::sound::PlaybackState::Stopped
-            } else {
-                true
-            }
+    emitters.iter_mut().for_each(|mut emitter| {
+        emitter.instances.retain(|handle| {
+            instances.get(handle).map_or(true, |instance| {
+                !matches!(instance.handle.state(), kira::sound::PlaybackState::Stopped)
+            })
         });
-    }
+    });
 }

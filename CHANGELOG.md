@@ -4,6 +4,8 @@
   - removed `playback_region` from `SoundSettings`
 - Add `android_shared_stdcxx` feature for Android Builds
 - fix spatial audio when position of receiver and emitter are the same ([#135](https://github.com/NiklasEi/bevy_kira_audio/issues/135))
+- add `SpatialRadius` to control spatial audio distance range per entity
+- rename `SpatialAudio` to `GlobalSpatialRadius` and rename it's field `max_distance` to `radius`
 
 ## v0.21.0 - 30.11.2024
 - Update to Bevy `0.15`
