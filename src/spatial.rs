@@ -8,7 +8,8 @@ use bevy::ecs::{
     schedule::IntoSystemConfigs,
     system::{Query, Resource},
 };
-use bevy::math::Vec3;
+use bevy::math::{Curve, Vec3};
+use bevy::prelude::{EaseFunction, EasingCurve};
 use bevy::transform::components::{GlobalTransform, Transform};
 use std::f32::consts::PI;
 
@@ -36,7 +37,7 @@ impl Plugin for SpatialAudioPlugin {
 /// Add [`Handle<AudioInstance>`]s to control their pan and volume based on emitter
 /// and receiver positions.
 #[derive(Component)]
-#[require(Transform)]
+#[require(Transform, SpatialDampingCurve)]
 pub struct SpatialAudioEmitter {
     /// Audio instances that are played by this emitter
     ///
@@ -77,23 +78,34 @@ pub struct SpatialRadius {
     pub radius: f32,
 }
 
+#[derive(Component)]
+struct SpatialDampingCurve(EaseFunction);
+
+impl Default for SpatialDampingCurve {
+    fn default() -> Self {
+        SpatialDampingCurve(EaseFunction::Linear)
+    }
+}
+
 fn run_spatial_audio(
     spatial_audio: Res<DefaultSpatialRadius>,
     receiver: Query<&GlobalTransform, With<SpatialAudioReceiver>>,
     emitters: Query<(
         &GlobalTransform,
         &SpatialAudioEmitter,
+        &SpatialDampingCurve,
         Option<&SpatialRadius>,
     )>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
     if let Ok(receiver_transform) = receiver.get_single() {
-        for (emitter_transform, emitter, range) in emitters.iter() {
+        for (emitter_transform, emitter, damping_curve, range) in emitters.iter() {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let volume = (1.
-                - sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
-            .clamp(0., 1.)
-            .powi(2);
+            let progress = (sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
+                .clamp(0., 1.);
+            let volume: f32 = (1.
+                - EasingCurve::new(0., 1., damping_curve.0).sample_unchecked(progress))
+            .clamp(0., 1.);
 
             let right_ear_angle = if sound_path == Vec3::ZERO {
                 PI / 2.

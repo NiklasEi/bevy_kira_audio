@@ -1,11 +1,12 @@
 # Changelog
 
-- update Kira to 0.9
-  - removed `playback_region` from `SoundSettings`
+- Update Kira to 0.9
+  - Removed `playback_region` from `SoundSettings`
 - Add `android_shared_stdcxx` feature for Android Builds
-- fix spatial audio when position of receiver and emitter are the same ([#135](https://github.com/NiklasEi/bevy_kira_audio/issues/135))
-- add `SpatialRadius` to control spatial audio distance range per entity
-- rename `SpatialAudio` to `GlobalSpatialRadius` and rename it's field `max_distance` to `radius`
+- Fix spatial audio when position of receiver and emitter are the same ([#135](https://github.com/NiklasEi/bevy_kira_audio/issues/135))
+- Add `SpatialRadius` to control spatial audio distance range per entity
+- Rename `SpatialAudio` to `GlobalSpatialRadius` and rename its field `max_distance` to `radius`
+- Add `SpatialDampingCurve` component to control the damping of spatial audio over distance using Bevy easing functions
 
 ## v0.21.0 - 30.11.2024
 - Update to Bevy `0.15`
