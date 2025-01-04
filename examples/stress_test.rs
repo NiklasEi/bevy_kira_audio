@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
 /// This example needs to be played in release mode! `cargo run --example stress_test --release`
-/// A large amount (75) of sounds will be played in every frame.
+/// A large amount (100) of sounds will be played in every frame.
 ///
 /// The main objective here is to demonstrate that the plugin and Kira can handle
 /// large sound volumes over a longer period of time.

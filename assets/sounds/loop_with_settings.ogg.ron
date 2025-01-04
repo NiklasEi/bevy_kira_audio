@@ -3,7 +3,7 @@
     file: "sounds/loop.ogg",
 
     // Start sound at 2 seconds
-    playback_region: Region(start: Seconds(2.), end: EndOfAudio),
+    start_position: 2.,
     // Half amplitude
     volume: 0.5,
     // Play 50% faster (this also changes the pitch)

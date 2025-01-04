@@ -18,6 +18,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub(crate) enum AudioCommand {
     Play(PlayAudioSettings),
     SetVolume(Volume, Option<AudioTween>),
@@ -28,14 +29,13 @@ pub(crate) enum AudioCommand {
     Resume(Option<AudioTween>),
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct PartialSoundSettings {
     pub(crate) loop_start: Option<f64>,
     pub(crate) loop_end: Option<f64>,
     pub(crate) volume: Option<Volume>,
     pub(crate) playback_rate: Option<f64>,
     pub(crate) start_position: Option<f64>,
-    pub(crate) end_position: Option<f64>,
     pub(crate) panning: Option<f64>,
     pub(crate) reverse: Option<bool>,
     pub(crate) paused: bool,
@@ -45,10 +45,10 @@ pub(crate) struct PartialSoundSettings {
 /// Different kinds of easing for fade-in and fade-out
 pub type AudioEasing = kira::tween::Easing;
 
-#[derive(Clone)]
 /// A tween for audio transitions
 ///
 /// Use the default for almost instantaneous transitions without audio artifacts
+#[derive(Clone, Debug)]
 pub struct AudioTween {
     duration: Duration,
     easing: AudioEasing,
@@ -133,10 +133,7 @@ impl PartialSoundSettings {
             sound.settings.playback_rate = playback_rate.into();
         }
         if let Some(start) = self.start_position {
-            sound.settings.playback_region.start = start.into();
-        }
-        if let Some(end) = self.end_position {
-            sound.settings.playback_region.end = EndPosition::Custom(end.into());
+            sound.settings.start_position = start.into();
         }
         if let Some(panning) = self.panning {
             sound.settings.panning = Value::Fixed(panning);
@@ -154,6 +151,7 @@ impl PartialSoundSettings {
     }
 }
 
+#[derive(Debug)]
 pub struct PlayAudioSettings {
     pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
@@ -240,13 +238,6 @@ impl<'a> PlayAudioCommand<'a> {
     /// Start the sound from the given position in seconds.
     pub fn start_from(&mut self, start_position: f64) -> &mut Self {
         self.settings.start_position = Some(start_position);
-
-        self
-    }
-
-    /// End the sound at the given position in seconds.
-    pub fn end_at(&mut self, end_position: f64) -> &mut Self {
-        self.settings.end_position = Some(end_position);
 
         self
     }

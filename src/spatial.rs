@@ -1,5 +1,16 @@
 use crate::{AudioInstance, AudioSystemSet, AudioTween};
-use bevy::prelude::*;
+use bevy::app::{App, Plugin, PostUpdate, PreUpdate};
+use bevy::asset::{Assets, Handle};
+use bevy::ecs::component::Component;
+use bevy::ecs::{
+    change_detection::{Res, ResMut},
+    query::With,
+    schedule::IntoSystemConfigs,
+    system::{Query, Resource},
+};
+use bevy::math::Vec3;
+use bevy::transform::components::GlobalTransform;
+use std::f32::consts::PI;
 
 pub(crate) struct SpatialAudioPlugin;
 
@@ -69,7 +80,11 @@ fn run_spatial_audio(
             .clamp(0., 1.)
             .powi(2);
 
-            let right_ear_angle = receiver_transform.right().angle_between(sound_path);
+            let right_ear_angle = if sound_path == Vec3::ZERO {
+                PI / 2.
+            } else {
+                receiver_transform.right().angle_between(sound_path)
+            };
             let panning = (right_ear_angle.cos() + 1.) / 2.;
 
             for instance in emitter.instances.iter() {

@@ -20,12 +20,13 @@ mp3 = ["kira/mp3"]
 ogg = ["kira/ogg"]
 wav = ["kira/wav"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
+android_shared_stdcxx = ["kira/android_shared_stdcxx"]
 
 [dependencies]
 bevy = { version = "0.15.0", default-features = false, features = ["bevy_asset"] }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
-kira = { version = "0.8.7", default-features = false, features = ["cpal"] }
+kira = { version = "0.9.6", default-features = false, features = ["cpal"] }
 ron = { version = "0.8", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
-use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
+use kira::sound::static_sound::StaticSoundData;
 use kira::sound::FromFileError;
 use std::io::Cursor;
 use thiserror::Error;
@@ -37,8 +37,7 @@ impl AssetLoader for Mp3Loader {
     ) -> Result<Self::Asset, Self::Error> {
         let mut sound_bytes = vec![];
         reader.read_to_end(&mut sound_bytes).await?;
-        let sound =
-            StaticSoundData::from_cursor(Cursor::new(sound_bytes), StaticSoundSettings::default())?;
+        let sound = StaticSoundData::from_cursor(Cursor::new(sound_bytes))?;
         Ok(AudioSource { sound })
     }
 
