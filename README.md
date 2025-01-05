@@ -91,7 +91,7 @@ Compatibility of `bevy_kira_audio` versions:
 
 | Bevy version | `bevy_kira_audio` version |
 |:-------------|:--------------------------|
-| `0.15`       | `0.21`                    |
+| `0.15`       | `0.21` - `0.22`           |
 | `0.14`       | `0.20`                    |
 | `0.13`       | `0.19`                    |
 | `0.12`       | `0.18`                    |
