@@ -1,5 +1,6 @@
 # Changelog
 
+## v0.22.0 - 05.01.2025
 - Update Kira to 0.9
   - Removed `playback_region` from `SoundSettings`
 - Add `android_shared_stdcxx` feature for Android Builds
