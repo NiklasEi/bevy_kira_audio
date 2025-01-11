@@ -103,7 +103,7 @@ Compatibility of `bevy_kira_audio` versions:
 | `0.6`        | `0.8`                     |
 | `0.5`        | `0.4` - `0.7`             |
 | `0.4`        | `0.3`                     |
-| `0.13`       | `main`                    |
+| `0.15`       | `main`                    |
 | `main`       | `bevy_main`               |
 
 ## License
