@@ -5,11 +5,12 @@ use bevy::ecs::component::Component;
 use bevy::ecs::{
     change_detection::{Res, ResMut},
     query::With,
-    schedule::IntoSystemConfigs,
-    system::{Query, Resource},
+    resource::Resource,
+    schedule::IntoScheduleConfigs,
+    system::Query,
 };
-use bevy::math::{Curve, Vec3};
-use bevy::prelude::{EaseFunction, EasingCurve};
+use bevy::math::Vec3;
+use bevy::prelude::{Curve, EaseFunction, EasingCurve};
 use bevy::transform::components::{GlobalTransform, Transform};
 use std::f32::consts::PI;
 
@@ -98,7 +99,7 @@ fn run_spatial_audio(
     )>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
-    if let Ok(receiver_transform) = receiver.get_single() {
+    if let Ok(receiver_transform) = receiver.single() {
         for (emitter_transform, emitter, damping_curve, range) in emitters.iter() {
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
             let progress = (sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))

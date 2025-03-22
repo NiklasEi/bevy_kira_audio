@@ -108,7 +108,7 @@ impl Plugin for CameraPlugin {
 }
 
 fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = primary_window.get_single_mut() {
+    if let Ok(mut window) = primary_window.single_mut() {
         toggle_grab_cursor(&mut window);
     } else {
         warn!("Primary window not found for `initial_grab_cursor`!");
@@ -119,7 +119,7 @@ fn cursor_grab(
     keys: Res<ButtonInput<KeyCode>>,
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
 ) {
-    if let Ok(mut window) = primary_window.get_single_mut() {
+    if let Ok(mut window) = primary_window.single_mut() {
         if keys.just_pressed(KeyCode::Escape) {
             toggle_grab_cursor(&mut window);
         }
@@ -149,7 +149,7 @@ fn player_move(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for mut transform in query.iter_mut() {
             let mut velocity = Vec3::ZERO;
             let local_z = transform.local_z();
@@ -193,7 +193,7 @@ fn player_look(
     mut motion: EventReader<MouseMotion>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         let delta_state = state.as_mut();
         for mut transform in query.iter_mut() {
             for ev in motion.read() {
