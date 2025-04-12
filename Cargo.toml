@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.23.0-rc.1"
+version = "0.23.0-rc.2"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -23,7 +23,7 @@ settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 android_shared_stdcxx = ["kira/android_shared_stdcxx"]
 
 [dependencies]
-bevy = { version = "0.16.0-rc.1", default-features = false, features = ["std", "bevy_asset", "bevy_log"] }
+bevy = { version = "0.16.0-rc.4", default-features = false, features = ["std", "bevy_asset"] }
 bevy_math = { version = "0.16.0-rc.1" }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
