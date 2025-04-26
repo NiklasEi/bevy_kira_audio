@@ -7,7 +7,7 @@ use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{AssetId, Handle};
 use bevy::ecs::resource::Resource;
-use bevy::platform_support::collections::HashMap;
+use bevy::platform::collections::HashMap;
 use kira::Volume;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
