@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.22.0"
+version = "0.23.0"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -23,7 +23,8 @@ settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 android_shared_stdcxx = ["kira/android_shared_stdcxx"]
 
 [dependencies]
-bevy = { version = "0.15.0", default-features = false, features = ["bevy_asset"] }
+bevy = { version = "0.16.0", default-features = false, features = ["std", "bevy_asset", "bevy_log"] }
+bevy_math = { version = "0.16.0" }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
 kira = { version = "0.9.6", default-features = false, features = ["cpal"] }
@@ -33,7 +34,7 @@ parking_lot = "0.12"
 thiserror = "2"
 
 [dev-dependencies.bevy]
-version = "0.15.0"
+version = "0.16.0"
 default-features = false
 # default features minus "bevy_audio" and "vorbis"
 features = [

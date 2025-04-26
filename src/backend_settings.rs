@@ -1,4 +1,4 @@
-use bevy::ecs::system::Resource;
+use bevy::ecs::resource::Resource;
 use bevy::utils::default;
 use kira::manager::backend::DefaultBackend;
 use kira::manager::{AudioManagerSettings, Capacities};

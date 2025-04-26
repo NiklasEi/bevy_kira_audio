@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.23.0 - 26.04.2025
+- Update to Bevy `0.16`
+
 ## v0.22.0 - 05.01.2025
 - Update Kira to 0.9
   - Removed `playback_region` from `SoundSettings`
