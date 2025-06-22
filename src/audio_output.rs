@@ -486,8 +486,6 @@ fn process_channel_commands(
 
             // If playing the sound gave us a valid handle from Kira...
             if let Some(kira_handle) = new_kira_handle {
-                // --- THIS IS THE FIX ---
-                // 1. Insert the Bevy asset using the handle from the original command.
                 audio_instances.insert(
                     &play_args.instance_handle,
                     AudioInstance {
@@ -495,7 +493,6 @@ fn process_channel_commands(
                     },
                 );
 
-                // 2. Add a clone of that same handle to our tracking list for the channel.
                 audio_output
                     .instances
                     .entry(channel_id.clone())
@@ -562,7 +559,7 @@ mod test {
             _ => panic!("Wrong audio command"),
         }
 
-        // The *first* command we issued (`audio_handle_one`) will be next.
+        // The first command we issued (`audio_handle_one`) will be next.
         let command_one = commands.pop_front().unwrap();
         match command_one {
             AudioCommand::Play(settings) => {

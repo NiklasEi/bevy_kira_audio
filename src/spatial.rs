@@ -32,7 +32,7 @@ impl Plugin for SpatialAudioPlugin {
 
 /// Component for audio emitters
 ///
-/// Add [`Handle<AudioInstance>`]s to control their pan and volume based on emitter
+/// Add EmitterSettings to control distance and attenuation
 /// and receiver positions.
 #[derive(Component)]
 #[require(Transform)]
@@ -81,7 +81,7 @@ fn emitter_added(mut world: DeferredWorld, context: HookContext) {
         .get::<GlobalTransform>(context.entity)
         .cloned()
         .unwrap_or_default();
-    // Check if the entity also has our new EmitterSettings component.
+    // Check if the entity also has the EmitterSettings component.
     let emitter_settings = world
         .get::<EmitterSettings>(context.entity)
         .cloned()
@@ -110,7 +110,7 @@ fn emitter_added(mut world: DeferredWorld, context: HookContext) {
             return;
         };
 
-        // Create a builder and apply the settings from our component.
+        // Create a builder and apply the settings from the component.
         let builder = SpatialTrackBuilder::new()
             .distances(emitter_settings.distances) // Set the falloff distance
             .attenuation_function(emitter_settings.attenuation_function); // Set the falloff curve

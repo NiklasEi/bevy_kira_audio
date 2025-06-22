@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
+use kira::Capacities;
 
 /// This example needs to be played in release mode! `cargo run --example stress_test --release`
 /// A large amount (100) of sounds will be played in every frame.
@@ -11,11 +12,9 @@ use bevy_kira_audio::prelude::*;
 fn main() {
     App::new()
         // We need to increase the queue sizes of the audio backend.
-        // The default is 128 per queue, which is way too low for playing as many sounds
-        // as this example does.
+        // TODO::
         .insert_resource(AudioSettings {
-            sound_capacity: 8192,
-            command_capacity: 4096,
+            capacities: Capacities::default(),
         })
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, prepare)

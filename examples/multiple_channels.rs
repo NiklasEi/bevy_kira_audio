@@ -173,7 +173,7 @@ fn volume_buttons<T: Component + Default>(
             } else {
                 channel_state.volume = (channel_state.volume - 0.1).max(0.);
             }
-            channel.set_volume(channel_state.volume);
+            channel.set_volume(Decibels(channel_state.volume as f32));
         }
     }
 }
