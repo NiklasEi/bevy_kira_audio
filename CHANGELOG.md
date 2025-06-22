@@ -1,4 +1,6 @@
 # Changelog
+## v0.24.0 - 21.06.2025
+- Depend on Kira '0.10.8'
 
 ## v0.23.0 - 26.04.2025
 - Update to Bevy `0.16`
