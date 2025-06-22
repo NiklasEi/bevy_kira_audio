@@ -32,9 +32,9 @@ impl Plugin for SpatialAudioPlugin {
 
 /// Component for audio emitters
 ///
-/// Add EmitterSettings to control distance and attenuation
+/// Add `EmitterSettings` to control distance and attenuation
 /// and receiver positions.
-#[derive(Component)]
+#[derive(Component, Default)]
 #[require(Transform)]
 #[component(on_add=emitter_added)]
 pub struct SpatialAudioEmitter {
@@ -42,11 +42,7 @@ pub struct SpatialAudioEmitter {
     /// This is created automatically when the component is added.
     pub track: Option<kira::track::SpatialTrackHandle>,
 }
-impl Default for SpatialAudioEmitter {
-    fn default() -> Self {
-        Self { track: None }
-    }
-}
+
 /// Component for the spatial audio receiver.
 ///
 /// Most likely you will want to add this component to your player or you camera.

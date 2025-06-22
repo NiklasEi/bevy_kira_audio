@@ -84,7 +84,7 @@ impl From<SoundSettings> for StaticSoundSettings {
         let mut static_sound_settings = StaticSoundSettings::new();
 
         static_sound_settings.start_position = PlaybackPosition::Seconds(settings.start_position);
-        static_sound_settings.volume = Decibels::from(settings.volume as f32).into();
+        static_sound_settings.volume = Decibels::from(settings.volume).into();
         static_sound_settings.playback_rate = PlaybackRate::from(settings.playback_rate).into();
         static_sound_settings.panning = kira::Value::Fixed(settings.panning);
         static_sound_settings.reverse = settings.reverse;

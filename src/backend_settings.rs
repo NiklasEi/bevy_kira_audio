@@ -6,19 +6,11 @@ use kira::{AudioManagerSettings, Capacities, DefaultBackend};
 ///
 /// It needs to be inserted before adding the [`AudioPlugin`](crate::AudioPlugin) and will be
 /// consumed by it. Settings cannot be changed at run-time!
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AudioSettings {
     /// Specifies how many of each resource type an audio context
     /// can have.
     pub capacities: Capacities,
-}
-
-impl Default for AudioSettings {
-    fn default() -> Self {
-        Self {
-            capacities: Capacities::default(),
-        }
-    }
 }
 
 impl From<AudioSettings> for AudioManagerSettings<DefaultBackend> {
