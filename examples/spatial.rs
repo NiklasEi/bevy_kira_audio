@@ -42,9 +42,9 @@ fn setup(
             // Note that this is per-entity. To have emitters with different falloff values,
             // you would need to create child entities with their own emitters.
             EmitterSettings {
-                distances: (2.0..=10.0).into(),
+                distances: (2.0..=20.0).into(),
                 // We will fully hear this entity within a distance of 2 units, and not hear it at
-                // all by 10 units.
+                // all by 20 units.
                 attenuation_function: Easing::OutPowi(2), // A curve that starts fast and slows down
             },
         ))
