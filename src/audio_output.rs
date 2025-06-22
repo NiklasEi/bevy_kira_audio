@@ -281,6 +281,59 @@ impl<B: Backend> AudioOutput<B> {
 
         AudioCommandResult::Ok
     }
+    /// The new method that contains the logic for typed channels.
+    pub(crate) fn play_audio_channel<T: Resource>(
+        &mut self,
+        channel: &AudioChannel<T>,
+        track_registry: &mut TrackRegistry,
+        audio_sources: &Assets<AudioSource>,
+        audio_instances: &mut Assets<AudioInstance>,
+        emitters: &mut Query<&mut SpatialAudioEmitter>,
+    ) {
+        if self.manager.is_none() {
+            return;
+        };
+
+        let channel_id = Channel::Typed(TypeId::of::<T>());
+        let mut commands = channel.commands.write();
+        process_channel_commands(
+            &channel_id,
+            &mut commands,
+            self, // Pass self instead of audio_output
+            track_registry,
+            audio_sources,
+            audio_instances,
+            emitters,
+        );
+    }
+
+    /// The new method that contains the logic for dynamic channels.
+    pub(crate) fn play_dynamic_channels(
+        &mut self,
+        channels: &DynamicAudioChannels,
+        track_registry: &mut TrackRegistry,
+        audio_sources: &Assets<AudioSource>,
+        audio_instances: &mut Assets<AudioInstance>,
+        emitters: &mut Query<&mut SpatialAudioEmitter>,
+    ) {
+        if self.manager.is_none() {
+            return;
+        }
+
+        for (key, channel) in channels.channels.iter() {
+            let channel_id = Channel::Dynamic(key.clone());
+            let mut commands = channel.commands.write();
+            process_channel_commands(
+                &channel_id,
+                &mut commands,
+                self, // Pass self instead of audio_output
+                track_registry,
+                audio_sources,
+                audio_instances,
+                emitters,
+            );
+        }
+    }
 
     pub(crate) fn run_audio_command(
         &mut self,
@@ -340,30 +393,17 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 }
-/// The system for dynamic audio channels.
-pub(crate) fn play_dynamic_channels(
+pub(crate) fn play_audio_channel<T: Resource>(
     mut audio_output: NonSendMut<AudioOutput>,
-    channels: Res<DynamicAudioChannels>,
+    channel: Res<AudioChannel<T>>,
+    mut track_registry: ResMut<TrackRegistry>,
     audio_sources: Option<Res<Assets<AudioSource>>>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
-    mut track_registry: ResMut<TrackRegistry>,
     mut emitters: Query<&mut SpatialAudioEmitter>,
 ) {
-    if audio_output.manager.is_none() {
-        return;
-    }
-    let Some(audio_sources) = audio_sources else {
-        return;
-    };
-
-    for (key, channel) in channels.channels.iter() {
-        let channel_id = Channel::Dynamic(key.clone());
-        let mut commands = channel.commands.write();
-        // Directly call the helper function from the system
-        process_channel_commands(
-            &channel_id,
-            &mut commands,
-            &mut audio_output,
+    if let Some(audio_sources) = audio_sources {
+        audio_output.play_audio_channel(
+            &channel,
             &mut track_registry,
             &audio_sources,
             &mut audio_instances,
@@ -372,34 +412,24 @@ pub(crate) fn play_dynamic_channels(
     }
 }
 
-pub(crate) fn play_audio_channel<T: Resource>(
+pub(crate) fn play_dynamic_channels(
     mut audio_output: NonSendMut<AudioOutput>,
-    channel: Res<AudioChannel<T>>,
+    channels: Res<DynamicAudioChannels>,
+    mut track_registry: ResMut<TrackRegistry>,
     audio_sources: Option<Res<Assets<AudioSource>>>,
     mut audio_instances: ResMut<Assets<AudioInstance>>,
-    mut track_registry: ResMut<TrackRegistry>,
     mut emitters: Query<&mut SpatialAudioEmitter>,
 ) {
-    if audio_output.manager.is_none() {
-        return;
+    if let Some(audio_sources) = audio_sources {
+        audio_output.play_dynamic_channels(
+            &channels,
+            &mut track_registry,
+            &audio_sources,
+            &mut audio_instances,
+            &mut emitters,
+        );
     }
-    let Some(audio_sources) = audio_sources else {
-        return;
-    };
-
-    let channel_id = Channel::Typed(TypeId::of::<T>());
-    let mut commands = channel.commands.write();
-    process_channel_commands(
-        &channel_id,
-        &mut commands,
-        &mut audio_output,
-        &mut track_registry,
-        &audio_sources,
-        &mut audio_instances,
-        &mut emitters,
-    );
 }
-
 pub(crate) fn cleanup_stopped_instances(
     mut audio_output: NonSendMut<AudioOutput>,
     mut instances: ResMut<Assets<AudioInstance>>,
@@ -427,10 +457,10 @@ pub(crate) fn update_instance_states<T: Resource>(
     }
 }
 /// Contains the shared logic for processing a queue of audio commands for a specific channel.
-fn process_channel_commands(
+fn process_channel_commands<B: Backend>(
     channel_id: &Channel,
     commands: &mut VecDeque<AudioCommand>,
-    audio_output: &mut AudioOutput,
+    audio_output: &mut AudioOutput<B>,
     track_registry: &mut TrackRegistry,
     audio_sources: &Assets<AudioSource>,
     audio_instances: &mut Assets<AudioInstance>,
