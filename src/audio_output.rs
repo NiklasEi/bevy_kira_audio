@@ -281,7 +281,6 @@ impl<B: Backend> AudioOutput<B> {
 
         AudioCommandResult::Ok
     }
-    /// The new method that contains the logic for typed channels.
     pub(crate) fn play_audio_channel<T: Resource>(
         &mut self,
         channel: &AudioChannel<T>,
@@ -307,7 +306,6 @@ impl<B: Backend> AudioOutput<B> {
         );
     }
 
-    /// The new method that contains the logic for dynamic channels.
     pub(crate) fn play_dynamic_channels(
         &mut self,
         channels: &DynamicAudioChannels,
