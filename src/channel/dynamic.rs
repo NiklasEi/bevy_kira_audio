@@ -9,7 +9,7 @@ use bevy::asset::{AssetId, Handle};
 use bevy::ecs::resource::Resource;
 use bevy::platform::collections::hash_map::Iter;
 use bevy::platform::collections::HashMap;
-use kira::Volume;
+use kira::{Decibels, Panning};
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 
@@ -94,7 +94,7 @@ impl AudioControl for DynamicAudioChannel {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn> {
+    fn set_volume(&self, volume: impl Into<Decibels>) -> TweenCommand<FadeIn> {
         TweenCommand::new(TweenCommandKind::SetVolume(volume.into()), self)
     }
     /// Set panning
@@ -108,10 +108,10 @@ impl AudioControl for DynamicAudioChannel {
     /// # use bevy_kira_audio::prelude::*;
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_panning(0.9);
+    ///     audio.set_panning(kira::Panning(0.9));
     /// }
     /// ```
-    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn> {
+    fn set_panning(&self, panning: Panning) -> TweenCommand<FadeIn> {
         TweenCommand::new(TweenCommandKind::SetPanning(panning), self)
     }
     /// Set playback rate

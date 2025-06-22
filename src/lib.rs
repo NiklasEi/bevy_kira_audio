@@ -42,6 +42,9 @@ mod instance;
 mod source;
 mod spatial;
 
+use std::any::TypeId;
+use std::collections::HashMap;
+
 pub use audio::{
     AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
     TweenCommand,
@@ -50,12 +53,10 @@ pub use backend_settings::AudioSettings;
 use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
+use kira::track::TrackHandle;
 pub use source::AudioSource;
-pub use spatial::{
-    DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
-    SpatialRadius,
-};
-
+pub use spatial::EmitterSettings;
+pub use spatial::{SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver};
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
@@ -91,10 +92,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::source::AudioSource;
     #[doc(hidden)]
-    pub use crate::spatial::{
-        DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
-        SpatialRadius,
-    };
+    pub use crate::spatial::{SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
@@ -102,7 +100,7 @@ pub mod prelude {
             static_sound::{StaticSoundData, StaticSoundSettings},
             FromFileError, Sound, SoundData,
         },
-        Frame, Volume,
+        Decibels, Frame,
     };
 }
 
@@ -153,6 +151,7 @@ pub use instance::AudioInstanceAssetsExt;
 /// #     events.send(AppExit::Success);
 /// # }
 /// ```
+
 #[derive(Default)]
 pub struct AudioPlugin;
 
@@ -175,6 +174,7 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<DynamicAudioChannels>()
+            .init_resource::<TrackRegistry>()
             .add_systems(
                 PostUpdate,
                 play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
@@ -186,7 +186,11 @@ impl Plugin for AudioPlugin {
             .add_audio_channel::<MainTrack>();
     }
 }
-
+/// This resource maps a channel type to its live track handle.
+#[derive(Resource, Default)]
+pub(crate) struct TrackRegistry {
+    handles: HashMap<TypeId, TrackHandle>,
+}
 /// Labels for audio systems
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
 pub enum AudioSystemSet {

@@ -6,8 +6,7 @@ use crate::instance::AudioInstance;
 use crate::{AudioSource, PlaybackState};
 use bevy::asset::Handle;
 use kira::sound::static_sound::StaticSoundData;
-use kira::tween::Value;
-use kira::Volume;
+use kira::{Decibels, Panning, Value};
 use std::any::TypeId;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -18,9 +17,9 @@ pub enum Channel {
 
 pub(crate) struct ChannelState {
     pub(crate) paused: bool,
-    pub(crate) volume: Volume,
+    pub(crate) volume: Decibels,
     pub(crate) playback_rate: f64,
-    pub(crate) panning: f64,
+    pub(crate) panning: Panning,
 }
 
 impl Default for ChannelState {
@@ -29,7 +28,7 @@ impl Default for ChannelState {
             paused: false,
             volume: 1.0.into(),
             playback_rate: 1.0,
-            panning: 0.5,
+            panning: Panning(0.5),
         }
     }
 }
@@ -105,7 +104,7 @@ pub trait AudioControl {
     ///     audio.set_volume(0.5);
     /// }
     /// ```
-    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn>;
+    fn set_volume(&self, volume: impl Into<Decibels>) -> TweenCommand<FadeIn>;
 
     /// Set panning
     ///
@@ -118,10 +117,10 @@ pub trait AudioControl {
     /// # use bevy_kira_audio::prelude::*;
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_panning(0.9);
+    ///     audio.set_panning(kira::Panning(0.9));
     /// }
     /// ```
-    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn>;
+    fn set_panning(&self, panning: Panning) -> TweenCommand<FadeIn>;
 
     /// Set playback rate
     ///

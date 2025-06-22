@@ -8,13 +8,13 @@ use crate::source::AudioSource;
 use crate::AudioSystemSet;
 use bevy::app::{App, PreUpdate};
 use bevy::asset::{AssetId, Handle};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::prelude::{default, PostUpdate};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::sound::EndPosition;
-use kira::tween::Value;
-use kira::Volume;
+use kira::{Decibels, Easing, Panning, Tween, Value};
 use std::marker::PhantomData;
 use std::time::Duration;
 use uuid::Uuid;
@@ -22,8 +22,8 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub(crate) enum AudioCommand {
     Play(PlayAudioSettings),
-    SetVolume(Volume, Option<AudioTween>),
-    SetPanning(f64, Option<AudioTween>),
+    SetVolume(Decibels, Option<AudioTween>),
+    SetPanning(Panning, Option<AudioTween>),
     SetPlaybackRate(f64, Option<AudioTween>),
     Stop(Option<AudioTween>),
     Pause(Option<AudioTween>),
@@ -34,17 +34,18 @@ pub(crate) enum AudioCommand {
 pub(crate) struct PartialSoundSettings {
     pub(crate) loop_start: Option<f64>,
     pub(crate) loop_end: Option<f64>,
-    pub(crate) volume: Option<Volume>,
+    pub(crate) volume: Option<Decibels>,
     pub(crate) playback_rate: Option<f64>,
     pub(crate) start_position: Option<f64>,
-    pub(crate) panning: Option<f64>,
+    pub(crate) panning: Option<Panning>,
     pub(crate) reverse: Option<bool>,
     pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
+    pub(crate) emitter: Option<Entity>,
 }
 
 /// Different kinds of easing for fade-in and fade-out
-pub type AudioEasing = kira::tween::Easing;
+pub type AudioEasing = Easing;
 
 /// A tween for audio transitions
 ///
@@ -83,22 +84,22 @@ impl Default for AudioTween {
     }
 }
 
-pub fn map_tween(tween: &Option<AudioTween>) -> kira::tween::Tween {
+pub fn map_tween(tween: &Option<AudioTween>) -> Tween {
     match tween {
         Some(tween) => tween.into(),
-        None => kira::tween::Tween::default(),
+        None => Tween::default(),
     }
 }
 
-impl From<AudioTween> for kira::tween::Tween {
+impl From<AudioTween> for Tween {
     fn from(tween: AudioTween) -> Self {
         (&tween).into()
     }
 }
 
-impl From<&AudioTween> for kira::tween::Tween {
+impl From<&AudioTween> for Tween {
     fn from(tween: &AudioTween) -> Self {
-        kira::tween::Tween {
+        Tween {
             duration: tween.duration,
             easing: tween.easing,
             ..default()
@@ -123,12 +124,7 @@ impl PartialSoundSettings {
                 .end = EndPosition::Custom(loop_end.into());
         }
         if let Some(volume) = self.volume {
-            if let Value::Fixed(channel_volume) = sound.settings.volume {
-                sound.settings.volume =
-                    Value::Fixed((volume.as_amplitude() * channel_volume.as_amplitude()).into());
-            } else {
-                sound.settings.volume = Value::Fixed(volume);
-            }
+            sound.settings.volume = Value::Fixed(volume);
         }
         if let Some(playback_rate) = self.playback_rate {
             sound.settings.playback_rate = playback_rate.into();
@@ -143,7 +139,7 @@ impl PartialSoundSettings {
             sound.settings.reverse = reverse;
         }
         if let Some(AudioTween { duration, easing }) = self.fade_in {
-            sound.settings.fade_in_tween = Some(kira::tween::Tween {
+            sound.settings.fade_in_tween = Some(Tween {
                 duration,
                 easing,
                 ..default()
@@ -152,7 +148,7 @@ impl PartialSoundSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PlayAudioSettings {
     pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
@@ -223,7 +219,7 @@ impl<'a> PlayAudioCommand<'a> {
     }
 
     /// Set the volume of the sound.
-    pub fn with_volume(&mut self, volume: impl Into<Volume>) -> &mut Self {
+    pub fn with_volume(&mut self, volume: impl Into<Decibels>) -> &mut Self {
         self.settings.volume = Some(volume.into());
 
         self
@@ -248,7 +244,7 @@ impl<'a> PlayAudioCommand<'a> {
     /// The default value is 0.5.
     /// Values up to 1.0 pan to the right,
     /// while values down to 0.0 pan to the left.
-    pub fn with_panning(&mut self, panning: f64) -> &mut Self {
+    pub fn with_panning(&mut self, panning: Panning) -> &mut Self {
         self.settings.panning = Some(panning);
 
         self
@@ -281,11 +277,17 @@ impl<'a> PlayAudioCommand<'a> {
     pub fn handle(&mut self) -> Handle<AudioInstance> {
         self.instance_handle.clone()
     }
+    /// Play this sound from the location of the given entity.
+    /// The entity must have a `SpatialAudioEmitter` component.
+    pub fn with_emitter(&mut self, emitter_entity: Entity) -> &mut Self {
+        self.settings.emitter = Some(emitter_entity);
+        self
+    }
 }
 
 pub(crate) enum TweenCommandKind {
-    SetVolume(Volume),
-    SetPanning(f64),
+    SetVolume(Decibels),
+    SetPanning(Panning),
     SetPlaybackRate(f64),
     Stop,
     Pause,
@@ -371,6 +373,7 @@ impl TweenCommand<'_, FadeOut> {
     }
 }
 
+#[derive(PartialEq)]
 pub enum AudioCommandResult {
     Ok,
     Retry,
@@ -405,6 +408,16 @@ pub enum PlaybackState {
         /// Current playback position in seconds
         position: f64,
     },
+    /// The sound is paused but is scheduled to resume at a specific time.
+    WaitingToResume {
+        /// Current playback position in seconds
+        position: f64,
+    },
+    /// The sound is fading back in after being paused.
+    Resuming {
+        /// Current playback position in seconds
+        position: f64,
+    },
 }
 
 impl PlaybackState {
@@ -416,6 +429,8 @@ impl PlaybackState {
             | PlaybackState::Paused { position }
             | PlaybackState::Pausing { position }
             | PlaybackState::Stopping { position } => Some(*position),
+            PlaybackState::WaitingToResume { position } => Some(*position),
+            PlaybackState::Resuming { position } => Some(*position),
         }
     }
 }
@@ -435,6 +450,10 @@ impl From<&StaticSoundHandle> for PlaybackState {
             kira::sound::PlaybackState::Stopped => PlaybackState::Stopped,
             kira::sound::PlaybackState::Pausing => PlaybackState::Pausing { position },
             kira::sound::PlaybackState::Stopping => PlaybackState::Stopping { position },
+            kira::sound::PlaybackState::WaitingToResume => {
+                PlaybackState::WaitingToResume { position }
+            }
+            kira::sound::PlaybackState::Resuming => PlaybackState::Resuming { position },
         }
     }
 }
