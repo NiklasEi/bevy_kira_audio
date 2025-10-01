@@ -131,7 +131,7 @@ fn cleanup_stopped_spatial_instances(
 ) {
     emitters.iter_mut().for_each(|mut emitter| {
         emitter.instances.retain(|handle| {
-            instances.get(handle).map_or(true, |instance| {
+            instances.get(handle).is_none_or(|instance| {
                 !matches!(instance.handle.state(), kira::sound::PlaybackState::Stopped)
             })
         });

@@ -1,15 +1,15 @@
 //! The internal audio systems and resource
 
-use crate::audio::{map_tween, AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings};
+use crate::audio::{AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings, map_tween};
 use std::any::TypeId;
 
+use crate::PlaybackState;
 use crate::backend_settings::AudioSettings;
 use crate::channel::dynamic::DynamicAudioChannels;
 use crate::channel::typed::AudioChannel;
 use crate::channel::{Channel, ChannelState};
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::PlaybackState;
 use bevy::asset::{Assets, Handle};
 use bevy::ecs::change_detection::{NonSendMut, ResMut};
 use bevy::ecs::resource::Resource;
@@ -74,10 +74,10 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instance_handles) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instance_handles.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id()) {
-                    if kira::sound::PlaybackState::Playing == instance.handle.state() {
-                        instance.handle.pause(tween);
-                    }
+                if let Some(instance) = audio_instances.get_mut(instance.id())
+                    && kira::sound::PlaybackState::Playing == instance.handle.state()
+                {
+                    instance.handle.pause(tween);
                 }
             }
         }
@@ -101,13 +101,12 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id()) {
-                    if instance.handle.state() == kira::sound::PlaybackState::Paused
+                if let Some(instance) = audio_instances.get_mut(instance.id())
+                    && (instance.handle.state() == kira::sound::PlaybackState::Paused
                         || instance.handle.state() == kira::sound::PlaybackState::Pausing
-                        || instance.handle.state() == kira::sound::PlaybackState::Stopping
-                    {
-                        instance.handle.resume(tween);
-                    }
+                        || instance.handle.state() == kira::sound::PlaybackState::Stopping)
+                {
+                    instance.handle.resume(tween);
                 }
             }
         }
@@ -224,14 +223,14 @@ impl<B: Backend> AudioOutput<B> {
             return AudioCommandResult::Ok;
         }
         let mut sound_handle = sound_handle.unwrap();
-        if let Some(channel_state) = self.channels.get(channel) {
-            if channel_state.paused {
-                sound_handle.pause(kira::Tween::default());
-                let playback_rate = partial_sound_settings
-                    .playback_rate
-                    .unwrap_or(channel_state.playback_rate);
-                sound_handle.set_playback_rate(playback_rate, kira::Tween::default());
-            }
+        if let Some(channel_state) = self.channels.get(channel)
+            && channel_state.paused
+        {
+            sound_handle.pause(kira::Tween::default());
+            let playback_rate = partial_sound_settings
+                .playback_rate
+                .unwrap_or(channel_state.playback_rate);
+            sound_handle.set_playback_rate(playback_rate, kira::Tween::default());
         }
         if partial_sound_settings.paused {
             sound_handle.pause(kira::Tween::default());
@@ -433,8 +432,8 @@ mod test {
     use crate::{Audio, AudioPlugin};
     use bevy::asset::AssetPlugin;
     use bevy::prelude::*;
-    use kira::backend::mock::MockBackend;
     use kira::AudioManagerSettings;
+    use kira::backend::mock::MockBackend;
     use uuid::Uuid;
 
     #[test]

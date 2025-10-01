@@ -2,8 +2,8 @@ use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::schedule::ScheduleConfigs;
 use bevy::prelude::*;
-use bevy_kira_audio::prelude::*;
 use bevy_kira_audio::AudioApp;
+use bevy_kira_audio::prelude::*;
 use std::clone::Clone;
 use std::marker::PhantomData;
 
@@ -22,8 +22,8 @@ fn main() {
         .run();
 }
 
-fn create_row_systems<C: Component + Default>(
-) -> ScheduleConfigs<Box<dyn bevy::prelude::System<In = (), Out = ()> + 'static>> {
+fn create_row_systems<C: Component + Default>()
+-> ScheduleConfigs<Box<dyn bevy::prelude::System<In = (), Out = ()> + 'static>> {
     (
         stop_button::<C>,
         loop_button::<C>,

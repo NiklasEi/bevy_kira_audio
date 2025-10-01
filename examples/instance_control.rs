@@ -17,18 +17,18 @@ fn instance_control(
     mut audio_instances: ResMut<Assets<AudioInstance>>,
     input: Res<ButtonInput<MouseButton>>,
 ) {
-    if let Some(instance) = audio_instances.get_mut(&handle.0) {
-        if input.just_pressed(MouseButton::Left) {
-            match instance.state() {
-                PlaybackState::Paused { .. } => {
-                    // There are a lot of control methods defined on the instance
-                    instance.resume(AudioTween::default());
-                }
-                PlaybackState::Playing { .. } => {
-                    instance.pause(AudioTween::default());
-                }
-                _ => {}
+    if let Some(instance) = audio_instances.get_mut(&handle.0)
+        && input.just_pressed(MouseButton::Left)
+    {
+        match instance.state() {
+            PlaybackState::Paused { .. } => {
+                // There are a lot of control methods defined on the instance
+                instance.resume(AudioTween::default());
             }
+            PlaybackState::Playing { .. } => {
+                instance.pause(AudioTween::default());
+            }
+            _ => {}
         }
     }
 }

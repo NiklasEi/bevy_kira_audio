@@ -1,18 +1,18 @@
 //! Common audio types
 
+use crate::AudioSystemSet;
 use crate::audio_output::{play_audio_channel, update_instance_states};
-use crate::channel::typed::AudioChannel;
 use crate::channel::AudioCommandQue;
+use crate::channel::typed::AudioChannel;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use crate::AudioSystemSet;
 use bevy::app::{App, PreUpdate};
 use bevy::asset::Handle;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::prelude::{default, PostUpdate};
-use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
+use bevy::prelude::{PostUpdate, default};
 use kira::sound::EndPosition;
+use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{Decibels, Panning, Value};
 use std::marker::PhantomData;
 use std::time::Duration;

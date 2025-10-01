@@ -66,13 +66,15 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::backend_settings::AudioSettings;
     #[doc(hidden)]
+    pub use crate::channel::AudioControl;
+    #[doc(hidden)]
     pub use crate::channel::dynamic::{DynamicAudioChannel, DynamicAudioChannels};
     #[doc(hidden)]
     pub use crate::channel::typed::AudioChannel;
     #[doc(hidden)]
-    pub use crate::channel::AudioControl;
-    #[doc(hidden)]
     pub use crate::instance::{AudioInstance, AudioInstanceAssetsExt};
+    #[doc(hidden)]
+    pub use crate::source::AudioSource;
     #[doc(hidden)]
     #[cfg(feature = "flac")]
     pub use crate::source::flac_loader::*;
@@ -89,8 +91,6 @@ pub mod prelude {
     #[cfg(feature = "wav")]
     pub use crate::source::wav_loader::*;
     #[doc(hidden)]
-    pub use crate::source::AudioSource;
-    #[doc(hidden)]
     pub use crate::spatial::{
         DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
         SpatialRadius,
@@ -98,15 +98,15 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
-        sound::{
-            static_sound::{StaticSoundData, StaticSoundSettings},
-            FromFileError, Sound, SoundData,
-        },
         Decibels, Frame,
+        sound::{
+            FromFileError, Sound, SoundData,
+            static_sound::{StaticSoundData, StaticSoundSettings},
+        },
     };
 }
 
-use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
+use crate::audio_output::{AudioOutput, cleanup_stopped_instances, play_dynamic_channels};
 
 #[cfg(feature = "flac")]
 use crate::source::flac_loader::FlacLoader;

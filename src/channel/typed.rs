@@ -187,9 +187,9 @@ impl<T> AudioControl for AudioChannel<T> {
 mod test {
     use std::marker::PhantomData;
 
+    use crate::Audio;
     use crate::channel::typed::AudioChannel;
     use crate::channel::*;
-    use crate::Audio;
     use bevy::asset::{AssetId, Handle};
     use uuid::Uuid;
 
