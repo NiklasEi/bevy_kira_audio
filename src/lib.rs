@@ -26,8 +26,8 @@
 //!     audio.play(asset_server.load("background_audio.mp3")).looped();
 //! }
 //!
-//! # fn stop(mut events: EventWriter<AppExit>) {
-//! #     events.send(AppExit::Success);
+//! # fn stop(mut events: MessageWriter<AppExit>) {
+//! #     events.write(AppExit::Success);
 //! # }
 //! ```
 
@@ -102,7 +102,7 @@ pub mod prelude {
             static_sound::{StaticSoundData, StaticSoundSettings},
             FromFileError, Sound, SoundData,
         },
-        Frame, Volume,
+        Decibels, Frame,
     };
 }
 
@@ -149,8 +149,8 @@ pub use instance::AudioInstanceAssetsExt;
 ///     audio.play(asset_server.load("background_audio.mp3")).looped();
 /// }
 ///
-/// # fn stop(mut events: EventWriter<AppExit>) {
-/// #     events.send(AppExit::Success);
+/// # fn stop(mut events: MessageWriter<AppExit>) {
+/// #     events.write(AppExit::Success);
 /// # }
 /// ```
 #[derive(Default)]

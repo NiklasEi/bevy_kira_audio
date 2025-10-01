@@ -6,8 +6,7 @@ use crate::instance::AudioInstance;
 use crate::{AudioSource, PlaybackState};
 use bevy::asset::Handle;
 use kira::sound::static_sound::StaticSoundData;
-use kira::tween::Value;
-use kira::Volume;
+use kira::{Decibels, Panning, Value};
 use std::any::TypeId;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -18,9 +17,9 @@ pub enum Channel {
 
 pub(crate) struct ChannelState {
     pub(crate) paused: bool,
-    pub(crate) volume: Volume,
+    pub(crate) volume: Decibels,
     pub(crate) playback_rate: f64,
-    pub(crate) panning: f64,
+    pub(crate) panning: Panning,
 }
 
 impl Default for ChannelState {
@@ -29,7 +28,7 @@ impl Default for ChannelState {
             paused: false,
             volume: 1.0.into(),
             playback_rate: 1.0,
-            panning: 0.5,
+            panning: Panning::CENTER,
         }
     }
 }
@@ -54,7 +53,7 @@ pub trait AudioControl {
     ///     audio.play(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand;
+    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand<'_>;
 
     /// Stop all audio
     ///
@@ -66,7 +65,7 @@ pub trait AudioControl {
     ///     audio.stop();
     /// }
     /// ```
-    fn stop(&self) -> TweenCommand<FadeOut>;
+    fn stop(&self) -> TweenCommand<'_, FadeOut>;
 
     /// Pause all audio
     ///
@@ -78,7 +77,7 @@ pub trait AudioControl {
     ///     audio.pause();
     /// }
     /// ```
-    fn pause(&self) -> TweenCommand<FadeOut>;
+    fn pause(&self) -> TweenCommand<'_, FadeOut>;
 
     /// Resume all audio
     ///
@@ -90,28 +89,25 @@ pub trait AudioControl {
     ///     audio.resume();
     /// }
     /// ```
-    fn resume(&self) -> TweenCommand<FadeIn>;
+    fn resume(&self) -> TweenCommand<'_, FadeIn>;
 
-    /// Set the volume
-    ///
-    /// The default value is 1.
-    /// This method supports setting the volume in Decibels or as Amplitude.
+    /// Set the volume in Decibels.
     ///
     /// ```
     /// # use bevy::prelude::*;
     /// # use bevy_kira_audio::prelude::*;
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_volume(0.5);
+    ///     audio.set_volume(-6.);
     /// }
     /// ```
-    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn>;
+    fn set_volume(&self, volume: impl Into<Decibels>) -> TweenCommand<'_, FadeIn>;
 
     /// Set panning
     ///
-    /// The default value is 0.5
-    /// Values up to 1 pan to the right
-    /// Values down to 0 pan to the left
+    /// The default value is 0.0
+    /// Values up to 1.0 pan to the right
+    /// Values down to -1.0 pan to the left
     ///
     /// ```
     /// # use bevy::prelude::*;
@@ -121,7 +117,7 @@ pub trait AudioControl {
     ///     audio.set_panning(0.9);
     /// }
     /// ```
-    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn>;
+    fn set_panning(&self, panning: f32) -> TweenCommand<'_, FadeIn>;
 
     /// Set playback rate
     ///
@@ -135,7 +131,7 @@ pub trait AudioControl {
     ///     audio.set_playback_rate(2.0);
     /// }
     /// ```
-    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<FadeIn>;
+    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<'_, FadeIn>;
 
     /// Get state for a playback instance.
     fn state(&self, instance_handle: &Handle<AudioInstance>) -> PlaybackState;

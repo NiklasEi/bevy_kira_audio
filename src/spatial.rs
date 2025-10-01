@@ -104,22 +104,21 @@ fn run_spatial_audio(
             let sound_path = emitter_transform.translation() - receiver_transform.translation();
             let progress = (sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
                 .clamp(0., 1.);
-            let volume: f32 = 1.
-                - EasingCurve::new(0., 1., damping_curve.0)
-                    .sample_unchecked(progress)
-                    .clamp(0., 1.);
+            let volume: f32 = EasingCurve::new(0., -60., damping_curve.0)
+                .sample_unchecked(progress)
+                .clamp(-60., 0.);
 
             let right_ear_angle = if sound_path == Vec3::ZERO {
                 PI / 2.
             } else {
                 receiver_transform.right().angle_between(sound_path)
             };
-            let panning = (right_ear_angle.cos() + 1.) / 2.;
+            let panning = right_ear_angle.cos();
 
             for instance in emitter.instances.iter() {
                 if let Some(instance) = audio_instances.get_mut(instance) {
-                    instance.set_volume(volume as f64, AudioTween::default());
-                    instance.set_panning(panning as f64, AudioTween::default());
+                    instance.set_decibels(volume, AudioTween::default());
+                    instance.set_panning(panning, AudioTween::default());
                 }
             }
         }

@@ -66,7 +66,7 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
                 TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
                 TextLayout {
-                    justify:JustifyText::Center,
+                    justify:Justify::Center,
                     ..default()
                 }
             ));

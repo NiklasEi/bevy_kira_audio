@@ -1,6 +1,6 @@
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use bevy_kira_audio::prelude::*;
 
 /// This example demonstrates the basic spatial audio support in `bevy_kira_audio`.
@@ -36,8 +36,8 @@ fn setup(
         SpatialAudioEmitter {
             instances: vec![cooking],
         },
-        // at a distance of more than 10, we will not hear this emitter anymore
-        SpatialRadius { radius: 10.0 },
+        // at a distance of more than 40, the emitter will be at -60dB
+        SpatialRadius { radius: 40.0 },
     ));
     // Emitter Nr. 2
     let elevator_music = audio
@@ -107,37 +107,31 @@ impl Plugin for CameraPlugin {
     }
 }
 
-fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = primary_window.single_mut() {
-        toggle_grab_cursor(&mut window);
-    } else {
-        warn!("Primary window not found for `initial_grab_cursor`!");
-    }
+fn initial_grab_cursor(
+    mut primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
+) {
+    toggle_grab_cursor(&mut primary_cursor_options);
 }
 
 fn cursor_grab(
     keys: Res<ButtonInput<KeyCode>>,
-    mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
+    mut primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
 ) {
-    if let Ok(mut window) = primary_window.single_mut() {
-        if keys.just_pressed(KeyCode::Escape) {
-            toggle_grab_cursor(&mut window);
-        }
-    } else {
-        warn!("Primary window not found for `cursor_grab`!");
+    if keys.just_pressed(KeyCode::Escape) {
+        toggle_grab_cursor(&mut primary_cursor_options);
     }
 }
 
 /// Grabs/ungrabs mouse cursor
-fn toggle_grab_cursor(window: &mut Window) {
-    match window.cursor_options.grab_mode {
+fn toggle_grab_cursor(cursor_options: &mut CursorOptions) {
+    match cursor_options.grab_mode {
         CursorGrabMode::None => {
-            window.cursor_options.grab_mode = CursorGrabMode::Confined;
-            window.cursor_options.visible = false;
+            cursor_options.grab_mode = CursorGrabMode::Confined;
+            cursor_options.visible = false;
         }
         _ => {
-            window.cursor_options.grab_mode = CursorGrabMode::None;
-            window.cursor_options.visible = true;
+            cursor_options.grab_mode = CursorGrabMode::None;
+            cursor_options.visible = true;
         }
     }
 }
@@ -146,37 +140,33 @@ fn toggle_grab_cursor(window: &mut Window) {
 fn player_move(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
-    if let Ok(window) = primary_window.single() {
-        for mut transform in query.iter_mut() {
-            let mut velocity = Vec3::ZERO;
-            let local_z = transform.local_z();
-            let forward = -Vec3::new(local_z.x, 0., local_z.z);
-            let right = Vec3::new(local_z.z, 0., -local_z.x);
+    for mut transform in query.iter_mut() {
+        let mut velocity = Vec3::ZERO;
+        let local_z = transform.local_z();
+        let forward = -Vec3::new(local_z.x, 0., local_z.z);
+        let right = Vec3::new(local_z.z, 0., -local_z.x);
 
-            for key in keys.get_pressed() {
-                match window.cursor_options.grab_mode {
-                    CursorGrabMode::None => (),
-                    _ => match key {
-                        KeyCode::KeyW => velocity += forward,
-                        KeyCode::KeyS => velocity -= forward,
-                        KeyCode::KeyA => velocity -= right,
-                        KeyCode::KeyD => velocity += right,
-                        KeyCode::Space => velocity += Vec3::Y,
-                        KeyCode::ShiftLeft => velocity -= Vec3::Y,
-                        _ => (),
-                    },
-                }
+        for key in keys.get_pressed() {
+            match primary_cursor_options.grab_mode {
+                CursorGrabMode::None => (),
+                _ => match key {
+                    KeyCode::KeyW => velocity += forward,
+                    KeyCode::KeyS => velocity -= forward,
+                    KeyCode::KeyA => velocity -= right,
+                    KeyCode::KeyD => velocity += right,
+                    KeyCode::Space => velocity += Vec3::Y,
+                    KeyCode::ShiftLeft => velocity -= Vec3::Y,
+                    _ => (),
+                },
             }
-
-            velocity = velocity.normalize_or_zero();
-
-            transform.translation += velocity * time.delta_secs() * SPEED;
         }
-    } else {
-        warn!("Primary window not found for `player_move`!");
+
+        velocity = velocity.normalize_or_zero();
+
+        transform.translation += velocity * time.delta_secs() * SPEED;
     }
 }
 
@@ -188,33 +178,30 @@ struct InputState {
 
 /// Handles looking around if cursor is locked
 fn player_look(
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
+    primary_window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
-    mut motion: EventReader<MouseMotion>,
+    mut motion: MessageReader<MouseMotion>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
-    if let Ok(window) = primary_window.single() {
-        let delta_state = state.as_mut();
-        for mut transform in query.iter_mut() {
-            for ev in motion.read() {
-                match window.cursor_options.grab_mode {
-                    CursorGrabMode::None => (),
-                    _ => {
-                        // Using smallest of height or width ensures equal vertical and horizontal sensitivity
-                        let window_scale = window.height().min(window.width());
-                        delta_state.pitch -= (SENSITIVITY * ev.delta.y * window_scale).to_radians();
-                        delta_state.yaw -= (SENSITIVITY * ev.delta.x * window_scale).to_radians();
-                    }
+    let delta_state = state.as_mut();
+    for mut transform in query.iter_mut() {
+        for ev in motion.read() {
+            match primary_cursor_options.grab_mode {
+                CursorGrabMode::None => (),
+                _ => {
+                    // Using smallest of height or width ensures equal vertical and horizontal sensitivity
+                    let window_scale = primary_window.height().min(primary_window.width());
+                    delta_state.pitch -= (SENSITIVITY * ev.delta.y * window_scale).to_radians();
+                    delta_state.yaw -= (SENSITIVITY * ev.delta.x * window_scale).to_radians();
                 }
-
-                delta_state.pitch = delta_state.pitch.clamp(-1.54, 1.54);
-
-                // Order is important to prevent unintended roll
-                transform.rotation = Quat::from_axis_angle(Vec3::Y, delta_state.yaw)
-                    * Quat::from_axis_angle(Vec3::X, delta_state.pitch);
             }
+
+            delta_state.pitch = delta_state.pitch.clamp(-1.54, 1.54);
+
+            // Order is important to prevent unintended roll
+            transform.rotation = Quat::from_axis_angle(Vec3::Y, delta_state.yaw)
+                * Quat::from_axis_angle(Vec3::X, delta_state.pitch);
         }
-    } else {
-        warn!("Primary window not found for `player_look`!");
     }
 }

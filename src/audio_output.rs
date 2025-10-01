@@ -16,9 +16,8 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{NonSend, Res};
 use bevy::ecs::world::{FromWorld, World};
 use bevy::log::warn;
-use kira::manager::backend::{Backend, DefaultBackend};
-use kira::manager::AudioManager;
-use kira::{sound::PlaybackRate, Volume};
+use kira::backend::Backend;
+use kira::{AudioManager, Decibels, DefaultBackend, Panning, PlaybackRate, Value};
 use std::collections::HashMap;
 
 /// Non-send resource that acts as audio output
@@ -124,7 +123,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         channel: &Channel,
         audio_instances: &mut Assets<AudioInstance>,
-        volume: Volume,
+        volume: Decibels,
         tween: &Option<AudioTween>,
     ) {
         if let Some(instances) = self.instances.get_mut(channel) {
@@ -150,7 +149,7 @@ impl<B: Backend> AudioOutput<B> {
         &mut self,
         channel: &Channel,
         audio_instances: &mut Assets<AudioInstance>,
-        panning: f64,
+        panning: Panning,
         tween: &Option<AudioTween>,
     ) {
         if let Some(instances) = self.instances.get_mut(channel) {
@@ -212,11 +211,11 @@ impl<B: Backend> AudioOutput<B> {
             // This is reverted after pausing the sound handle.
             // Otherwise the audio thread will start playing the sound before our pause command goes through.
             if channel_state.paused {
-                sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
+                sound.settings.playback_rate = Value::Fixed(PlaybackRate(0.0));
             }
         }
         if partial_sound_settings.paused {
-            sound.settings.playback_rate = kira::tween::Value::Fixed(PlaybackRate::Factor(0.0));
+            sound.settings.playback_rate = Value::Fixed(PlaybackRate(0.0));
         }
         partial_sound_settings.apply(&mut sound);
         let sound_handle = self.manager.as_mut().unwrap().play(sound);
@@ -227,19 +226,19 @@ impl<B: Backend> AudioOutput<B> {
         let mut sound_handle = sound_handle.unwrap();
         if let Some(channel_state) = self.channels.get(channel) {
             if channel_state.paused {
-                sound_handle.pause(kira::tween::Tween::default());
+                sound_handle.pause(kira::Tween::default());
                 let playback_rate = partial_sound_settings
                     .playback_rate
                     .unwrap_or(channel_state.playback_rate);
-                sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default());
+                sound_handle.set_playback_rate(playback_rate, kira::Tween::default());
             }
         }
         if partial_sound_settings.paused {
-            sound_handle.pause(kira::tween::Tween::default());
+            sound_handle.pause(kira::Tween::default());
             let playback_rate = partial_sound_settings.playback_rate.unwrap_or(1.0);
-            sound_handle.set_playback_rate(playback_rate, kira::tween::Tween::default());
+            sound_handle.set_playback_rate(playback_rate, kira::Tween::default());
         }
-        audio_instances.insert(
+        let _ = audio_instances.insert(
             &instance_handle,
             AudioInstance {
                 handle: sound_handle,
@@ -427,13 +426,15 @@ pub(crate) fn update_instance_states<T: Resource>(
 
 #[cfg(test)]
 mod test {
+    use std::marker::PhantomData;
+
     use super::*;
     use crate::channel::AudioControl;
     use crate::{Audio, AudioPlugin};
-    use bevy::asset::{AssetId, AssetPlugin};
+    use bevy::asset::AssetPlugin;
     use bevy::prelude::*;
-    use kira::manager::backend::mock::MockBackend;
-    use kira::manager::AudioManagerSettings;
+    use kira::backend::mock::MockBackend;
+    use kira::AudioManagerSettings;
     use uuid::Uuid;
 
     #[test]
@@ -456,9 +457,9 @@ mod test {
             channels: HashMap::default(),
         };
         let audio_handle_one: Handle<AudioSource> =
-            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(1758302748397294)));
+            Handle::<AudioSource>::Uuid(Uuid::from_u128(1758302748397294), PhantomData);
         let audio_handle_two: Handle<AudioSource> =
-            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(2537024739048739)));
+            Handle::<AudioSource>::Uuid(Uuid::from_u128(2537024739048739), PhantomData);
 
         let channel = AudioChannel::<Audio>::default();
         channel.play(audio_handle_one.clone());
@@ -502,9 +503,9 @@ mod test {
             channels: HashMap::default(),
         };
         let audio_handle_one: Handle<AudioSource> =
-            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(13290473942075938)));
+            Handle::<AudioSource>::Uuid(Uuid::from_u128(13290473942075938), PhantomData);
         let audio_handle_two: Handle<AudioSource> =
-            Handle::<AudioSource>::Weak(AssetId::from(Uuid::from_u128(243290473942075938)));
+            Handle::<AudioSource>::Uuid(Uuid::from_u128(243290473942075938), PhantomData);
 
         let channel = AudioChannel::<Audio>::default();
         channel.play(audio_handle_one);

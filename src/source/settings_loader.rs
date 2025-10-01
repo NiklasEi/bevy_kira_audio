@@ -4,9 +4,8 @@ use std::{io::Cursor, path::PathBuf};
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext, ReadAssetBytesError};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
-use kira::sound::{FromFileError, PlaybackPosition, PlaybackRate, Region};
-use kira::tween::Tween;
-use kira::Volume;
+use kira::sound::{FromFileError, PlaybackPosition, Region};
+use kira::{PlaybackRate, Tween};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -34,27 +33,21 @@ struct SoundSettings {
     #[serde(default)]
     pub loop_region: Option<Region>,
 
-    /// Amplitude multiplier
-    ///
-    /// If the channel you play the sound is configured, it will overwrite the volume here.
-    #[serde(default = "default_one")]
-    pub volume: f64,
+    /// Volume in Decibels
+    #[serde(default)]
+    pub volume: f32,
 
     /// The playback rate of the sound.
     ///
     /// Changing the playback rate will change both the speed
     /// and the pitch of the sound.
-    ///
-    /// If the channel you play the sound is configured, it will overwrite the volume here.
     #[serde(default = "default_one")]
     pub playback_rate: f64,
 
-    /// The panning of the sound, where 0 is hard left
-    /// and 1 is hard right.
-    ///
-    /// If the channel you play the sound is configured, it will overwrite the volume here.
-    #[serde(default = "default_panning")]
-    pub panning: f64,
+    /// The panning of the sound, where -1.0 is hard left
+    /// and 1.0 is hard right.
+    #[serde(default)]
+    pub panning: f32,
 
     /// Whether the sound should play in reverse.
     ///
@@ -74,16 +67,12 @@ fn default_one() -> f64 {
     1.0
 }
 
-fn default_panning() -> f64 {
-    0.5
-}
-
 impl From<SoundSettings> for StaticSoundSettings {
     fn from(settings: SoundSettings) -> Self {
         let mut static_sound_settings = StaticSoundSettings::new();
 
         static_sound_settings.start_position = PlaybackPosition::Seconds(settings.start_position);
-        static_sound_settings.volume = Volume::from(settings.volume).into();
+        static_sound_settings.volume = kira::Value::Fixed(settings.volume.into());
         static_sound_settings.playback_rate = PlaybackRate::from(settings.playback_rate).into();
         static_sound_settings.panning = settings.panning.into();
         static_sound_settings.reverse = settings.reverse;
