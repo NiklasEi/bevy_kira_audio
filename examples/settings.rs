@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
-use kira::Panning;
 use std::time::Duration;
 
 /// This example shows the different settings that can be applied when playing a sound.
@@ -26,11 +25,11 @@ fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
             AudioEasing::OutPowi(2),
         ))
         // Only play on our right ear
-        .with_panning(Panning(1.0))
+        .with_panning(1.0)
         // Increase playback rate by 50% (this also increases the pitch)
         .with_playback_rate(1.5)
-        // Play at half volume
-        .with_volume(0.5)
+        // Play at lower volume (-10dB)
+        .with_volume(-10.)
         // play the track reversed
         .reverse();
 }
