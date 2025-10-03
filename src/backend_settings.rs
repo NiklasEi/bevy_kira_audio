@@ -6,7 +6,7 @@ use kira::{AudioManagerSettings, DefaultBackend, track::MainTrackBuilder};
 ///
 /// It needs to be inserted before adding the [`AudioPlugin`](crate::AudioPlugin) and will be
 /// consumed by it. Settings cannot be changed at run-time!
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AudioSettings {
     /// The maximum number of sounds that can be playing at a time.
     pub sound_capacity: usize,

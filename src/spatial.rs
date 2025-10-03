@@ -1,18 +1,15 @@
-use crate::{AudioInstance, AudioSystemSet, AudioTween};
-use bevy::app::{App, Plugin, PostUpdate, PreUpdate};
-use bevy::asset::{Assets, Handle};
-use bevy::ecs::component::Component;
-use bevy::ecs::{
-    change_detection::{Res, ResMut},
-    query::With,
-    resource::Resource,
-    schedule::IntoScheduleConfigs,
-    system::Query,
-};
-use bevy::math::Vec3;
-use bevy::prelude::{Curve, EaseFunction, EasingCurve};
+use crate::AudioOutput;
+use bevy::app::{App, Plugin, PostUpdate};
+use bevy::ecs::component::{Component, HookContext};
+use bevy::ecs::query::With;
+use bevy::ecs::schedule::IntoScheduleConfigs;
+use bevy::ecs::system::Query;
+use bevy::ecs::world::DeferredWorld;
+use bevy::log::warn;
 use bevy::transform::components::{GlobalTransform, Transform};
-use std::f32::consts::PI;
+use bevy::transform::TransformSystem;
+use kira::track::{SpatialTrackBuilder, SpatialTrackDistances};
+use kira::{Easing, Tween};
 
 /// This plugin adds basic spatial audio.
 ///
@@ -24,26 +21,26 @@ pub struct SpatialAudioPlugin;
 
 impl Plugin for SpatialAudioPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<DefaultSpatialRadius>()
-            .add_systems(
-                PreUpdate,
-                cleanup_stopped_spatial_instances.in_set(AudioSystemSet::InstanceCleanup),
-            )
-            .add_systems(PostUpdate, run_spatial_audio);
+        app.add_systems(
+            PostUpdate,
+            (update_listener_transform, update_emitter_positions)
+                // The entire chain runs after Bevy's transform propagation.
+                .after(TransformSystem::TransformPropagate),
+        );
     }
 }
 
 /// Component for audio emitters
 ///
-/// Add [`Handle<AudioInstance>`]s to control their pan and volume based on emitter
+/// Add `EmitterSettings` to control distance and attenuation
 /// and receiver positions.
-#[derive(Component)]
-#[require(Transform, SpatialDampingCurve)]
+#[derive(Component, Default)]
+#[require(Transform)]
+#[component(on_add=emitter_added)]
 pub struct SpatialAudioEmitter {
-    /// Audio instances that are played by this emitter
-    ///
-    /// The same instance should only be on one emitter.
-    pub instances: Vec<Handle<AudioInstance>>,
+    /// The handle to the Kira spatial track associated with this emitter.
+    /// This is created automatically when the component is added.
+    pub track: Option<kira::track::SpatialTrackHandle>,
 }
 
 /// Component for the spatial audio receiver.
@@ -54,86 +51,121 @@ pub struct SpatialAudioEmitter {
 #[require(Transform)]
 pub struct SpatialAudioReceiver;
 
-/// Configuration resource for global spatial audio radius
-///
-/// This resource has to exist for spatial audio and will be initialized by the `SpatialAudioPlugin`.
-/// If an emitter does not have a `SpatialRadius`, the `GlobalSpatialRadius` is used.
-#[derive(Resource)]
-pub struct DefaultSpatialRadius {
-    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
-    pub radius: f32,
+/// A component to define spatial properties for an audio emitter
+/// that must be set at creation time.
+#[derive(Component, Clone)]
+pub struct EmitterSettings {
+    /// The distances from a listener at which the emitter is loudest and quietest.
+    /// Full volume at `min_distance`, silent at `max_distance`.
+    pub distances: SpatialTrackDistances,
+    /// The curve used for volume attenuation over the specified distances.
+    pub attenuation_function: Easing,
 }
 
-impl Default for DefaultSpatialRadius {
+impl Default for EmitterSettings {
     fn default() -> Self {
-        Self { radius: 25.0 }
+        Self {
+            distances: SpatialTrackDistances::default(),
+            attenuation_function: Easing::Linear,
+        }
     }
 }
+/// This hook runs whenever a `SpatialAudioEmitter` component is added to an entity.
+fn emitter_added(mut world: DeferredWorld, context: HookContext) {
+    // We need to get the GlobalTransform to set the initial position.
+    let transform = world
+        .get::<GlobalTransform>(context.entity)
+        .cloned()
+        .unwrap_or_default();
+    // Check if the entity also has the EmitterSettings component.
+    let emitter_settings = world
+        .get::<EmitterSettings>(context.entity)
+        .cloned()
+        .unwrap_or_default(); // Fall back to default settings if it doesn't.
 
-/// Component for per-entity spatial audio radius
-///
-/// If an emitter does not have this component, the [`DefaultSpatialRadius`] is used instead.
-#[derive(Component)]
-pub struct SpatialRadius {
-    /// The volume will change from `1` at distance `0` to `0` at distance `radius`
-    pub radius: f32,
-}
+    let bevy_pos = transform.translation();
+    let mint_pos = mint::Vector3 {
+        x: bevy_pos.x,
+        y: bevy_pos.y,
+        z: bevy_pos.z,
+    };
 
-#[derive(Component)]
-struct SpatialDampingCurve(EaseFunction);
+    let listener_id = {
+        let Some(audio_output) = world.get_non_send_resource::<AudioOutput>() else {
+            return;
+        };
+        let Some(listener_handle) = audio_output.listener.as_ref() else {
+            warn!("Cannot initialize spatial emitter: No listener found.");
+            return;
+        };
+        listener_handle.id() // Copy the ID
+    };
 
-impl Default for SpatialDampingCurve {
-    fn default() -> Self {
-        SpatialDampingCurve(EaseFunction::Linear)
-    }
-}
+    if let Some(mut audio_output) = world.get_non_send_resource_mut::<AudioOutput>() {
+        let Some(manager) = audio_output.manager.as_mut() else {
+            return;
+        };
 
-fn run_spatial_audio(
-    spatial_audio: Res<DefaultSpatialRadius>,
-    receiver: Query<&GlobalTransform, With<SpatialAudioReceiver>>,
-    emitters: Query<(
-        &GlobalTransform,
-        &SpatialAudioEmitter,
-        &SpatialDampingCurve,
-        Option<&SpatialRadius>,
-    )>,
-    mut audio_instances: ResMut<Assets<AudioInstance>>,
-) {
-    if let Ok(receiver_transform) = receiver.single() {
-        for (emitter_transform, emitter, damping_curve, range) in emitters.iter() {
-            let sound_path = emitter_transform.translation() - receiver_transform.translation();
-            let progress = (sound_path.length() / range.map_or(spatial_audio.radius, |r| r.radius))
-                .clamp(0., 1.);
-            let volume: f32 = EasingCurve::new(0., -60., damping_curve.0)
-                .sample_unchecked(progress)
-                .clamp(-60., 0.);
+        // Create a builder and apply the settings from the component.
+        let builder = SpatialTrackBuilder::new()
+            .distances(emitter_settings.distances) // Set the falloff distance
+            .attenuation_function(emitter_settings.attenuation_function); // Set the falloff curve
 
-            let right_ear_angle = if sound_path == Vec3::ZERO {
-                PI / 2.
-            } else {
-                receiver_transform.right().angle_between(sound_path)
-            };
-            let panning = right_ear_angle.cos();
-
-            for instance in emitter.instances.iter() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
-                    instance.set_decibels(volume, AudioTween::default());
-                    instance.set_panning(panning, AudioTween::default());
+        match manager.add_spatial_sub_track(listener_id, mint_pos, builder) {
+            Ok(track_handle) => {
+                if let Some(mut emitter) = world.get_mut::<SpatialAudioEmitter>(context.entity) {
+                    emitter.track = Some(track_handle);
                 }
+            }
+            Err(e) => {
+                warn!(
+                    "Error creating spatial track for entity {:?}: {:?}",
+                    context.entity, e
+                );
             }
         }
     }
 }
-
-fn cleanup_stopped_spatial_instances(
-    mut emitters: Query<&mut SpatialAudioEmitter>,
-    instances: ResMut<Assets<AudioInstance>>,
+fn update_listener_transform(
+    mut audio_output: bevy::ecs::system::NonSendMut<AudioOutput>,
+    receiver_query: Query<&GlobalTransform, With<SpatialAudioReceiver>>,
 ) {
-    emitters.iter_mut().for_each(|mut emitter| {
-        emitter.instances.retain(|handle| {
-            instances.get(handle).is_none_or(|instance| {
-                !matches!(instance.handle.state(), kira::sound::PlaybackState::Stopped)
-            })
-        });
-    });
+    let Some(listener) = audio_output.listener.as_mut() else {
+        return;
+    };
+
+    if let Ok(receiver_transform) = receiver_query.single() {
+        let pos = receiver_transform.translation();
+        let rot = receiver_transform.rotation();
+        let mint_pos = mint::Vector3 {
+            x: pos.x,
+            y: pos.y,
+            z: pos.z,
+        };
+        let mint_rot = mint::Quaternion {
+            v: mint::Vector3 {
+                x: rot.x,
+                y: rot.y,
+                z: rot.z,
+            },
+            s: rot.w,
+        };
+
+        listener.set_position(mint_pos, Tween::default());
+        listener.set_orientation(mint_rot, Tween::default());
+    }
+}
+
+fn update_emitter_positions(mut query: Query<(&mut SpatialAudioEmitter, &GlobalTransform)>) {
+    for (mut emitter, transform) in &mut query {
+        if let Some(track) = emitter.track.as_mut() {
+            let pos = transform.translation();
+            let mint_pos = mint::Vector3 {
+                x: pos.x,
+                y: pos.y,
+                z: pos.z,
+            };
+            track.set_position(mint_pos, Tween::default());
+        }
+    }
 }

@@ -32,6 +32,8 @@ ron = { version = "0.8", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
 thiserror = "2"
+mint = "0.5.9"
+glam = "0.25.0"
 
 [dev-dependencies.bevy]
 version = "0.17.0"

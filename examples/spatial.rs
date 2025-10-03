@@ -1,7 +1,8 @@
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use bevy_kira_audio::prelude::*;
+use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy_kira_audio::{prelude::*, EmitterSettings};
+use kira::Easing;
 
 /// This example demonstrates the basic spatial audio support in `bevy_kira_audio`.
 /// It adds `SpatialAudioPlugin` then spawns entities with `SpatialAudioEmitter`
@@ -17,7 +18,6 @@ fn main() {
         .add_systems(Startup, setup)
         .run();
 }
-
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -26,33 +26,45 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Emitter Nr. 1
-    let cooking = audio
-        .play(asset_server.load("sounds/cooking.ogg"))
-        .looped()
-        .handle();
-    commands.spawn((
-        SceneRoot(asset_server.load("models/panStew.glb#Scene0")),
-        Transform::from_xyz(-5.0, 0., 0.),
-        SpatialAudioEmitter {
-            instances: vec![cooking],
-        },
-        // at a distance of more than 40, the emitter will be at -60dB
-        SpatialRadius { radius: 40.0 },
-    ));
+    let pan_entity = commands
+        .spawn((
+            SceneRoot(asset_server.load("models/panStew.glb#Scene0")),
+            Transform::from_xyz(-5.0, 0., 0.),
+            SpatialAudioEmitter::default(),
+        ))
+        .id();
     // Emitter Nr. 2
-    let elevator_music = audio
-        .play(asset_server.load("sounds/loop.ogg"))
+    let music_box_entity = commands
+        .spawn((
+            SceneRoot(asset_server.load("models/boxOpen.glb#Scene0")),
+            Transform::from_xyz(10., 0., 0.),
+            SpatialAudioEmitter::default(),
+            // Note that this is per-entity. To have emitters with different falloff values,
+            // you would need to create child entities with their own emitters.
+            EmitterSettings {
+                distances: (2.0..=20.0).into(),
+                // We will fully hear this entity within a distance of 2 units, and not hear it at
+                // all by 20 units.
+                attenuation_function: Easing::OutPowi(2), // A curve that starts fast and slows down
+            },
+        ))
+        .id();
+    let cooking_sound = asset_server.load("sounds/cooking.ogg");
+    audio
+        .play(cooking_sound)
+        .with_emitter(pan_entity)
+        .with_volume(0.0)
+        .looped();
+
+    // Play a non-spatial sound on the "Music" channel
+    let music_sound = asset_server.load("sounds/loop.ogg");
+    audio
+        .play(music_sound)
+        .with_emitter(music_box_entity)
         .looped()
-        .handle();
-    commands.spawn((
-        SceneRoot(asset_server.load("models/boxOpen.glb#Scene0")),
-        Transform::from_xyz(10., 0., 0.),
-        SpatialAudioEmitter {
-            instances: vec![elevator_music],
-        },
-    ));
-    // If an emitter has no SpatialRadius, the resource DefaultSpatialRadius is used instead.
-    // It defaults to a spatial radius of 25.
+        // Example of setting initial volume
+        .with_volume(5.0);
+
     // Our camera will be the receiver.
     commands
         .spawn((Camera3d::default(), Transform::from_xyz(0.0, 0.5, 10.0)))
@@ -81,7 +93,6 @@ fn setup(
         MeshMaterial3d(materials.add(StandardMaterial::from_color(LinearRgba::GREEN))),
     ));
 }
-
 // only camera handling code from here on...
 
 // Code modified from https://github.com/sburris0/bevy_flycam under the ISC License

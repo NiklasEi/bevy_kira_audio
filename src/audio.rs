@@ -12,8 +12,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::prelude::{PostUpdate, default};
 use kira::sound::EndPosition;
-use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
-use kira::{Decibels, Panning, Value};
+use kira::{Decibels, Panning, Tween, Value};
 use std::marker::PhantomData;
 use std::time::Duration;
 use uuid::Uuid;
@@ -40,6 +39,7 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) reverse: Option<bool>,
     pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
+    pub(crate) emitter: Option<Entity>,
 }
 
 /// Different kinds of easing for fade-in and fade-out
@@ -122,11 +122,7 @@ impl PartialSoundSettings {
                 .end = EndPosition::Custom(loop_end.into());
         }
         if let Some(volume) = self.volume {
-            if let Value::Fixed(channel_volume) = sound.settings.volume {
-                sound.settings.volume = Value::Fixed(volume + channel_volume);
-            } else {
-                sound.settings.volume = Value::Fixed(volume);
-            }
+            sound.settings.volume = Value::Fixed(volume);
         }
         if let Some(playback_rate) = self.playback_rate {
             sound.settings.playback_rate = playback_rate.into();
@@ -150,7 +146,7 @@ impl PartialSoundSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PlayAudioSettings {
     pub(crate) instance_handle: Handle<AudioInstance>,
     pub(crate) source: Handle<AudioSource>,
@@ -279,6 +275,12 @@ impl<'a> PlayAudioCommand<'a> {
     pub fn handle(&mut self) -> Handle<AudioInstance> {
         self.instance_handle.clone()
     }
+    /// Play this sound from the location of the given entity.
+    /// The entity must have a `SpatialAudioEmitter` component.
+    pub fn with_emitter(&mut self, emitter_entity: Entity) -> &mut Self {
+        self.settings.emitter = Some(emitter_entity);
+        self
+    }
 }
 
 pub(crate) enum TweenCommandKind {
@@ -369,6 +371,7 @@ impl TweenCommand<'_, FadeOut> {
     }
 }
 
+#[derive(PartialEq)]
 pub enum AudioCommandResult {
     Ok,
     Retry,
@@ -426,6 +429,8 @@ impl PlaybackState {
             | PlaybackState::WaitingToResume { position }
             | PlaybackState::Resuming { position }
             | PlaybackState::Stopping { position } => Some(*position),
+            PlaybackState::WaitingToResume { position } => Some(*position),
+            PlaybackState::Resuming { position } => Some(*position),
         }
     }
 }
