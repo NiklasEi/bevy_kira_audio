@@ -28,8 +28,8 @@ fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
         .with_panning(1.0)
         // Increase playback rate by 50% (this also increases the pitch)
         .with_playback_rate(1.5)
-        // Play at half volume
-        .with_volume(0.5)
+        // Play at lower volume (-10dB)
+        .with_volume(-10.)
         // play the track reversed
         .reverse();
 }

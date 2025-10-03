@@ -8,7 +8,7 @@ use crate::{AudioControl, AudioSource, PlaybackState};
 use bevy::asset::{AssetId, Handle};
 use bevy::ecs::resource::Resource;
 use bevy::platform::collections::HashMap;
-use kira::Volume;
+use kira::Decibels;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
@@ -51,7 +51,7 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.play(asset_server.load("audio.mp3"));
     /// }
     /// ```
-    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand {
+    fn play(&self, audio_source: Handle<AudioSource>) -> PlayAudioCommand<'_> {
         PlayAudioCommand::new(audio_source, self)
     }
 
@@ -65,7 +65,7 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.stop();
     /// }
     /// ```
-    fn stop(&self) -> TweenCommand<FadeOut> {
+    fn stop(&self) -> TweenCommand<'_, FadeOut> {
         TweenCommand::new(TweenCommandKind::Stop, self)
     }
 
@@ -79,7 +79,7 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.pause();
     /// }
     /// ```
-    fn pause(&self) -> TweenCommand<FadeOut> {
+    fn pause(&self) -> TweenCommand<'_, FadeOut> {
         TweenCommand::new(TweenCommandKind::Pause, self)
     }
 
@@ -93,31 +93,29 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.resume();
     /// }
     /// ```
-    fn resume(&self) -> TweenCommand<FadeIn> {
+    fn resume(&self) -> TweenCommand<'_, FadeIn> {
         TweenCommand::new(TweenCommandKind::Resume, self)
     }
 
-    /// Set the volume
-    ///
-    /// The default value is 1.
+    /// Set the volume in Decibels
     ///
     /// ```
     /// # use bevy::prelude::*;
     /// # use bevy_kira_audio::prelude::*;
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_volume(0.5);
+    ///     audio.set_volume(-6.);
     /// }
     /// ```
-    fn set_volume(&self, volume: impl Into<Volume>) -> TweenCommand<FadeIn> {
+    fn set_volume(&self, volume: impl Into<Decibels>) -> TweenCommand<'_, FadeIn> {
         TweenCommand::new(TweenCommandKind::SetVolume(volume.into()), self)
     }
 
     /// Set panning
     ///
-    /// The default value is 0.5
-    /// Values up to 1 pan to the right
-    /// Values down to 0 pan to the left
+    /// The default value is 0.0
+    /// Values up to 1.0 pan to the right
+    /// Values down to -1.0 pan to the left
     ///
     /// ```
     /// # use bevy::prelude::*;
@@ -127,8 +125,8 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.set_panning(0.9);
     /// }
     /// ```
-    fn set_panning(&self, panning: f64) -> TweenCommand<FadeIn> {
-        TweenCommand::new(TweenCommandKind::SetPanning(panning), self)
+    fn set_panning(&self, panning: f32) -> TweenCommand<'_, FadeIn> {
+        TweenCommand::new(TweenCommandKind::SetPanning(panning.into()), self)
     }
 
     /// Set playback rate
@@ -143,7 +141,7 @@ impl<T> AudioControl for AudioChannel<T> {
     ///     audio.set_playback_rate(2.0);
     /// }
     /// ```
-    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<FadeIn> {
+    fn set_playback_rate(&self, playback_rate: f64) -> TweenCommand<'_, FadeIn> {
         TweenCommand::new(TweenCommandKind::SetPlaybackRate(playback_rate), self)
     }
 
@@ -187,9 +185,11 @@ impl<T> AudioControl for AudioChannel<T> {
 
 #[cfg(test)]
 mod test {
+    use std::marker::PhantomData;
+
+    use crate::Audio;
     use crate::channel::typed::AudioChannel;
     use crate::channel::*;
-    use crate::Audio;
     use bevy::asset::{AssetId, Handle};
     use uuid::Uuid;
 
@@ -197,7 +197,7 @@ mod test {
     fn state_is_queued_if_command_is_queued() {
         let audio = AudioChannel::<Audio>::default();
         let audio_handle: Handle<AudioSource> =
-            Handle::<AudioSource>::Weak(AssetId::<AudioSource>::default());
+            Handle::<AudioSource>::Uuid(AssetId::<AudioSource>::DEFAULT_UUID, PhantomData);
         let instance_handle = audio.play(audio_handle).handle();
 
         assert_eq!(audio.state(&instance_handle), PlaybackState::Queued);
@@ -206,7 +206,8 @@ mod test {
     #[test]
     fn state_is_stopped_if_command_is_not_queued_and_id_not_in_state_map() {
         let audio = AudioChannel::<Audio>::default();
-        let instance_handle = Handle::<AudioInstance>::Weak(AssetId::<AudioInstance>::default());
+        let instance_handle =
+            Handle::<AudioInstance>::Uuid(AssetId::<AudioInstance>::DEFAULT_UUID, PhantomData);
 
         assert_eq!(audio.state(&instance_handle), PlaybackState::Stopped);
     }
@@ -214,7 +215,8 @@ mod test {
     #[test]
     fn state_is_fetched_from_state_map() {
         let mut audio = AudioChannel::<Audio>::default();
-        let instance_handle = Handle::<AudioInstance>::Weak(AssetId::<AudioInstance>::default());
+        let instance_handle =
+            Handle::<AudioInstance>::Uuid(AssetId::<AudioInstance>::DEFAULT_UUID, PhantomData);
         audio.states.insert(
             instance_handle.id(),
             PlaybackState::Pausing { position: 42. },

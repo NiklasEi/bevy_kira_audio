@@ -11,11 +11,8 @@ use bevy_kira_audio::prelude::*;
 fn main() {
     App::new()
         // We need to increase the queue sizes of the audio backend.
-        // The default is 128 per queue, which is way too low for playing as many sounds
-        // as this example does.
         .insert_resource(AudioSettings {
             sound_capacity: 8192,
-            command_capacity: 4096,
         })
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, prepare)
@@ -40,7 +37,7 @@ fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Au
         r#"
     This is a stress test playing 100 sounds every frame
 
-    Milage may vary; be sure to run in release mode!"#,
+    Mileage may vary; be sure to run in release mode!"#,
     ));
 }
 
@@ -49,15 +46,14 @@ fn check(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
-    if let Some(handle) = handle {
-        if asset_server
+    if let Some(handle) = handle
+        && asset_server
             .get_load_state(handle.0.id())
             .map(|state| state.is_loaded())
             .unwrap_or(false)
-        {
-            commands.insert_resource(AudioHandle(handle.0.clone()));
-            commands.remove_resource::<LoadingAudioHandle>();
-        }
+    {
+        commands.insert_resource(AudioHandle(handle.0.clone()));
+        commands.remove_resource::<LoadingAudioHandle>();
     }
 }
 

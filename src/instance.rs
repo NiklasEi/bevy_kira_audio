@@ -1,8 +1,7 @@
 use crate::{AudioTween, PlaybackState};
 use bevy::asset::{Asset, Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
-use kira::tween::Value;
-use kira::Volume;
+use kira::{Decibels, Value};
 
 #[derive(Asset, bevy::reflect::TypePath)]
 /// Asset for direct audio control
@@ -31,11 +30,13 @@ impl AudioInstance {
         (&self.handle).into()
     }
 
-    /// Set the volume of the audio instance
+    /// Change the volume of the audio instance
     ///
-    /// Default is `1.0`
-    pub fn set_volume(&mut self, volume: impl Into<Value<Volume>>, tween: AudioTween) {
-        self.handle.set_volume(volume, tween.into());
+    /// Higher values increase the volume and lower values decrease it.
+    /// Setting the volume of a sound to -60dB or lower makes it silent.
+    pub fn set_decibels(&mut self, volume: impl Into<Decibels>, tween: AudioTween) {
+        self.handle
+            .set_volume(Value::Fixed(volume.into()), tween.into());
     }
 
     /// Sets the playback rate of the sound.
@@ -48,11 +49,12 @@ impl AudioInstance {
 
     /// Sets the panning of the sound
     ///
-    /// `0.0` is hard left,
-    /// `0.5` is center (default)
-    /// `1.0` is hard right.
-    pub fn set_panning(&mut self, panning: f64, tween: AudioTween) {
-        self.handle.set_panning(panning, tween.into());
+    /// `1.0` is hard right,
+    /// `0.0` is center (default),
+    /// `-1.0` is hard left.
+    pub fn set_panning(&mut self, panning: f32, tween: AudioTween) {
+        self.handle
+            .set_panning(Value::Fixed(panning.into()), tween.into());
     }
 
     /// Sets the playback position to the specified time in seconds.

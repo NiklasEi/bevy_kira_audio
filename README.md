@@ -53,8 +53,8 @@ fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
         .with_panning(1.0)
         // Increase playback rate by 50% (this also increases the pitch)
         .with_playback_rate(1.5)
-        // Play at half volume
-        .with_volume(0.5)
+        // Play at lower volume (-10dB)
+        .with_volume(-10.)
         // play the track reversed
         .reverse();
 }
@@ -91,6 +91,7 @@ Compatibility of `bevy_kira_audio` versions:
 
 | Bevy version | `bevy_kira_audio` version |
 |:-------------|:--------------------------|
+| `0.17`       | `0.24`                    |
 | `0.16`       | `0.23`                    |
 | `0.15`       | `0.21` - `0.22`           |
 | `0.14`       | `0.20`                    |

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
-use kira::tween::Easing;
+use kira::Easing;
 use std::time::Duration;
 
 // This example demonstrates how to control an audio channel

@@ -2,8 +2,8 @@ use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::schedule::ScheduleConfigs;
 use bevy::prelude::*;
-use bevy_kira_audio::prelude::*;
 use bevy_kira_audio::AudioApp;
+use bevy_kira_audio::prelude::*;
 use std::clone::Clone;
 use std::marker::PhantomData;
 
@@ -22,9 +22,8 @@ fn main() {
         .run();
 }
 
-fn create_row_systems<C: Component + Default>(
-) -> ScheduleConfigs<Box<(dyn bevy::prelude::System<In = (), Out = Result<(), BevyError>> + 'static)>>
-{
+fn create_row_systems<C: Component + Default>()
+-> ScheduleConfigs<Box<dyn bevy::prelude::System<In = (), Out = ()> + 'static>> {
     (
         stop_button::<C>,
         loop_button::<C>,
@@ -40,11 +39,11 @@ fn play_pause_button<T: Component + Default>(
     mut channel_state: ResMut<ChannelAudioState<T>>,
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
-    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<PlayPauseButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlayPauseButton<T>>>,
     mut play_pause_text: Query<&mut TextSpan, With<PlayPauseButton<T>>>,
 ) -> Result {
-    let (interaction, mut image) = interaction_query.single_mut()?;
-    image.color = if channel_state.stopped {
+    let (interaction, mut background_color) = interaction_query.single_mut()?;
+    background_color.0 = if channel_state.stopped {
         DISABLED_BUTTON
     } else if interaction == &Interaction::Hovered {
         HOVERED_BUTTON
@@ -77,10 +76,10 @@ fn stop_button<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<StopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StopButton<T>>>,
 ) -> Result {
-    let (interaction, mut image) = interaction_query.single_mut()?;
-    image.color = if channel_state.stopped {
+    let (interaction, mut background_color) = interaction_query.single_mut()?;
+    background_color.0 = if channel_state.stopped {
         DISABLED_BUTTON
     } else if interaction == &Interaction::Hovered {
         HOVERED_BUTTON
@@ -104,10 +103,10 @@ fn loop_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<StartLoopButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StartLoopButton<T>>>,
 ) -> Result {
-    let (interaction, mut image) = interaction_query.single_mut()?;
-    image.color = if !channel_state.loop_started {
+    let (interaction, mut background_color) = interaction_query.single_mut()?;
+    background_color.0 = if !channel_state.loop_started {
         if interaction == &Interaction::Hovered {
             HOVERED_BUTTON
         } else {
@@ -134,10 +133,10 @@ fn play_sound_button<T: Component + Default>(
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
     audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut ImageNode), With<PlaySoundButton<T>>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlaySoundButton<T>>>,
 ) -> Result {
-    let (interaction, mut image) = interaction_query.single_mut()?;
-    image.color = if interaction == &Interaction::Hovered {
+    let (interaction, mut background_color) = interaction_query.single_mut()?;
+    background_color.0 = if interaction == &Interaction::Hovered {
         HOVERED_BUTTON
     } else {
         NORMAL_BUTTON
@@ -145,7 +144,9 @@ fn play_sound_button<T: Component + Default>(
     if interaction == &Interaction::Pressed && last_action.action(&time) {
         channel_state.paused = false;
         channel_state.stopped = false;
-        channel.play(audio_handles.sound_handle.clone());
+        channel
+            .play(audio_handles.sound_handle.clone())
+            .with_volume(channel_state.volume);
     }
 
     Ok(())
@@ -156,10 +157,10 @@ fn volume_buttons<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut ImageNode, &ChangeVolumeButton<T>)>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor, &ChangeVolumeButton<T>)>,
 ) {
-    for (interaction, mut image, volume) in &mut interaction_query {
-        image.color = if interaction == &Interaction::Hovered {
+    for (interaction, mut background_color, volume) in &mut interaction_query {
+        background_color.0 = if interaction == &Interaction::Hovered {
             HOVERED_BUTTON
         } else {
             NORMAL_BUTTON
@@ -169,10 +170,11 @@ fn volume_buttons<T: Component + Default>(
                 return;
             }
             if volume.louder {
-                channel_state.volume += 0.1;
+                channel_state.volume += 2.;
             } else {
-                channel_state.volume = (channel_state.volume - 0.1).max(0.);
+                channel_state.volume = (channel_state.volume - 2.).max(-60.);
             }
+            println!("{}", channel_state.volume);
             channel.set_volume(channel_state.volume);
         }
     }
@@ -236,14 +238,14 @@ struct ChannelAudioState<T> {
     stopped: bool,
     paused: bool,
     loop_started: bool,
-    volume: f64,
+    volume: f32,
     _marker: PhantomData<T>,
 }
 
 impl<T> Default for ChannelAudioState<T> {
     fn default() -> Self {
         ChannelAudioState {
-            volume: 1.0,
+            volume: 0.0,
             stopped: true,
             loop_started: false,
             paused: false,
@@ -275,13 +277,16 @@ fn set_up_ui(commands: &mut Commands, asset_server: ResMut<AssetServer>) {
     let font = asset_server.load("fonts/monogram.ttf");
     commands.spawn(Camera2d);
     commands
-        .spawn(Node {
-            display: Display::Flex,
-            flex_direction: FlexDirection::Column,
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            ..Default::default()
-        })
+        .spawn((
+            Node {
+                display: Display::Flex,
+                flex_direction: FlexDirection::Column,
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                ..Default::default()
+            },
+            BackgroundColor(Color::BLACK),
+        ))
         .with_children(|parent| {
             build_button_row::<FirstChannel>(parent, &font, 1);
             build_button_row::<SecondChannel>(parent, &font, 2);
@@ -390,7 +395,7 @@ fn spawn_button<T: Component + Clone>(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            ImageNode::default().with_color(color),
+            BackgroundColor(color),
             Button,
         ))
         .insert(marker.clone())
@@ -404,7 +409,7 @@ fn spawn_button<T: Component + Clone>(
                         ..Default::default()
                     },
                     TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
-                    TextLayout::new_with_justify(JustifyText::Center),
+                    TextLayout::new_with_justify(Justify::Center),
                 ))
                 .with_child((TextSpan::new(text), marker));
         });

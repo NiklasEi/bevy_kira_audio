@@ -1,8 +1,8 @@
 use anyhow::Result;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
-use kira::sound::static_sound::StaticSoundData;
 use kira::sound::FromFileError;
+use kira::sound::static_sound::StaticSoundData;
 use std::io::Cursor;
 use thiserror::Error;
 

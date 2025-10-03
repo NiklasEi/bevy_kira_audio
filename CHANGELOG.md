@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.24.0 - 03.10.2025
+- Update to Bevy `0.17`
+- Update to Kira `0.10`
+
 ## v0.23.0 - 26.04.2025
 - Update to Bevy `0.16`
 

@@ -1,7 +1,6 @@
 use bevy::ecs::resource::Resource;
 use bevy::utils::default;
-use kira::manager::backend::DefaultBackend;
-use kira::manager::{AudioManagerSettings, Capacities};
+use kira::{AudioManagerSettings, DefaultBackend, track::MainTrackBuilder};
 
 /// This resource is used to configure the audio backend at creation
 ///
@@ -9,21 +8,13 @@ use kira::manager::{AudioManagerSettings, Capacities};
 /// consumed by it. Settings cannot be changed at run-time!
 #[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AudioSettings {
-    /// The number of commands that can be sent to the audio backend at a time.
-    ///
-    /// Each action you take, like playing or pausing a sound
-    /// queues up one command.
-    ///
-    /// Note that configuring a channel will cause one command per sound in the channel!
-    pub command_capacity: usize,
     /// The maximum number of sounds that can be playing at a time.
-    pub sound_capacity: u16,
+    pub sound_capacity: usize,
 }
 
 impl Default for AudioSettings {
     fn default() -> Self {
         Self {
-            command_capacity: 128,
             sound_capacity: 128,
         }
     }
@@ -32,11 +23,7 @@ impl Default for AudioSettings {
 impl From<AudioSettings> for AudioManagerSettings<DefaultBackend> {
     fn from(settings: AudioSettings) -> Self {
         AudioManagerSettings {
-            capacities: Capacities {
-                command_capacity: settings.command_capacity,
-                sound_capacity: settings.sound_capacity,
-                ..default()
-            },
+            main_track_builder: MainTrackBuilder::new().sound_capacity(settings.sound_capacity),
             ..default()
         }
     }

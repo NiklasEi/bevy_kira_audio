@@ -26,8 +26,8 @@
 //!     audio.play(asset_server.load("background_audio.mp3")).looped();
 //! }
 //!
-//! # fn stop(mut events: EventWriter<AppExit>) {
-//! #     events.send(AppExit::Success);
+//! # fn stop(mut events: MessageWriter<AppExit>) {
+//! #     events.write(AppExit::Success);
 //! # }
 //! ```
 
@@ -55,7 +55,6 @@ pub use spatial::{
     DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
     SpatialRadius,
 };
-
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
@@ -66,13 +65,15 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::backend_settings::AudioSettings;
     #[doc(hidden)]
+    pub use crate::channel::AudioControl;
+    #[doc(hidden)]
     pub use crate::channel::dynamic::{DynamicAudioChannel, DynamicAudioChannels};
     #[doc(hidden)]
     pub use crate::channel::typed::AudioChannel;
     #[doc(hidden)]
-    pub use crate::channel::AudioControl;
-    #[doc(hidden)]
     pub use crate::instance::{AudioInstance, AudioInstanceAssetsExt};
+    #[doc(hidden)]
+    pub use crate::source::AudioSource;
     #[doc(hidden)]
     #[cfg(feature = "flac")]
     pub use crate::source::flac_loader::*;
@@ -89,24 +90,19 @@ pub mod prelude {
     #[cfg(feature = "wav")]
     pub use crate::source::wav_loader::*;
     #[doc(hidden)]
-    pub use crate::source::AudioSource;
-    #[doc(hidden)]
-    pub use crate::spatial::{
-        DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
-        SpatialRadius,
-    };
+    pub use crate::spatial::{SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
+        Decibels, Frame,
         sound::{
-            static_sound::{StaticSoundData, StaticSoundSettings},
             FromFileError, Sound, SoundData,
+            static_sound::{StaticSoundData, StaticSoundSettings},
         },
-        Frame, Volume,
     };
 }
 
-use crate::audio_output::{cleanup_stopped_instances, play_dynamic_channels, AudioOutput};
+use crate::audio_output::{AudioOutput, cleanup_stopped_instances, play_dynamic_channels};
 
 #[cfg(feature = "flac")]
 use crate::source::flac_loader::FlacLoader;
@@ -149,10 +145,11 @@ pub use instance::AudioInstanceAssetsExt;
 ///     audio.play(asset_server.load("background_audio.mp3")).looped();
 /// }
 ///
-/// # fn stop(mut events: EventWriter<AppExit>) {
-/// #     events.send(AppExit::Success);
+/// # fn stop(mut events: MessageWriter<AppExit>) {
+/// #     events.write(AppExit::Success);
 /// # }
 /// ```
+
 #[derive(Default)]
 pub struct AudioPlugin;
 
