@@ -8,11 +8,13 @@ use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use bevy::app::{App, PreUpdate};
 use bevy::asset::Handle;
+use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::prelude::{PostUpdate, default};
 use kira::sound::EndPosition;
-use kira::{Decibels, Panning, Tween, Value};
+use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
+use kira::{Decibels, Panning, Value};
 use std::marker::PhantomData;
 use std::time::Duration;
 use uuid::Uuid;
@@ -429,8 +431,6 @@ impl PlaybackState {
             | PlaybackState::WaitingToResume { position }
             | PlaybackState::Resuming { position }
             | PlaybackState::Stopping { position } => Some(*position),
-            PlaybackState::WaitingToResume { position } => Some(*position),
-            PlaybackState::Resuming { position } => Some(*position),
         }
     }
 }

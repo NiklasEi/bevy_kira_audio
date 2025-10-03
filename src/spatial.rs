@@ -1,13 +1,14 @@
 use crate::AudioOutput;
 use bevy::app::{App, Plugin, PostUpdate};
-use bevy::ecs::component::{Component, HookContext};
+use bevy::ecs::component::Component;
+use bevy::ecs::lifecycle::HookContext;
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::Query;
 use bevy::ecs::world::DeferredWorld;
 use bevy::log::warn;
+use bevy::transform::TransformSystems;
 use bevy::transform::components::{GlobalTransform, Transform};
-use bevy::transform::TransformSystem;
 use kira::track::{SpatialTrackBuilder, SpatialTrackDistances};
 use kira::{Easing, Tween};
 
@@ -25,7 +26,7 @@ impl Plugin for SpatialAudioPlugin {
             PostUpdate,
             (update_listener_transform, update_emitter_positions)
                 // The entire chain runs after Bevy's transform propagation.
-                .after(TransformSystem::TransformPropagate),
+                .after(TransformSystems::Propagate),
         );
     }
 }

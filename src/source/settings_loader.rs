@@ -2,7 +2,7 @@ use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext, ReadAssetBytesError};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use kira::sound::{FromFileError, PlaybackPosition, Region};
-use kira::{Decibels, PlaybackRate, Tween};
+use kira::{PlaybackRate, Tween};
 use serde::Deserialize;
 use std::time::Duration;
 use std::{io::Cursor, path::PathBuf};
@@ -73,7 +73,7 @@ impl From<SoundSettings> for StaticSoundSettings {
         static_sound_settings.start_position = PlaybackPosition::Seconds(settings.start_position);
         static_sound_settings.volume = kira::Value::Fixed(settings.volume.into());
         static_sound_settings.playback_rate = PlaybackRate::from(settings.playback_rate).into();
-        static_sound_settings.panning = kira::Value::Fixed(settings.panning);
+        static_sound_settings.panning = kira::Value::Fixed(settings.panning.into());
         static_sound_settings.reverse = settings.reverse;
         static_sound_settings.loop_region = settings.loop_region;
         static_sound_settings.fade_in_tween = settings.fade_in_tween.map(|micros| Tween {

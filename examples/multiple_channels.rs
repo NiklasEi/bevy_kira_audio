@@ -168,11 +168,11 @@ fn volume_buttons<T: Component + Default>(
                 return;
             }
             if volume.louder {
-                channel_state.volume += 0.1;
+                channel_state.volume += 2.;
             } else {
-                channel_state.volume = (channel_state.volume - 0.1).max(0.);
+                channel_state.volume = (channel_state.volume - 2.).max(-60.);
             }
-            channel.set_volume(Decibels(channel_state.volume as f32));
+            channel.set_volume(Decibels(channel_state.volume));
         }
     }
 }

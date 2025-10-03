@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
-use kira::Capacities;
 
 /// This example needs to be played in release mode! `cargo run --example stress_test --release`
-/// A large amount (100) of sounds will be played in every frame.
+/// A large amount (300) of sounds will be played in every frame.
 ///
 /// The main objective here is to demonstrate that the plugin and Kira can handle
 /// large sound volumes over a longer period of time.
@@ -36,7 +35,7 @@ fn prepare(asset_server: Res<AssetServer>, mut commands: Commands, audio: Res<Au
     commands.spawn(Camera2d);
     commands.spawn(Text::new(
         r#"
-    This is a stress test playing 100 sounds every frame
+    This is a stress test playing 300 sounds every frame
 
     Mileage may vary; be sure to run in release mode!"#,
     ));
@@ -63,7 +62,7 @@ fn play(handle: Option<Res<AudioHandle>>, audio: Res<Audio>) {
         // The max number here depends on your hardware.
         // If you get warnings and/or stuttered sounds try reducing the amount and/or changing the
         // capacities of the `AudioSettings` in the `main` method.
-        for _ in 0..100 {
+        for _ in 0..300 {
             audio.play(handle.0.clone());
         }
     }

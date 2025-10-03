@@ -1,7 +1,7 @@
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use bevy::window::{CursorGrabMode, PrimaryWindow};
-use bevy_kira_audio::{prelude::*, EmitterSettings};
+use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
+use bevy_kira_audio::{EmitterSettings, prelude::*};
 use kira::Easing;
 
 /// This example demonstrates the basic spatial audio support in `bevy_kira_audio`.

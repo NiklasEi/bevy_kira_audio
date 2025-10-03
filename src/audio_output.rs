@@ -3,7 +3,6 @@
 use crate::audio::{AudioCommand, AudioCommandResult, AudioTween, PartialSoundSettings, map_tween};
 use std::any::TypeId;
 
-use crate::PlaybackState;
 use crate::backend_settings::AudioSettings;
 use crate::channel::dynamic::DynamicAudioChannels;
 use crate::channel::typed::AudioChannel;
@@ -16,10 +15,10 @@ use bevy::ecs::change_detection::{NonSendMut, ResMut};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{NonSend, Query, Res};
 use bevy::ecs::world::{FromWorld, World};
-use bevy::log::warn;
+use bevy::log::{error, warn};
 use kira::backend::Backend;
 use kira::track::TrackBuilder;
-use kira::{AudioManager, Decibels, DefaultBackend, Panning, PlaybackRate, Tween, Value};
+use kira::{AudioManager, Decibels, DefaultBackend, Panning, PlaybackRate, Value};
 use std::collections::{HashMap, VecDeque};
 
 /// Non-send resource that acts as audio output
@@ -491,14 +490,12 @@ fn process_channel_commands<B: Backend>(
                             .as_mut()
                             .and_then(|track| track.play(sound_data).ok())
                     })
-            } else if let Channel::Typed(type_id) = channel_id {
-                // Play on a typed channel's dedicated sub-track
-                if !track_registry.handles.contains_key(type_id) {
-                    if let Some(manager) = audio_output.manager.as_mut() {
-                        if let Ok(handle) = manager.add_sub_track(TrackBuilder::new()) {
-                            track_registry.handles.insert(*type_id, handle);
-                        }
-                    }
+            } else if let Channel::Typed(type_id) = channel_id
+                && !track_registry.handles.contains_key(type_id)
+                && let Some(manager) = audio_output.manager.as_mut()
+            {
+                if let Ok(handle) = manager.add_sub_track(TrackBuilder::new()) {
+                    track_registry.handles.insert(*type_id, handle);
                 }
                 track_registry
                     .handles
@@ -514,12 +511,15 @@ fn process_channel_commands<B: Backend>(
 
             // If playing the sound gave us a valid handle from Kira...
             if let Some(kira_handle) = new_kira_handle {
-                audio_instances.insert(
+                if let Err(error) = audio_instances.insert(
                     &play_args.instance_handle,
                     AudioInstance {
                         handle: kira_handle,
                     },
-                );
+                ) {
+                    error!("Failed to insert audio instance: {error}");
+                    continue;
+                }
 
                 audio_output
                     .instances
@@ -549,7 +549,7 @@ mod test {
 
     use super::*;
     use crate::{Audio, AudioControl, AudioPlugin};
-    use bevy::asset::{AssetId, AssetPlugin};
+    use bevy::asset::AssetPlugin;
     use bevy::prelude::*;
     use uuid::Uuid;
 
@@ -565,8 +565,8 @@ mod test {
     fn keeps_order_of_commands_to_retry() {
         let mut app = setup_test_app();
 
-        let audio_handle_one: Handle<AudioSource> = Handle::Weak(AssetId::from(Uuid::new_v4()));
-        let audio_handle_two: Handle<AudioSource> = Handle::Weak(AssetId::from(Uuid::new_v4()));
+        let audio_handle_one: Handle<AudioSource> = Handle::Uuid(Uuid::new_v4(), PhantomData);
+        let audio_handle_two: Handle<AudioSource> = Handle::Uuid(Uuid::new_v4(), PhantomData);
 
         // Get the Audio resource from the world and queue the commands
         let audio = app.world().resource::<Audio>();
@@ -602,8 +602,8 @@ mod test {
     fn stop_command_is_queued() {
         let app = setup_test_app();
 
-        let audio_handle_one: Handle<AudioSource> = Handle::Weak(AssetId::from(Uuid::new_v4()));
-        let audio_handle_two: Handle<AudioSource> = Handle::Weak(AssetId::from(Uuid::new_v4()));
+        let audio_handle_one: Handle<AudioSource> = Handle::Uuid(Uuid::new_v4(), PhantomData);
+        let audio_handle_two: Handle<AudioSource> = Handle::Uuid(Uuid::new_v4(), PhantomData);
 
         let audio = app.world().resource::<Audio>();
         audio.play(audio_handle_one.clone());

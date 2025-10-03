@@ -92,8 +92,6 @@ pub mod prelude {
     #[cfg(feature = "wav")]
     pub use crate::source::wav_loader::*;
     #[doc(hidden)]
-    pub use crate::source::AudioSource;
-    #[doc(hidden)]
     pub use crate::spatial::{SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};
@@ -103,7 +101,6 @@ pub mod prelude {
             FromFileError, Sound, SoundData,
             static_sound::{StaticSoundData, StaticSoundSettings},
         },
-        Decibels, Frame,
     };
 }
 
