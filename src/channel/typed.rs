@@ -122,7 +122,7 @@ impl<T> AudioControl for AudioChannel<T> {
     /// # use bevy_kira_audio::prelude::*;
     ///
     /// fn my_system(audio: Res<Audio>) {
-    ///     audio.set_panning(kira::Panning(0.9));
+    ///     audio.set_panning(0.9);
     /// }
     /// ```
     fn set_panning(&self, panning: f32) -> TweenCommand<'_, FadeIn> {
