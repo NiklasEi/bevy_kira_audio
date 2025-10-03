@@ -335,22 +335,68 @@ impl<B: Backend> AudioOutput<B> {
     pub(crate) fn run_audio_command(
         &mut self,
         audio_command: &AudioCommand,
+        track_registry: &mut TrackRegistry,
         audio_sources: &Assets<AudioSource>,
         audio_instances: &mut Assets<AudioInstance>,
         channel: &Channel,
+        emitters: &mut Query<&mut SpatialAudioEmitter>,
     ) -> AudioCommandResult {
         match audio_command {
             AudioCommand::Play(play_args) => {
-                if let Some(audio_source) = audio_sources.get(&play_args.source) {
-                    self.play(
-                        channel,
-                        &play_args.settings,
-                        audio_source,
-                        play_args.instance_handle.clone(),
-                        audio_instances,
-                    )
+                if audio_sources.get(&play_args.source).is_none() {
+                    return AudioCommandResult::Retry;
+                }
+
+                let source = audio_sources.get(&play_args.source).unwrap();
+                let mut sound_data = source.sound.clone();
+                play_args.settings.apply(&mut sound_data);
+
+                // Determine which track to play on and get the resulting sound handle from Kira.
+                let new_kira_handle = if let Some(emitter_entity) = play_args.settings.emitter {
+                    // Play on a spatial emitter's track
+                    emitters
+                        .get_mut(emitter_entity)
+                        .ok()
+                        .and_then(|mut emitter| {
+                            emitter
+                                .track
+                                .as_mut()
+                                .and_then(|track| track.play(sound_data).ok())
+                        })
+                } else if let Channel::Typed(type_id) = channel
+                    && !track_registry.handles.contains_key(type_id)
+                    && let Some(manager) = self.manager.as_mut()
+                {
+                    if let Ok(handle) = manager.add_sub_track(TrackBuilder::new()) {
+                        println!("new track");
+                        track_registry.handles.insert(*type_id, handle);
+                    }
+                    track_registry
+                        .handles
+                        .get_mut(type_id)
+                        .and_then(|track| track.play(sound_data).ok())
                 } else {
-                    // audio source hasn't loaded yet. Add it back to the queue
+                    // Play on the main track
+                    self.manager.as_mut().and_then(|m| m.play(sound_data).ok())
+                };
+
+                if let Some(kira_handle) = new_kira_handle {
+                    if let Err(error) = audio_instances.insert(
+                        &play_args.instance_handle,
+                        AudioInstance {
+                            handle: kira_handle,
+                        },
+                    ) {
+                        error!("Failed to insert audio instance: {error}");
+                        return AudioCommandResult::Retry;
+                    }
+
+                    self.instances
+                        .entry(channel.clone())
+                        .or_default()
+                        .push(play_args.instance_handle.clone());
+                    AudioCommandResult::Ok
+                } else {
                     AudioCommandResult::Retry
                 }
             }
@@ -390,6 +436,7 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 }
+
 pub(crate) fn play_audio_channel<T: Resource>(
     mut audio_output: NonSendMut<AudioOutput>,
     channel: Res<AudioChannel<T>>,
@@ -465,84 +512,22 @@ fn process_channel_commands<B: Backend>(
 ) {
     let mut still_queued = VecDeque::new();
 
-    for audio_command in commands.drain(..) {
-        if let AudioCommand::Play(ref play_args) = audio_command {
-            // Check for asset loading. If not loaded, requeue the original command.
-            if audio_sources.get(&play_args.source).is_none() {
-                still_queued.push_back(audio_command);
-                continue;
-            }
-
-            // Asset is loaded, so we can proceed.
-            let source = audio_sources.get(&play_args.source).unwrap();
-            let mut sound_data = source.sound.clone();
-            play_args.settings.apply(&mut sound_data);
-
-            // Determine which track to play on and get the resulting sound handle from Kira.
-            let new_kira_handle = if let Some(emitter_entity) = play_args.settings.emitter {
-                // Play on a spatial emitter's track
-                emitters
-                    .get_mut(emitter_entity)
-                    .ok()
-                    .and_then(|mut emitter| {
-                        emitter
-                            .track
-                            .as_mut()
-                            .and_then(|track| track.play(sound_data).ok())
-                    })
-            } else if let Channel::Typed(type_id) = channel_id
-                && !track_registry.handles.contains_key(type_id)
-                && let Some(manager) = audio_output.manager.as_mut()
-            {
-                if let Ok(handle) = manager.add_sub_track(TrackBuilder::new()) {
-                    track_registry.handles.insert(*type_id, handle);
-                }
-                track_registry
-                    .handles
-                    .get_mut(type_id)
-                    .and_then(|track| track.play(sound_data).ok())
-            } else {
-                // Play on the main track
-                audio_output
-                    .manager
-                    .as_mut()
-                    .and_then(|m| m.play(sound_data).ok())
-            };
-
-            // If playing the sound gave us a valid handle from Kira...
-            if let Some(kira_handle) = new_kira_handle {
-                if let Err(error) = audio_instances.insert(
-                    &play_args.instance_handle,
-                    AudioInstance {
-                        handle: kira_handle,
-                    },
-                ) {
-                    error!("Failed to insert audio instance: {error}");
-                    continue;
-                }
-
-                audio_output
-                    .instances
-                    .entry(channel_id.clone())
-                    .or_default()
-                    .push(play_args.instance_handle.clone());
-            } else {
-                // If for some reason playing failed, requeue.
-                still_queued.push_back(audio_command);
-            }
-        } else {
-            // Handle all other commands (Stop, Pause, etc.) as before.
-            audio_output.run_audio_command(
-                &audio_command,
-                audio_sources,
-                audio_instances,
-                channel_id,
-            );
+    for audio_command in commands.drain(..).rev() {
+        let result = audio_output.run_audio_command(
+            &audio_command,
+            track_registry,
+            audio_sources,
+            audio_instances,
+            channel_id,
+            emitters,
+        );
+        if let AudioCommandResult::Retry = result {
+            still_queued.push_front(audio_command);
         }
     }
-    // Replace the old queue with the new one containing only the retries.
     *commands = still_queued;
 }
+
 #[cfg(test)]
 mod test {
     use std::marker::PhantomData;
@@ -577,25 +562,46 @@ mod test {
         // the play commands should remain in the queue.
         app.update();
 
-        let audio = app.world().resource::<Audio>();
-        let mut commands = audio.commands.write();
+        {
+            let audio = app.world().resource::<Audio>();
+            let commands = audio.commands.read();
 
-        // Commands are pushed to the front (LIFO), so the last one called is the first one out.
-        let command_two = commands.pop_front().unwrap();
-        match command_two {
-            AudioCommand::Play(settings) => {
-                assert_eq!(settings.source.id(), audio_handle_two.id()) // This line is correct now; Todo: is it?
+            let command_one = commands.back().unwrap();
+            match command_one {
+                AudioCommand::Play(settings) => {
+                    assert_eq!(settings.source.id(), audio_handle_one.id())
+                }
+                _ => panic!("Wrong audio command"),
             }
-            _ => panic!("Wrong audio command"),
+
+            let command_two = commands.front().unwrap();
+            match command_two {
+                AudioCommand::Play(settings) => {
+                    assert_eq!(settings.source.id(), audio_handle_two.id())
+                }
+                _ => panic!("Wrong audio command"),
+            }
         }
+        app.update();
+        {
+            let audio = app.world().resource::<Audio>();
+            let commands = audio.commands.read();
 
-        // The first command we issued (`audio_handle_one`) will be next.
-        let command_one = commands.pop_front().unwrap();
-        match command_one {
-            AudioCommand::Play(settings) => {
-                assert_eq!(settings.source.id(), audio_handle_one.id()) // This line is correct now
+            let command_one = commands.back().unwrap();
+            match command_one {
+                AudioCommand::Play(settings) => {
+                    assert_eq!(settings.source.id(), audio_handle_one.id())
+                }
+                _ => panic!("Wrong audio command"),
             }
-            _ => panic!("Wrong audio command"),
+
+            let command_two = commands.front().unwrap();
+            match command_two {
+                AudioCommand::Play(settings) => {
+                    assert_eq!(settings.source.id(), audio_handle_two.id())
+                }
+                _ => panic!("Wrong audio command"),
+            }
         }
     }
     #[test]

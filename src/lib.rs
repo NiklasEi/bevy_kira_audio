@@ -186,11 +186,13 @@ impl Plugin for AudioPlugin {
             .add_audio_channel::<MainTrack>();
     }
 }
+
 /// This resource maps a channel type to its live track handle.
 #[derive(Resource, Default)]
 pub(crate) struct TrackRegistry {
     handles: HashMap<TypeId, TrackHandle>,
 }
+
 /// Labels for audio systems
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
 pub enum AudioSystemSet {
