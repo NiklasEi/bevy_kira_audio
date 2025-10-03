@@ -157,10 +157,10 @@ fn volume_buttons<T: Component + Default>(
     time: Res<Time>,
     mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut ImageNode, &ChangeVolumeButton<T>)>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor, &ChangeVolumeButton<T>)>,
 ) {
-    for (interaction, mut image, volume) in &mut interaction_query {
-        image.color = if interaction == &Interaction::Hovered {
+    for (interaction, mut background_color, volume) in &mut interaction_query {
+        background_color.0 = if interaction == &Interaction::Hovered {
             HOVERED_BUTTON
         } else {
             NORMAL_BUTTON
@@ -174,7 +174,8 @@ fn volume_buttons<T: Component + Default>(
             } else {
                 channel_state.volume = (channel_state.volume - 2.).max(-60.);
             }
-            channel.set_volume(Decibels(channel_state.volume));
+            println!("{}", channel_state.volume);
+            channel.set_volume(channel_state.volume);
         }
     }
 }

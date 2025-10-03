@@ -42,9 +42,6 @@ mod instance;
 mod source;
 mod spatial;
 
-use std::any::TypeId;
-use std::collections::HashMap;
-
 pub use audio::{
     AudioApp, AudioEasing, AudioTween, FadeIn, FadeOut, PlayAudioCommand, PlaybackState,
     TweenCommand,
@@ -53,10 +50,11 @@ pub use backend_settings::AudioSettings;
 use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
-use kira::track::TrackHandle;
 pub use source::AudioSource;
-pub use spatial::EmitterSettings;
-pub use spatial::{SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver};
+pub use spatial::{
+    DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
+    SpatialRadius,
+};
 /// Most commonly used types
 pub mod prelude {
     #[doc(hidden)]
@@ -174,7 +172,6 @@ impl Plugin for AudioPlugin {
         app.init_asset_loader::<SettingsLoader>();
 
         app.init_resource::<DynamicAudioChannels>()
-            .init_resource::<TrackRegistry>()
             .add_systems(
                 PostUpdate,
                 play_dynamic_channels.in_set(AudioSystemSet::PlayDynamicChannels),
@@ -185,12 +182,6 @@ impl Plugin for AudioPlugin {
             )
             .add_audio_channel::<MainTrack>();
     }
-}
-
-/// This resource maps a channel type to its live track handle.
-#[derive(Resource, Default)]
-pub(crate) struct TrackRegistry {
-    handles: HashMap<TypeId, TrackHandle>,
 }
 
 /// Labels for audio systems
