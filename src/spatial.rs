@@ -50,7 +50,7 @@ pub struct SpatialAudioEmitter {
 ///
 /// Most likely you will want to add this component to your player or you camera.
 /// There can only ever be one entity with this component at a given time!
-#[derive(Component)]
+#[derive(Component, Default)]
 #[require(Transform)]
 pub struct SpatialAudioReceiver;
 
