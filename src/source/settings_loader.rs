@@ -1,5 +1,6 @@
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext, ReadAssetBytesError};
+use bevy::reflect::TypePath;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use kira::sound::{FromFileError, PlaybackPosition, Region};
 use kira::{PlaybackRate, Tween};
@@ -11,7 +12,7 @@ use thiserror::Error;
 use crate::AudioSource;
 
 /// Asset loader for sound settings files.
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct SettingsLoader;
 
 /// Kira sound settings

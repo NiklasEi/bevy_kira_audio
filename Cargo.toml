@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.24.0"
+version = "0.25.0-rc.1"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -23,8 +23,8 @@ settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 android_shared_stdcxx = ["kira/android_shared_stdcxx"]
 
 [dependencies]
-bevy = { version = "0.17.0", default-features = false, features = ["std", "bevy_asset", "bevy_log"] }
-bevy_math = { version = "0.17.0" }
+bevy = { version = "0.18.0-rc.1", default-features = false, features = ["std", "bevy_asset", "bevy_log"] }
+bevy_math = { version = "0.18.0-rc.1" }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
 kira = { version = "0.10.8", default-features = false, features = ["cpal"] }
@@ -36,59 +36,27 @@ mint = "0.5.9"
 glam = "0.25.0"
 
 [dev-dependencies.bevy]
-version = "0.17.0"
+version = "0.18.0-rc.1"
 default-features = false
 # default features minus "bevy_audio", "android_shared_stdcxx", and "vorbis"
 features = [
-"std",
-"async_executor",
-"android-game-activity",
-"animation",
-"bevy_asset",
-"bevy_color",
-"bevy_core_pipeline",
-"bevy_post_process",
-"bevy_anti_alias",
+"default_app",
+"2d_api",
+"2d_bevy_render",
+"3d_api",
+"3d_bevy_render",
+"ui_api",
+"ui_bevy_render",
+"scene",
+"picking",
 "bevy_gilrs",
-"bevy_gizmos",
-"bevy_gltf",
-"bevy_input_focus",
-"bevy_log",
-"bevy_mesh_picking_backend",
-"bevy_pbr",
-"bevy_picking",
-"bevy_render",
-"bevy_scene",
-"bevy_image",
-"bevy_mesh",
-"bevy_camera",
-"bevy_light",
-"bevy_shader",
-"bevy_sprite",
-"bevy_sprite_picking_backend",
-"bevy_sprite_render",
-"bevy_state",
-"bevy_text",
-"bevy_ui",
-"bevy_ui_picking_backend",
-"bevy_ui_render",
-"bevy_window",
 "bevy_winit",
-"custom_cursor",
 "default_font",
-"hdr",
-"ktx2",
 "multi_threaded",
-"png",
-"reflect_auto_register",
-"smaa_luts",
-"sysinfo_plugin",
-"tonemapping_luts",
 "webgl2",
 "x11",
 "wayland",
-"debug",
-"zstd_rust",
+"sysinfo_plugin",
 ]
 
 [[example]]
