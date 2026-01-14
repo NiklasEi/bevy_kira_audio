@@ -91,6 +91,7 @@ Compatibility of `bevy_kira_audio` versions:
 
 | Bevy version | `bevy_kira_audio` version |
 |:-------------|:--------------------------|
+| `0.18`       | `0.25`                    |
 | `0.17`       | `0.24`                    |
 | `0.16`       | `0.23`                    |
 | `0.15`       | `0.21` - `0.22`           |
@@ -128,4 +129,4 @@ additional terms or conditions.
 
 
 [kira]: https://github.com/tesselode/kira
-[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.15.0/Cargo.toml#L101-L138
+[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.18.0/Cargo.toml#L127

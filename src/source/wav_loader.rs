@@ -1,6 +1,7 @@
 use anyhow::Result;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
+use bevy::reflect::TypePath;
 use kira::sound::FromFileError;
 use kira::sound::static_sound::StaticSoundData;
 use std::io::Cursor;
@@ -9,7 +10,7 @@ use thiserror::Error;
 use crate::source::AudioSource;
 
 /// Asset loader for WAV files.
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct WavLoader;
 
 /// Possible errors that can be produced by [`WavLoader`]
