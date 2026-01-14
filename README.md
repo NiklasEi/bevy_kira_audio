@@ -129,4 +129,4 @@ additional terms or conditions.
 
 
 [kira]: https://github.com/tesselode/kira
-[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.15.0/Cargo.toml#L101-L138
+[bevy_default_features]: https://github.com/bevyengine/bevy/blob/v0.18.0/Cargo.toml#L127
