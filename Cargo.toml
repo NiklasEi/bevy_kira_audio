@@ -105,6 +105,36 @@ path = "examples/channel_control.rs"
 required-features = ["ogg"]
 
 [[example]]
+name = "reverb"
+path = "examples/reverb.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "filter"
+path = "examples/filter.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "filter_basic"
+path = "examples/filter_basic.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "reverb_channel"
+path = "examples/reverb_channel.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "multiple_effects"
+path = "examples/multiple_effects.rs"
+required-features = ["ogg"]
+
+[[example]]
+name = "multiple_effects_channel"
+path = "examples/multiple_effects_channel.rs"
+required-features = ["ogg"]
+
+[[example]]
 name = "spatial"
 path = "examples/spatial.rs"
 required-features = ["ogg"]

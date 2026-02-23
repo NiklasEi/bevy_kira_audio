@@ -55,6 +55,8 @@ fn play_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
         .with_playback_rate(1.5)
         // Play at lower volume (-10dB)
         .with_volume(-10.)
+        // Apply a low-pass filter effect
+        .with_effect(kira::effect::filter::FilterBuilder::new().cutoff(4000.0))
         // play the track reversed
         .reverse();
 }
