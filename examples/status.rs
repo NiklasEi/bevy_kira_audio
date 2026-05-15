@@ -60,8 +60,8 @@ fn display_help_text(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .with_child((Text("Press 'P' to pause\nPress 'R' to resume\nPress 'S' to stop\n\nCheck your console for the audio state".to_owned()),
             TextFont {
-                font: monogram.clone(),
-                font_size: 40.0,
+                font: monogram.into(),
+                font_size: 40.0.into(),
                 ..default()
             },
                 TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
