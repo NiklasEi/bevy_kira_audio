@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.26.0 - 21.06.2026
+- Update to Bevy `0.19`
+- Update Kira to `0.12`
+- Remove the `android_shared_stdcxx` feature, as `cpal` now uses `ndk::audio`, and `cpal`'s `oboe-shared-stdcxx` feature is deprecated
+
 ## v0.25.0 - 14.01.2026
 - Update to Bevy `0.18`
 

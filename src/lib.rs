@@ -155,7 +155,7 @@ pub struct AudioPlugin;
 
 impl Plugin for AudioPlugin {
     fn build(&self, app: &mut App) {
-        app.init_non_send_resource::<AudioOutput>()
+        app.init_non_send::<AudioOutput>()
             .init_asset::<AudioSource>()
             .init_asset::<AudioInstance>();
 

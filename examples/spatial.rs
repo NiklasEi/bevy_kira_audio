@@ -31,7 +31,7 @@ fn setup(
         .looped()
         .handle();
     commands.spawn((
-        SceneRoot(asset_server.load("models/panStew.glb#Scene0")),
+        WorldAssetRoot(asset_server.load("models/panStew.glb#Scene0")),
         Transform::from_xyz(-5.0, 0., 0.),
         SpatialAudioEmitter {
             instances: vec![cooking],
@@ -45,7 +45,7 @@ fn setup(
         .looped()
         .handle();
     commands.spawn((
-        SceneRoot(asset_server.load("models/boxOpen.glb#Scene0")),
+        WorldAssetRoot(asset_server.load("models/boxOpen.glb#Scene0")),
         Transform::from_xyz(10., 0., 0.),
         SpatialAudioEmitter {
             instances: vec![elevator_music],
@@ -63,14 +63,14 @@ fn setup(
     commands.spawn((
         PointLight {
             intensity: 1500.0,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
     commands.spawn( (Text::new("WASD to move horizontally\nSPACE to ascend\nLSHIFT to descend\nESC to grab/release cursor."), TextFont{
-        font:asset_server.load("fonts/monogram.ttf"),
-        font_size: 40.0,
+        font:asset_server.load("fonts/monogram.ttf").into(),
+        font_size: 40.0.into(),
         ..default()
     }, TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
                     Node {margin: UiRect::all(Val::Px(15.)), ..default()}));

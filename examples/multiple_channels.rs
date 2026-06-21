@@ -220,11 +220,11 @@ struct StopButton<T: Default> {
     _marker: PhantomData<T>,
 }
 
-#[derive(Resource, Component, Default, Clone)]
+#[derive(Resource, Default, Clone)]
 struct FirstChannel;
-#[derive(Resource, Component, Default, Clone)]
+#[derive(Resource, Default, Clone)]
 struct SecondChannel;
-#[derive(Resource, Component, Default, Clone)]
+#[derive(Resource, Default, Clone)]
 struct ThirdChannel;
 
 #[derive(Resource)]
@@ -320,8 +320,8 @@ fn build_button_row<T: Component + Default + Clone>(
                     parent.spawn((
                         Text::new(format!("Channel {}", 4 - channel_index)),
                         TextFont {
-                            font: font.clone(),
-                            font_size: 20.0,
+                            font: font.into(),
+                            font_size: 20.0.into(),
                             ..Default::default()
                         },
                         TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
@@ -404,12 +404,12 @@ fn spawn_button<T: Component + Clone>(
                 .spawn((
                     Text::new(String::new()),
                     TextFont {
-                        font: font.clone(),
-                        font_size: 20.0,
+                        font: font.into(),
+                        font_size: 20.0.into(),
                         ..Default::default()
                     },
                     TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
-                    TextLayout::new_with_justify(Justify::Center),
+                    TextLayout::justify(Justify::Center),
                 ))
                 .with_child((TextSpan::new(text), marker));
         });

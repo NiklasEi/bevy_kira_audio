@@ -116,7 +116,7 @@ fn run_spatial_audio(
             let panning = right_ear_angle.cos();
 
             for instance in emitter.instances.iter() {
-                if let Some(instance) = audio_instances.get_mut(instance) {
+                if let Some(mut instance) = audio_instances.get_mut(instance) {
                     instance.set_decibels(volume, AudioTween::default());
                     instance.set_panning(panning, AudioTween::default());
                 }

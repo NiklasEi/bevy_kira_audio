@@ -17,7 +17,7 @@ fn instance_control(
     mut audio_instances: ResMut<Assets<AudioInstance>>,
     input: Res<ButtonInput<MouseButton>>,
 ) {
-    if let Some(instance) = audio_instances.get_mut(&handle.0)
+    if let Some(mut instance) = audio_instances.get_mut(&handle.0)
         && input.just_pressed(MouseButton::Left)
     {
         match instance.state() {

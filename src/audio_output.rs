@@ -57,7 +57,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances {
-                if let Some(instance) = audio_instances.get_mut(instance.id()) {
+                if let Some(mut instance) = audio_instances.get_mut(instance.id()) {
                     instance.handle.stop(tween);
                 }
             }
@@ -75,7 +75,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instance_handles) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instance_handles.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id())
+                if let Some(mut instance) = audio_instances.get_mut(instance.id())
                     && kira::sound::PlaybackState::Playing == instance.handle.state()
                 {
                     instance.handle.pause(tween);
@@ -102,7 +102,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id())
+                if let Some(mut instance) = audio_instances.get_mut(instance.id())
                     && (instance.handle.state() == kira::sound::PlaybackState::Paused
                         || instance.handle.state() == kira::sound::PlaybackState::Pausing
                         || instance.handle.state() == kira::sound::PlaybackState::Stopping)
@@ -129,7 +129,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id()) {
+                if let Some(mut instance) = audio_instances.get_mut(instance.id()) {
                     instance.handle.set_volume(volume, tween);
                 }
             }
@@ -155,7 +155,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id()) {
+                if let Some(mut instance) = audio_instances.get_mut(instance.id()) {
                     instance.handle.set_panning(panning, tween);
                 }
             }
@@ -181,7 +181,7 @@ impl<B: Backend> AudioOutput<B> {
         if let Some(instances) = self.instances.get_mut(channel) {
             let tween = map_tween(tween);
             for instance in instances.iter_mut() {
-                if let Some(instance) = audio_instances.get_mut(instance.id()) {
+                if let Some(mut instance) = audio_instances.get_mut(instance.id()) {
                     instance.handle.set_playback_rate(playback_rate, tween);
                 }
             }
