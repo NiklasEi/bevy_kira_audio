@@ -95,10 +95,12 @@ pub mod prelude {
     pub use crate::{Audio, AudioPlugin, MainTrack};
     pub use kira::{
         Decibels, Frame,
+        effect::EffectBuilder,
         sound::{
             FromFileError, Sound, SoundData,
             static_sound::{StaticSoundData, StaticSoundSettings},
         },
+        track::TrackBuilder,
     };
 }
 

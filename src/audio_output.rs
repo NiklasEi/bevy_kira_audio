@@ -10,13 +10,14 @@ use crate::channel::typed::AudioChannel;
 use crate::channel::{Channel, ChannelState};
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
-use bevy::asset::{Assets, Handle};
+use bevy::asset::{AssetId, Assets, Handle};
 use bevy::ecs::change_detection::{NonSendMut, ResMut};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{NonSend, Res};
 use bevy::ecs::world::{FromWorld, World};
 use bevy::log::warn;
 use kira::backend::{Backend, DefaultBackend};
+use kira::track::{TrackBuilder, TrackHandle};
 use kira::{AudioManager, Panning};
 use kira::{Decibels, PlaybackRate};
 use std::collections::HashMap;
@@ -29,6 +30,8 @@ pub(crate) struct AudioOutput<B: Backend = DefaultBackend> {
     manager: Option<AudioManager<B>>,
     instances: HashMap<Channel, Vec<Handle<AudioInstance>>>,
     channels: HashMap<Channel, ChannelState>,
+    channel_tracks: HashMap<Channel, TrackHandle>,
+    instance_tracks: HashMap<AssetId<AudioInstance>, TrackHandle>,
 }
 
 impl FromWorld for AudioOutput {
@@ -43,6 +46,8 @@ impl FromWorld for AudioOutput {
             manager: manager.ok(),
             instances: HashMap::default(),
             channels: HashMap::default(),
+            channel_tracks: HashMap::default(),
+            instance_tracks: HashMap::default(),
         }
     }
 }
@@ -218,7 +223,39 @@ impl<B: Backend> AudioOutput<B> {
             sound.settings.playback_rate = kira::Value::Fixed(PlaybackRate(0.0));
         }
         partial_sound_settings.apply(&mut sound);
-        let sound_handle = self.manager.as_mut().unwrap().play(sound);
+
+        // Determine where to play the sound based on per-instance and channel tracks
+        let has_instance_track = partial_sound_settings.track_builder.is_some();
+        let has_channel_track = self.channel_tracks.contains_key(channel);
+
+        let sound_handle = if has_instance_track {
+            // Per-instance effects: create a sub-track for this instance
+            let shared = partial_sound_settings.track_builder.as_ref().unwrap();
+            let track_builder = shared.lock().take().expect("TrackBuilder already consumed");
+            let manager = self.manager.as_mut().unwrap();
+            match manager.add_sub_track(track_builder) {
+                Ok(mut track_handle) => {
+                    let result = track_handle.play(sound);
+                    if result.is_ok() {
+                        self.instance_tracks
+                            .insert(instance_handle.id(), track_handle);
+                    }
+                    result
+                }
+                Err(error) => {
+                    warn!("Failed to create sub-track: {:?}", error);
+                    return AudioCommandResult::Ok;
+                }
+            }
+        } else if has_channel_track {
+            // Channel-level effects: play on the channel's sub-track
+            let track_handle = self.channel_tracks.get_mut(channel).unwrap();
+            track_handle.play(sound)
+        } else {
+            // No effects: play on the main track
+            self.manager.as_mut().unwrap().play(sound)
+        };
+
         if let Err(error) = sound_handle {
             warn!("Failed to play sound due to {:?}", error);
             return AudioCommandResult::Ok;
@@ -362,12 +399,32 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
+    pub(crate) fn create_channel_track(&mut self, channel: Channel, track_builder: TrackBuilder) {
+        if let Some(manager) = self.manager.as_mut() {
+            match manager.add_sub_track(track_builder) {
+                Ok(track_handle) => {
+                    self.channel_tracks.insert(channel, track_handle);
+                }
+                Err(error) => {
+                    warn!("Failed to create channel sub-track: {:?}", error);
+                }
+            }
+        }
+    }
+
     pub(crate) fn cleanup_stopped_instances(&mut self, instances: &mut Assets<AudioInstance>) {
         for (_, handles) in self.instances.iter_mut() {
             handles.retain(|handle| {
                 if let Some(instance) = instances.get(handle) {
-                    instance.handle.state() != kira::sound::PlaybackState::Stopped
+                    if instance.handle.state() == kira::sound::PlaybackState::Stopped {
+                        // Drop the per-instance track handle (kira will clean up the sub-track)
+                        self.instance_tracks.remove(&handle.id());
+                        false
+                    } else {
+                        true
+                    }
                 } else {
+                    self.instance_tracks.remove(&handle.id());
                     false
                 }
             });
@@ -455,6 +512,8 @@ mod test {
             manager: AudioManager::new(AudioManagerSettings::<MockBackend>::default()).ok(),
             instances: HashMap::default(),
             channels: HashMap::default(),
+            channel_tracks: HashMap::default(),
+            instance_tracks: HashMap::default(),
         };
         let audio_handle_one: Handle<AudioSource> =
             Handle::<AudioSource>::Uuid(Uuid::new_v4(), PhantomData);
@@ -501,6 +560,8 @@ mod test {
             manager: AudioManager::new(AudioManagerSettings::<MockBackend>::default()).ok(),
             instances: HashMap::default(),
             channels: HashMap::default(),
+            channel_tracks: HashMap::default(),
+            instance_tracks: HashMap::default(),
         };
         let audio_handle_one: Handle<AudioSource> =
             Handle::<AudioSource>::Uuid(Uuid::new_v4(), PhantomData);

@@ -1,8 +1,9 @@
 //! Common audio types
 
 use crate::AudioSystemSet;
-use crate::audio_output::{play_audio_channel, update_instance_states};
+use crate::audio_output::{AudioOutput, play_audio_channel, update_instance_states};
 use crate::channel::AudioCommandQue;
+use crate::channel::Channel;
 use crate::channel::typed::AudioChannel;
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
@@ -12,12 +13,24 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::prelude::{PostUpdate, default};
+use kira::effect::EffectBuilder;
 use kira::sound::EndPosition;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
+use kira::track::TrackBuilder;
 use kira::{Decibels, Panning, Value};
+use parking_lot::Mutex;
+use std::any::TypeId;
+use std::fmt;
 use std::marker::PhantomData;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
+
+/// A thread-safe, shareable wrapper around a [`TrackBuilder`].
+///
+/// Used to pass a `TrackBuilder` (which is `Send` but not `Sync`) through
+/// Bevy's command queue by wrapping it in `Arc<Mutex<Option<TrackBuilder>>>`.
+pub(crate) type SharedTrackBuilder = Arc<Mutex<Option<TrackBuilder>>>;
 
 #[derive(Debug)]
 pub(crate) enum AudioCommand {
@@ -30,7 +43,7 @@ pub(crate) enum AudioCommand {
     Resume(Option<AudioTween>),
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub(crate) struct PartialSoundSettings {
     pub(crate) loop_start: Option<f64>,
     pub(crate) loop_end: Option<f64>,
@@ -42,6 +55,25 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
     pub(crate) emitter: Option<Entity>,
+    pub(crate) track_builder: Option<SharedTrackBuilder>,
+}
+
+impl fmt::Debug for PartialSoundSettings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PartialSoundSettings")
+            .field("loop_start", &self.loop_start)
+            .field("loop_end", &self.loop_end)
+            .field("volume", &self.volume)
+            .field("playback_rate", &self.playback_rate)
+            .field("start_position", &self.start_position)
+            .field("panning", &self.panning)
+            .field("reverse", &self.reverse)
+            .field("paused", &self.paused)
+            .field("fade_in", &self.fade_in)
+            .field("emitter", &self.emitter)
+            .field("track_builder", &self.track_builder.as_ref().map(|_| "..."))
+            .finish()
+    }
 }
 
 /// Different kinds of easing for fade-in and fade-out
@@ -283,6 +315,62 @@ impl<'a> PlayAudioCommand<'a> {
         self.settings.emitter = Some(emitter_entity);
         self
     }
+
+    /// Add an audio effect to this sound instance and return its handle for runtime control.
+    ///
+    /// The effect will be applied via a dedicated sub-track created for this sound instance.
+    /// The returned handle can be stored and used to modify the effect at runtime.
+    ///
+    /// **Note:** Per-instance effects and channel-level effects (via
+    /// [`add_audio_channel_with_track`](AudioApp::add_audio_channel_with_track)) are independent.
+    /// When a sound has per-instance effects, it plays on its own sub-track and bypasses the
+    /// channel's effect chain.
+    ///
+    /// ```no_run
+    /// # use bevy::prelude::*;
+    /// # use bevy_kira_audio::prelude::*;
+    /// # use kira::effect::filter::FilterBuilder;
+    ///
+    /// fn play(audio: Res<Audio>, asset_server: Res<AssetServer>) {
+    ///     let mut cmd = audio.play(asset_server.load("sounds/loop.ogg"));
+    ///     let filter_handle = cmd.add_effect(FilterBuilder::new());
+    ///     cmd.looped();
+    /// }
+    /// ```
+    pub fn add_effect<B: EffectBuilder>(&mut self, builder: B) -> B::Handle {
+        let shared = self
+            .settings
+            .track_builder
+            .get_or_insert_with(|| Arc::new(Mutex::new(Some(TrackBuilder::new()))));
+        let mut guard = shared.lock();
+        guard
+            .as_mut()
+            .expect("TrackBuilder already consumed")
+            .add_effect(builder)
+    }
+
+    /// Add an audio effect to this sound instance (chainable).
+    ///
+    /// Like [`add_effect`](Self::add_effect), but discards the effect handle
+    /// and returns `&mut Self` for method chaining.
+    ///
+    /// ```no_run
+    /// # use bevy::prelude::*;
+    /// # use bevy_kira_audio::prelude::*;
+    /// # use kira::effect::filter::FilterBuilder;
+    /// # use kira::effect::reverb::ReverbBuilder;
+    ///
+    /// fn play(audio: Res<Audio>, asset_server: Res<AssetServer>) {
+    ///     audio.play(asset_server.load("sounds/loop.ogg"))
+    ///         .with_effect(FilterBuilder::new())
+    ///         .with_effect(ReverbBuilder::new())
+    ///         .looped();
+    /// }
+    /// ```
+    pub fn with_effect<B: EffectBuilder>(&mut self, builder: B) -> &mut Self {
+        self.add_effect(builder);
+        self
+    }
 }
 
 pub(crate) enum TweenCommandKind {
@@ -483,6 +571,36 @@ pub trait AudioApp {
     /// struct Background;
     /// ```
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
+
+    /// Add a new audio channel with a custom [`TrackBuilder`] for channel-level effects.
+    ///
+    /// Effects added to the `TrackBuilder` will apply to all sounds played on this channel.
+    /// You can use [`TrackBuilder::add_effect`] to add effects and store the returned handles
+    /// as Bevy resources for runtime control.
+    ///
+    /// ```no_run
+    /// use bevy::prelude::*;
+    /// use bevy_kira_audio::prelude::*;
+    /// use kira::effect::reverb::ReverbBuilder;
+    ///
+    /// #[derive(Resource)]
+    /// struct MusicChannel;
+    ///
+    /// fn main() {
+    ///     let mut track = TrackBuilder::new();
+    ///     let _reverb = track.add_effect(ReverbBuilder::new());
+    ///
+    ///     App::new()
+    ///         .add_plugins(DefaultPlugins)
+    ///         .add_plugins(AudioPlugin)
+    ///         .add_audio_channel_with_track::<MusicChannel>(track)
+    ///         .run();
+    /// }
+    /// ```
+    fn add_audio_channel_with_track<T: Resource>(
+        &mut self,
+        track_builder: TrackBuilder,
+    ) -> &mut Self;
 }
 
 impl AudioApp for App {
@@ -496,5 +614,15 @@ impl AudioApp for App {
             update_instance_states::<T>.after(AudioSystemSet::InstanceCleanup),
         )
         .insert_resource(AudioChannel::<T>::default())
+    }
+
+    fn add_audio_channel_with_track<T: Resource>(
+        &mut self,
+        track_builder: TrackBuilder,
+    ) -> &mut Self {
+        self.add_audio_channel::<T>();
+        let mut audio_output = self.world_mut().non_send_resource_mut::<AudioOutput>();
+        audio_output.create_channel_track(Channel::Typed(TypeId::of::<T>()), track_builder);
+        self
     }
 }
