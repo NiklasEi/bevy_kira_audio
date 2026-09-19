@@ -1,5 +1,5 @@
-use bevy::ecs::resource::Resource;
-use bevy::utils::default;
+use bevy_ecs::resource::Resource;
+use bevy_utils::default;
 use kira::{AudioManagerSettings, Capacities, DefaultBackend, track::MainTrackBuilder};
 use std::num::NonZeroUsize;
 

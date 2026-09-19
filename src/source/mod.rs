@@ -11,8 +11,8 @@ pub mod settings_loader;
 #[cfg(feature = "wav")]
 pub mod wav_loader;
 
-use bevy::asset::Asset;
-use bevy::reflect::TypePath;
+use bevy_asset::Asset;
+use bevy_reflect::TypePath;
 use kira::sound::static_sound::StaticSoundData;
 
 /// A source of audio data

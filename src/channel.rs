@@ -4,7 +4,7 @@ pub mod typed;
 use crate::audio::{AudioCommand, FadeIn, FadeOut, PlayAudioCommand, TweenCommand};
 use crate::instance::AudioInstance;
 use crate::{AudioSource, PlaybackState};
-use bevy::asset::Handle;
+use bevy_asset::Handle;
 use kira::sound::static_sound::StaticSoundData;
 use kira::{Decibels, Panning, Value};
 use std::any::TypeId;

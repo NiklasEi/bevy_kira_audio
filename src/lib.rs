@@ -49,8 +49,8 @@ pub use audio::{
     TweenCommand,
 };
 pub use backend_settings::AudioSettings;
-use bevy::app::{PostUpdate, PreUpdate};
-use bevy::asset::AssetApp;
+use bevy_app::{PostUpdate, PreUpdate};
+use bevy_asset::AssetApp;
 pub use channel::AudioControl;
 pub use effect::{AudioEffect, AudioTrack, EffectTail};
 pub use source::AudioSource;
@@ -125,7 +125,9 @@ use crate::source::ogg_loader::OggLoader;
 use crate::source::settings_loader::SettingsLoader;
 #[cfg(feature = "wav")]
 use crate::source::wav_loader::WavLoader;
-use bevy::prelude::{App, IntoScheduleConfigs, Plugin, Resource, SystemSet};
+use bevy_app::{App, Plugin};
+use bevy_ecs::resource::Resource;
+use bevy_ecs::schedule::{IntoScheduleConfigs, SystemSet};
 pub use channel::dynamic::DynamicAudioChannel;
 pub use channel::dynamic::DynamicAudioChannels;
 pub use channel::typed::AudioChannel;

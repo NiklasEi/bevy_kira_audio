@@ -1,6 +1,6 @@
-use bevy::asset::io::Reader;
-use bevy::asset::{AssetLoader, AssetPath, LoadContext, ReadAssetBytesError};
-use bevy::reflect::TypePath;
+use bevy_asset::io::Reader;
+use bevy_asset::{AssetLoader, AssetPath, LoadContext, ReadAssetBytesError};
+use bevy_reflect::TypePath;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use kira::sound::{FromFileError, PlaybackPosition, Region};
 use kira::{PlaybackRate, Tween};
