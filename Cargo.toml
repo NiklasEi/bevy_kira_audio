@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.26.0"
+version = "0.27.0-rc.1"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/bevy_kira_audio"
 keywords = ["bevy", "gamedev", "audio", "music"]
 categories = ["game-development", "multimedia::audio"]
 readme = "./README.md"
-rust-version = "1.88"
+rust-version = "1.96"
 
 [features]
 default = ["ogg"]
@@ -22,20 +22,26 @@ wav = ["kira/wav", "kira/pcm"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
 
 [dependencies]
-bevy = { version = "0.19.0", default-features = false, features = ["std", "bevy_asset", "bevy_log"] }
-bevy_math = { version = "0.19.0" }
+bevy_app = "0.20.0-rc.1"
+bevy_asset = "0.20.0-rc.1"
+bevy_curve = "0.20.0-rc.1"
+bevy_ecs = "0.20.0-rc.1"
+bevy_log = "0.20.0-rc.1"
+bevy_math = "0.20.0-rc.1"
+bevy_platform = "0.20.0-rc.1"
+bevy_reflect = "0.20.0-rc.1"
+bevy_transform = "0.20.0-rc.1"
+bevy_utils = "0.20.0-rc.1"
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
 kira = { version = "0.12.1", default-features = false, features = ["cpal"] }
-ron = { version = "0.8", optional = true }
+ron = { version = "0.12", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
 thiserror = "2"
-mint = "0.5.9"
-glam = "0.25.0"
 
 [dev-dependencies.bevy]
-version = "0.19.0"
+version = "0.20.0-rc.1"
 default-features = false
 features = ["2d", "3d", "ui"]
 

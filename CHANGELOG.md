@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.27.0
+- Update to Bevy `0.20`
+- Depend on Bevy subcrates
+- Update `ron` to `0.12`
+
 ## v0.26.0 - 21.06.2026
 - Update to Bevy `0.19`
 - Update Kira to `0.12`

@@ -5,9 +5,9 @@ use crate::audio::{
 use crate::channel::AudioCommandQue;
 use crate::instance::AudioInstance;
 use crate::{AudioControl, AudioSource, PlaybackState};
-use bevy::asset::{AssetId, Handle};
-use bevy::ecs::resource::Resource;
-use bevy::platform::collections::HashMap;
+use bevy_asset::{AssetId, Handle};
+use bevy_ecs::resource::Resource;
+use bevy_platform::collections::HashMap;
 use kira::Decibels;
 use parking_lot::RwLock;
 use std::collections::VecDeque;
@@ -190,7 +190,7 @@ mod test {
     use crate::Audio;
     use crate::channel::typed::AudioChannel;
     use crate::channel::*;
-    use bevy::asset::{AssetId, Handle};
+    use bevy_asset::{AssetId, Handle};
     use uuid::Uuid;
 
     #[test]

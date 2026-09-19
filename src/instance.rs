@@ -1,9 +1,9 @@
 use crate::{AudioTween, PlaybackState};
-use bevy::asset::{Asset, Assets, Handle};
+use bevy_asset::{Asset, Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
 use kira::{Decibels, Value};
 
-#[derive(Asset, bevy::reflect::TypePath)]
+#[derive(Asset, bevy_reflect::TypePath)]
 /// Asset for direct audio control
 pub struct AudioInstance {
     pub(crate) handle: StaticSoundHandle,

@@ -1,5 +1,5 @@
-use bevy::ecs::resource::Resource;
-use bevy::utils::default;
+use bevy_ecs::resource::Resource;
+use bevy_utils::default;
 use kira::{AudioManagerSettings, DefaultBackend, track::MainTrackBuilder};
 
 /// This resource is used to configure the audio backend at creation
