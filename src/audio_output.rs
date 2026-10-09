@@ -268,26 +268,26 @@ impl<B: Backend> AudioOutput<B> {
         }
         partial_sound_settings.apply(&mut sound);
 
+        let instance_track = partial_sound_settings.track.take().and_then(|track| {
+            self.add_instance_track(channel, *track)
+                .inspect_err(|error| {
+                    warn!("Failed to create a track for the sound's effects, playing it without them: {error:?}");
+                })
+                .ok()
+        });
+
         // Determine where to play the sound based on per-instance and channel tracks
-        let sound_handle = if let Some(track) = partial_sound_settings.track.take() {
-            // Per-instance effects: create a sub-track for this instance
-            match self.add_instance_track(channel, *track) {
-                Ok(mut track_handle) => {
-                    let result = track_handle.play(sound);
-                    if result.is_ok() {
-                        let tail = partial_sound_settings
-                            .effect_tail
-                            .unwrap_or(DEFAULT_EFFECT_TAIL);
-                        self.instance_tracks
-                            .insert(instance_handle.id(), InstanceTrack::new(track_handle, tail));
-                    }
-                    result
-                }
-                Err(error) => {
-                    warn!("Failed to create sub-track: {:?}", error);
-                    return AudioCommandResult::Ok;
-                }
+        let sound_handle = if let Some(mut track_handle) = instance_track {
+            // Per-instance effects: play on the sub-track of this instance
+            let result = track_handle.play(sound);
+            if result.is_ok() {
+                let tail = partial_sound_settings
+                    .effect_tail
+                    .unwrap_or(DEFAULT_EFFECT_TAIL);
+                self.instance_tracks
+                    .insert(instance_handle.id(), InstanceTrack::new(track_handle, tail));
             }
+            result
         } else if let Some(track_handle) = self.channel_tracks.get_mut(channel) {
             // Channel-level effects: play on the channel's sub-track
             track_handle.play(sound)
@@ -565,6 +565,7 @@ mod test {
     use kira::backend::mock::{MockBackend, MockBackendSettings};
     use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
     use kira::track::TrackBuilder;
+    use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
     use uuid::Uuid;
@@ -785,6 +786,24 @@ mod test {
         assert!(audio_output.instance_tracks.is_empty());
         assert_eq!(channel_sub_tracks(&audio_output, &main_channel()), 0);
         assert_eq!(manager_sub_tracks(&audio_output), 1);
+    }
+
+    #[test]
+    fn a_sound_plays_without_its_effects_when_its_track_cannot_be_created() {
+        let mut audio_output = audio_output();
+        audio_output.create_channel_track(
+            main_channel(),
+            AudioTrack::new().sub_track_capacity(NonZeroUsize::MIN),
+        );
+
+        for _ in 0..2 {
+            play_on_main_channel(&mut audio_output, |command| {
+                command.with_effect(FilterBuilder::new());
+            });
+        }
+
+        assert_eq!(audio_output.instances[&main_channel()].len(), 2);
+        assert_eq!(audio_output.instance_tracks.len(), 1);
     }
 
     #[test]
