@@ -8,7 +8,7 @@ These examples are simple Bevy Apps illustrating the capabilities of `bevy_kira_
 | [`channel_control.rs`](/examples/channel_control.rs)     | Demonstrate controlling an audio channel                             |
 | [`custom_channel.rs`](/examples/custom_channel.rs)       | How to add and use a custom audio channel                            |
 | [`dynamic_channels.rs`](/examples/dynamic_channels.rs)   | Usage of dynamic audio channels                                      |
-| [`effect_tail.rs`](/examples/effect_tail.rs)             | How long effects keep ringing after a sound stops                    |
+| [`effect_tail.rs`](/examples/effect_tail.rs)             | Effects ring out after a sound ends, but stop with it                |
 | [`filter.rs`](/examples/filter.rs)                       | Per-instance low-pass filter with runtime cutoff toggling            |
 | [`filter_basic.rs`](/examples/filter_basic.rs)           | Simple low-pass filter using `with_effect` (no runtime control)      |
 | [`instance_control.rs`](/examples/instance_control.rs)   | Demonstrate controlling a single audio instance                      |

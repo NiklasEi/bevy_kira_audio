@@ -22,10 +22,9 @@
 //! }
 //! ```
 //!
-//! Effects added to a single sound run on a track of that sound's own. Reverb and delay keep
-//! sounding after their input has gone quiet, so that track outlives the sound by
-//! [`DEFAULT_EFFECT_TAIL`]; see
-//! [`with_effect_tail`](crate::PlayAudioCommand::with_effect_tail) to change how long.
+//! Effects added to a single sound run on a track of that sound's own. When the sound ends on its
+//! own, that track is kept until its effects have rung out (see [`EffectTail`]). Stopping the
+//! sound fades its effects out together with it.
 //!
 //! # Custom effects
 //!
@@ -77,14 +76,31 @@ pub use kira::effect::panning_control::PanningControlBuilder;
 pub use kira::effect::reverb::ReverbBuilder;
 pub use kira::effect::volume_control::VolumeControlBuilder;
 
-/// How long a sound's effects keep running after the sound itself has stopped.
+/// How long a sound's own effects keep running after the sound has ended on its own.
 ///
-/// Effects like reverb and delay go on producing sound after their input has gone quiet. A sound
-/// with per-instance effects plays on its own track, and tearing that track down the moment the
-/// sound ends would cut those tails off mid-ring. The track is therefore kept for this long
-/// afterwards. Override it per sound with
-/// [`with_effect_tail`](crate::PlayAudioCommand::with_effect_tail).
-pub const DEFAULT_EFFECT_TAIL: Duration = Duration::from_secs(2);
+/// Reverb and delay keep producing sound after their input has ended. The tail ends once the
+/// effects have been silent for [`silence`](Self::silence), or after [`max`](Self::max) at the
+/// latest. Stopping a sound skips its tail.
+///
+/// Set it per sound with [`with_effect_tail`](crate::PlayAudioCommand::with_effect_tail).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct EffectTail {
+    /// How long the effects have to stay silent for the tail to end.
+    ///
+    /// Must be longer than the gap between the echoes of a delay effect.
+    pub silence: Duration,
+    /// How long the tail lasts at most, for effects that never fall silent.
+    pub max: Duration,
+}
+
+impl Default for EffectTail {
+    fn default() -> Self {
+        Self {
+            silence: Duration::from_secs(1),
+            max: Duration::from_secs(10),
+        }
+    }
+}
 
 /// Something that can be added to an audio track as an effect.
 ///

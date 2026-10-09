@@ -1,3 +1,4 @@
+use crate::instance_track::InstanceEffects;
 use crate::{AudioTween, PlaybackState};
 use bevy::asset::{Asset, Assets, Handle};
 use kira::sound::static_sound::StaticSoundHandle;
@@ -7,6 +8,8 @@ use kira::{Decibels, Value};
 /// Asset for direct audio control
 pub struct AudioInstance {
     pub(crate) handle: StaticSoundHandle,
+    /// Set if the sound has effects of its own.
+    pub(crate) effects: Option<InstanceEffects>,
 }
 
 impl AudioInstance {
@@ -17,12 +20,31 @@ impl AudioInstance {
 
     /// Resume the audio instance with the given easing
     pub fn resume(&mut self, tween: AudioTween) {
-        self.handle.resume(tween.into());
+        self.resume_with(tween.into());
+    }
+
+    pub(crate) fn resume_with(&mut self, tween: kira::Tween) {
+        // Kira does not resume a sound that has already stopped, so neither should its effects.
+        if let Some(effects) = &mut self.effects
+            && self.handle.state() != kira::sound::PlaybackState::Stopped
+        {
+            effects.resume(tween);
+        }
+        self.handle.resume(tween);
     }
 
     /// Stop the audio instance with the given easing
+    ///
+    /// The sound's own effects fade out with it instead of ringing out.
     pub fn stop(&mut self, tween: AudioTween) {
-        self.handle.stop(tween.into());
+        self.stop_with(tween.into());
+    }
+
+    pub(crate) fn stop_with(&mut self, tween: kira::Tween) {
+        if let Some(effects) = &mut self.effects {
+            effects.stop(tween);
+        }
+        self.handle.stop(tween);
     }
 
     /// Get the state of the audio instance

@@ -5,7 +5,7 @@ use crate::audio_output::{AudioOutput, play_audio_channel, update_instance_state
 use crate::channel::AudioCommandQue;
 use crate::channel::Channel;
 use crate::channel::typed::AudioChannel;
-use crate::effect::{AudioEffect, AudioTrack};
+use crate::effect::{AudioEffect, AudioTrack, EffectTail};
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use bevy::app::{App, PreUpdate};
@@ -48,7 +48,7 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) fade_in: Option<AudioTween>,
     pub(crate) emitter: Option<Entity>,
     pub(crate) track: Option<Box<AudioTrack>>,
-    pub(crate) effect_tail: Option<Duration>,
+    pub(crate) effect_tail: EffectTail,
 }
 
 /// Different kinds of easing for fade-in and fade-out
@@ -345,11 +345,7 @@ impl<'a> PlayAudioCommand<'a> {
         self
     }
 
-    /// Set how long this sound's effects keep running after the sound itself has stopped.
-    ///
-    /// Reverb and delay go on producing sound after their input has gone quiet. The track carrying
-    /// this sound's effects is kept alive for this long after playback stops, so those tails are
-    /// not cut off. Defaults to [`DEFAULT_EFFECT_TAIL`](crate::effect::DEFAULT_EFFECT_TAIL).
+    /// Set how long this sound's effects keep running after the sound has ended on its own.
     ///
     /// ```no_run
     /// # use bevy::prelude::*;
@@ -359,11 +355,14 @@ impl<'a> PlayAudioCommand<'a> {
     /// fn play(audio: Res<Audio>, asset_server: Res<AssetServer>) {
     ///     audio.play(asset_server.load("sounds/loop.ogg"))
     ///         .with_effect(ReverbBuilder::new().feedback(0.95))
-    ///         .with_effect_tail(Duration::from_secs(6));
+    ///         .with_effect_tail(EffectTail {
+    ///             max: Duration::from_secs(20),
+    ///             ..default()
+    ///         });
     /// }
     /// ```
-    pub fn with_effect_tail(&mut self, tail: Duration) -> &mut Self {
-        self.settings.effect_tail = Some(tail);
+    pub fn with_effect_tail(&mut self, tail: EffectTail) -> &mut Self {
+        self.settings.effect_tail = tail;
 
         self
     }
@@ -460,7 +459,7 @@ impl TweenCommand<'_, FadeOut> {
 pub(crate) enum AudioCommandResult {
     Ok,
     /// The command could not run yet and is handed back to be queued again.
-    Retry(AudioCommand),
+    Retry(Box<AudioCommand>),
 }
 
 /// Playback status of a currently playing sound.
