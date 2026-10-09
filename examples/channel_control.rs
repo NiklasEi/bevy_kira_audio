@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
-use kira::Easing;
 use std::time::Duration;
 
 // This example demonstrates how to control an audio channel
@@ -19,11 +18,11 @@ fn channel_control(input: Res<ButtonInput<MouseButton>>, audio: Res<Audio>) {
     if input.just_pressed(MouseButton::Left) {
         audio
             .pause()
-            .fade_out(AudioTween::new(Duration::from_secs(2), Easing::Linear));
+            .fade_out(AudioTween::new(Duration::from_secs(2), AudioEasing::Linear));
     } else if input.just_pressed(MouseButton::Right) {
         audio
             .resume()
-            .fade_in(AudioTween::new(Duration::from_secs(2), Easing::Linear));
+            .fade_in(AudioTween::new(Duration::from_secs(2), AudioEasing::Linear));
     }
 }
 

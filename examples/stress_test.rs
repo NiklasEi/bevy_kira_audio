@@ -13,6 +13,7 @@ fn main() {
         // We need to increase the queue sizes of the audio backend.
         .insert_resource(AudioSettings {
             sound_capacity: 8192,
+            ..default()
         })
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, prepare)

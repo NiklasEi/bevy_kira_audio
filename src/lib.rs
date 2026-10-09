@@ -38,6 +38,7 @@ mod audio;
 mod audio_output;
 mod backend_settings;
 mod channel;
+pub mod effect;
 mod instance;
 mod source;
 mod spatial;
@@ -50,6 +51,7 @@ pub use backend_settings::AudioSettings;
 use bevy::app::{PostUpdate, PreUpdate};
 use bevy::asset::AssetApp;
 pub use channel::AudioControl;
+pub use effect::{AudioEffect, AudioTrack};
 pub use source::AudioSource;
 pub use spatial::{
     DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
@@ -70,6 +72,14 @@ pub mod prelude {
     pub use crate::channel::dynamic::{DynamicAudioChannel, DynamicAudioChannels};
     #[doc(hidden)]
     pub use crate::channel::typed::AudioChannel;
+    #[doc(hidden)]
+    pub use crate::effect::{
+        AudioEffect, AudioTrack, CompressorBuilder, CompressorHandle, DelayBuilder, DelayHandle,
+        DistortionBuilder, DistortionHandle, DistortionKind, Effect, EqFilterBuilder,
+        EqFilterHandle, EqFilterKind, FilterBuilder, FilterHandle, FilterMode, Info, Mix,
+        PanningControlBuilder, PanningControlHandle, ReverbBuilder, ReverbHandle,
+        VolumeControlBuilder, VolumeControlHandle,
+    };
     #[doc(hidden)]
     pub use crate::instance::{AudioInstance, AudioInstanceAssetsExt};
     #[doc(hidden)]
