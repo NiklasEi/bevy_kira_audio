@@ -1,7 +1,13 @@
 # Changelog
 
 ## Unreleased
+- Add audio effects ([#153](https://github.com/NiklasEi/bevy_kira_audio/pull/153))
+  - Add effects to a single sound with `PlayAudioCommand::with_effect`/`add_effect`, or to a whole channel with an `AudioTrack` and `add_audio_channel_with_track`
+  - Custom effects can be written by implementing `Effect` and `AudioEffect`
+  - Effects of a single sound ring out after it ends on its own (see `EffectTail`), and fade out with it when it is stopped
 - `AudioSettings::sound_capacity` and `AudioSettings::sub_track_capacity` are now `NonZeroUsize`; a capacity of 0 made Kira panic
+- Rename the `file` field of `.ron` sound settings to `asset`; it is now an asset path, so it can point to other asset sources ([#159](https://github.com/NiklasEi/bevy_kira_audio/pull/159))
+- Adding the same audio channel twice no longer runs its systems twice or replaces its `AudioChannel` resource
 
 ## v0.26.0 - 21.06.2026
 - Update to Bevy `0.19`

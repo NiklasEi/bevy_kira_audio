@@ -4,7 +4,7 @@ use std::time::Duration;
 
 fn main() {
     let mut track = AudioTrack::new();
-    let _reverb = track.add_effect(
+    let reverb = track.add_effect(
         ReverbBuilder::new()
             .feedback(0.85)
             .damping(0.2)
@@ -14,7 +14,11 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, AudioPlugin))
         .add_audio_channel_with_track::<ReverbChannel>(track)
-        .add_systems(Startup, start_playback)
+        .insert_resource(Reverb {
+            handle: reverb,
+            on: true,
+        })
+        .add_systems(Startup, (start_playback, setup_text))
         .add_systems(Update, play_next_sound)
         .run();
 }
@@ -39,23 +43,44 @@ fn start_playback(
     });
 }
 
+fn setup_text(mut commands: Commands) {
+    commands.spawn(Camera2d);
+    commands.spawn(Text::new(
+        "Every three seconds a new sound plays and the channel's reverb is switched on or off",
+    ));
+}
+
 fn play_next_sound(
     time: Res<Time>,
     channel: Res<AudioChannel<ReverbChannel>>,
     mut queue: ResMut<SoundQueue>,
+    mut reverb: ResMut<Reverb>,
 ) {
     queue.timer.tick(time.delta());
     if !queue.timer.just_finished() {
         return;
     }
 
+    reverb.on = !reverb.on;
+    let mix = if reverb.on { 0.5_f32 } else { 0.0 };
+    reverb
+        .handle
+        .set_mix(mix, AudioTween::linear(Duration::from_millis(200)));
+
     let sound = &queue.sounds[queue.index % queue.sounds.len()];
     channel.play(sound.clone());
     info!(
-        "Playing sound {} with reverb",
-        queue.index % queue.sounds.len()
+        "Playing sound {} with reverb {}",
+        queue.index % queue.sounds.len(),
+        if reverb.on { "on" } else { "off" }
     );
     queue.index += 1;
+}
+
+#[derive(Resource)]
+struct Reverb {
+    handle: ReverbHandle,
+    on: bool,
 }
 
 #[derive(Resource)]

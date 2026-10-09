@@ -14,10 +14,8 @@ fn main() {
 
 // -- The effect ------------------------------------------------------------------------------
 
-/// The loudest sample seen since the value was last read, as `f32` bits.
-///
-/// `process` runs on the audio thread, so the level cannot be shared through a lock. An atomic
-/// keeps both sides wait-free.
+/// The loudest sample seen since the value was last read, as `f32` bits. An atomic, because
+/// `process` runs on the audio thread.
 type SharedPeak = Arc<AtomicU32>;
 
 struct PeakMeter {
@@ -31,9 +29,8 @@ impl Effect for PeakMeter {
             .map(|frame| frame.left.abs().max(frame.right.abs()))
             .fold(0.0f32, f32::max);
 
-        // Bevy renders far slower than audio is processed, so several buffers pass between reads.
-        // Accumulating the maximum makes sure short transients are not missed. For non-negative
-        // floats the bit patterns order the same way the values do, so `fetch_max` works on them.
+        // Several buffers pass between two reads, so keep the maximum. For non-negative floats
+        // the bit patterns order like the values, so `fetch_max` works on them.
         self.peak.fetch_max(peak.to_bits(), Ordering::Relaxed);
     }
 }
@@ -106,9 +103,7 @@ fn update_meter(
 ) {
     let (state, node, color) = &mut *bar;
 
-    // Audio is rendered in bursts, so some frames see no new samples at all. Levels are shown on
-    // a decibel scale, because that is how loudness is perceived: a linear bar spends almost all
-    // of its length on the loudest few decibels and looks broken for normal material.
+    // Decibels, because that is how loudness is perceived.
     let peak = meter.take_peak();
     let peak_db = if peak > 0.0 {
         20.0 * peak.log10()

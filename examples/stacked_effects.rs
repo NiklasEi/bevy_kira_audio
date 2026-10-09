@@ -2,8 +2,7 @@ use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
 fn main() {
-    // The reverb applies to every sound played on the hall channel, including sounds that bring
-    // effects of their own.
+    // Every sound on the hall channel gets the reverb, including sounds with effects of their own.
     let hall =
         AudioTrack::new().with_effect(ReverbBuilder::new().feedback(0.9).damping(0.1).mix(0.6_f32));
 
@@ -86,22 +85,17 @@ fn play(
         audio.stop();
         hall.stop();
 
-        // One statement per variant, each playing the same loop. `with_effect` gives the sound an
-        // effect of its own; playing on the hall channel adds that channel's reverb on top.
         match (variant.hall, variant.muffle) {
-            // Dry: no effects at all.
             (false, false) => {
                 audio.play(sound.0.clone()).looped();
             }
-            // The sound's own effect only.
             (false, true) => {
                 audio.play(sound.0.clone()).with_effect(low_pass()).looped();
             }
-            // The channel's effect only.
             (true, false) => {
                 hall.play(sound.0.clone()).looped();
             }
-            // Both: the sound's own effect first, then the channel's.
+            // The sound's own effect runs first, then the channel's.
             (true, true) => {
                 hall.play(sound.0.clone()).with_effect(low_pass()).looped();
             }

@@ -237,7 +237,6 @@ impl<B: Backend> AudioOutput<B> {
                 .ok()
         });
 
-        // Determine where to play the sound based on per-instance and channel tracks
         let (sound_handle, effects) = if let Some((mut track, effects)) = instance_track {
             // Per-instance effects: play on the sub-track of this instance
             let result = track.handle.play(sound);
@@ -393,13 +392,10 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
-    /// Create the sub-track carrying one sound's own effects.
+    /// Add the sub-track carrying one sound's own effects.
     ///
-    /// The track is nested under the channel's track when the channel has one, so that the
-    /// channel's effects still run after this sound's. Kira processes a track's children before
-    /// the track's own effects, which makes the resulting chain sound → instance effects →
-    /// channel effects → main track. Channels without a track of their own attach it directly to
-    /// the main track instead.
+    /// It goes under the channel's track if there is one, so the channel's effects run after the
+    /// sound's.
     fn add_instance_track(
         &mut self,
         channel: &Channel,

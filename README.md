@@ -85,7 +85,7 @@ You can either control a whole audio channel and all instances playing in it ([`
 
 Effects modify the audio signal of a single sound or of a whole channel. Adding an effect returns a handle to control it while it plays.
 
-Add them to a single sound instance ([`filter` example](examples/filter.rs)), or to an `AudioTrack` that applies them to every sound on a channel ([`reverb_channel` example](examples/reverb_channel.rs)). Multiple effects can be chained ([`multiple_effects` example](examples/multiple_effects.rs)).
+Add them to a single sound ([`effects` example](examples/effects.rs)), or to an `AudioTrack` that applies them to every sound on a channel ([`reverb_channel` example](examples/reverb_channel.rs)).
 
 Both kinds stack: a sound with per-instance effects played on a channel with its own track is processed by the per-instance effects first, then by the channel effects ([`stacked_effects` example](examples/stacked_effects.rs)).
 

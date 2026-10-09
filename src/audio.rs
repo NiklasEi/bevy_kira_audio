@@ -293,20 +293,13 @@ impl<'a> PlayAudioCommand<'a> {
         self
     }
 
-    /// Add an audio effect to this sound instance and return its handle for runtime control.
+    /// Add an effect to this sound and return its handle to control it while it plays.
     ///
-    /// The effect will be applied via a dedicated sub-track created for this sound instance.
-    /// The returned handle can be stored and used to modify the effect at runtime.
-    ///
-    /// **Note:** Per-instance effects and channel-level effects (via
-    /// [`add_audio_channel_with_track`](AudioApp::add_audio_channel_with_track)) stack. When the
-    /// channel has a track of its own, this sound's sub-track is nested inside it, so the sound is
-    /// processed by its own effects first and by the channel's effects afterwards. Each such
-    /// sub-track takes one of the channel track's
-    /// [`sub_track_capacity`](AudioTrack::sub_track_capacity) slots, or one of
+    /// The sound goes through its own effects first and then through those of its channel's
+    /// [`AudioTrack`], if any. It plays on a sub-track of its own, which counts towards the
+    /// channel track's [`sub_track_capacity`](AudioTrack::sub_track_capacity), or
     /// [`AudioSettings::sub_track_capacity`](crate::AudioSettings::sub_track_capacity) for
-    /// channels without a track. The sub-track outlives the sound, so effects that ring out are
-    /// not cut short; see [`with_effect_tail`](Self::with_effect_tail).
+    /// channels without a track.
     ///
     /// ```no_run
     /// # use bevy::prelude::*;
@@ -325,10 +318,7 @@ impl<'a> PlayAudioCommand<'a> {
             .add_effect(effect)
     }
 
-    /// Add an audio effect to this sound instance (chainable).
-    ///
-    /// Like [`add_effect`](Self::add_effect), but discards the effect handle
-    /// and returns `&mut Self` for method chaining.
+    /// Like [`add_effect`](Self::add_effect), but discards the effect handle.
     ///
     /// ```no_run
     /// # use bevy::prelude::*;
@@ -569,33 +559,10 @@ pub trait AudioApp {
     /// ```
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
 
-    /// Add a new audio channel with a custom [`AudioTrack`] for channel-level effects.
+    /// Add a new audio channel whose sounds all play through the effects of `track`.
     ///
-    /// Effects added to the `AudioTrack` will apply to all sounds played on this channel.
-    /// You can use [`AudioTrack::add_effect`] to add effects and store the returned handles
-    /// as Bevy resources for runtime control.
-    ///
-    /// [`AudioPlugin`](crate::AudioPlugin) must be added before calling this method. If it has not
-    /// been added yet, an error is logged and the channel is added without the track or its effects.
-    ///
-    /// ```no_run
-    /// use bevy::prelude::*;
-    /// use bevy_kira_audio::prelude::*;
-    ///
-    /// #[derive(Resource)]
-    /// struct MusicChannel;
-    ///
-    /// fn main() {
-    ///     let mut track = AudioTrack::new();
-    ///     let _reverb = track.add_effect(ReverbBuilder::new());
-    ///
-    ///     App::new()
-    ///         .add_plugins(DefaultPlugins)
-    ///         .add_plugins(AudioPlugin)
-    ///         .add_audio_channel_with_track::<MusicChannel>(track)
-    ///         .run();
-    /// }
-    /// ```
+    /// [`AudioPlugin`](crate::AudioPlugin) must be added first. If the channel already has a
+    /// track, it is kept and `track` is ignored.
     fn add_audio_channel_with_track<T: Resource>(&mut self, track: AudioTrack) -> &mut Self;
 }
 

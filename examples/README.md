@@ -9,15 +9,11 @@ These examples are simple Bevy Apps illustrating the capabilities of `bevy_kira_
 | [`custom_channel.rs`](/examples/custom_channel.rs)       | How to add and use a custom audio channel                            |
 | [`dynamic_channels.rs`](/examples/dynamic_channels.rs)   | Usage of dynamic audio channels                                      |
 | [`effect_tail.rs`](/examples/effect_tail.rs)             | Effects ring out after a sound ends, but stop with it                |
-| [`filter.rs`](/examples/filter.rs)                       | Per-instance low-pass filter with runtime cutoff toggling            |
-| [`filter_basic.rs`](/examples/filter_basic.rs)           | Simple low-pass filter using `with_effect` (no runtime control)      |
+| [`effects.rs`](/examples/effects.rs)                     | Effects on a single sound, changed at runtime                        |
 | [`instance_control.rs`](/examples/instance_control.rs)   | Demonstrate controlling a single audio instance                      |
 | [`multiple_channels.rs`](/examples/multiple_channels.rs) | GUI application with full control over tree different audio channels |
-| [`multiple_effects.rs`](/examples/multiple_effects.rs)   | Three effects on one sound instance, cycled at runtime               |
-| [`multiple_effects_channel.rs`](/examples/multiple_effects_channel.rs) | Interactive demo toggling three channel-level effects   |
 | [`peak_meter.rs`](/examples/peak_meter.rs)               | A custom effect measuring loudness to drive a UI meter               |
-| [`reverb.rs`](/examples/reverb.rs)                       | Per-instance reverb with runtime on/off toggling                     |
-| [`reverb_channel.rs`](/examples/reverb_channel.rs)       | Channel-level reverb applied to multiple sounds                      |
+| [`reverb_channel.rs`](/examples/reverb_channel.rs)       | Reverb on a channel, applied to all its sounds and toggled at runtime |
 | [`settings.rs`](/examples/settings.rs)                   | Demonstrate settings supported when playing a sound                  |
 | [`settings_loader.rs`](/examples/settings_loader.rs)     | Loading a sound with applied settings                                |
 | [`spatial.rs`](/examples/spatial.rs)                     | Demonstration of the limited support for spatial audio               |

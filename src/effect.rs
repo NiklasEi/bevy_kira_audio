@@ -1,14 +1,9 @@
 //! Audio effects
 //!
-//! Effects modify the audio signal of a single sound instance or of a whole channel.
-//!
 //! Add an effect to one sound with [`PlayAudioCommand::add_effect`](crate::PlayAudioCommand::add_effect),
-//! or to an entire channel by building an [`AudioTrack`] and passing it to
+//! or to a whole channel with an [`AudioTrack`] passed to
 //! [`add_audio_channel_with_track`](crate::AudioApp::add_audio_channel_with_track).
-//!
-//! Every effect is configured through a builder. Adding it returns a handle that controls the
-//! effect while it plays. All handle setters take an [`AudioTween`] describing how the change is
-//! interpolated, just like the rest of this crate's API.
+//! Adding an effect returns a handle to control it while it plays.
 //!
 //! ```no_run
 //! # use bevy::prelude::*;
@@ -22,9 +17,7 @@
 //! }
 //! ```
 //!
-//! Effects added to a single sound run on a track of that sound's own. When the sound ends on its
-//! own, that track is kept until its effects have rung out (see [`EffectTail`]). Stopping the
-//! sound fades its effects out together with it.
+//! When a sound ends on its own, its effects ring out (see [`EffectTail`]).
 //!
 //! # Custom effects
 //!
@@ -104,12 +97,10 @@ impl Default for EffectTail {
 
 /// Something that can be added to an audio track as an effect.
 ///
-/// This is implemented for every built-in effect builder. Implement it for your own type to use a
-/// custom [`Effect`] with this plugin (see the [module documentation](self#custom-effects)).
+/// Implemented for all built-in effect builders; see [custom effects](self#custom-effects).
 pub trait AudioEffect {
-    /// Handle used to control the effect while it is running.
-    ///
-    /// Use `()` if the effect has nothing to control at runtime.
+    /// Handle used to control the effect while it is running. Use `()` if there is nothing to
+    /// control.
     type Handle;
 
     /// Build the effect together with a handle to control it.
@@ -190,10 +181,8 @@ impl AudioTrack {
 
     /// Set the maximum number of sub-tracks this track can hold.
     ///
-    /// Every sound played on this channel with per-instance effects (see
-    /// [`add_effect`](crate::PlayAudioCommand::add_effect)) runs on a sub-track of this one and
-    /// takes a slot for as long as it plays, plus its
-    /// [effect tail](crate::PlayAudioCommand::with_effect_tail).
+    /// Each sound on this channel with effects of its own takes one until its effects have rung
+    /// out.
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
     pub fn sub_track_capacity(self, capacity: NonZeroUsize) -> Self {
         self.map(|track| track.sub_track_capacity(capacity.get()))
