@@ -249,7 +249,7 @@ impl<B: Backend> AudioOutput<B> {
     fn play(
         &mut self,
         channel: &Channel,
-        partial_sound_settings: &PartialSoundSettings,
+        mut partial_sound_settings: PartialSoundSettings,
         audio_source: &AudioSource,
         instance_handle: Handle<AudioInstance>,
         audio_instances: &mut Assets<AudioInstance>,
@@ -269,9 +269,7 @@ impl<B: Backend> AudioOutput<B> {
         partial_sound_settings.apply(&mut sound);
 
         // Determine where to play the sound based on per-instance and channel tracks
-        let instance_track = partial_sound_settings.track.lock().take();
-
-        let sound_handle = if let Some(track) = instance_track {
+        let sound_handle = if let Some(track) = partial_sound_settings.track.take() {
             // Per-instance effects: create a sub-track for this instance
             match self.add_instance_track(channel, *track) {
                 Ok(mut track_handle) => {
@@ -350,12 +348,13 @@ impl<B: Backend> AudioOutput<B> {
         let mut i = 0;
         while i < len {
             let audio_command = commands.pop_back().unwrap();
+            let is_stop = matches!(audio_command, AudioCommand::Stop(_));
             let result =
-                self.run_audio_command(&audio_command, audio_sources, audio_instances, &channel);
-            if let AudioCommand::Stop(_) = audio_command {
+                self.run_audio_command(audio_command, audio_sources, audio_instances, &channel);
+            if is_stop {
                 commands_to_retry.clear();
             }
-            if let AudioCommandResult::Retry = result {
+            if let AudioCommandResult::Retry(audio_command) = result {
                 commands_to_retry.push(audio_command);
             }
             i += 1;
@@ -381,13 +380,9 @@ impl<B: Backend> AudioOutput<B> {
             let mut i = 0;
             while i < len {
                 let audio_command = commands.pop_back().unwrap();
-                let result = self.run_audio_command(
-                    &audio_command,
-                    audio_sources,
-                    audio_instances,
-                    &channel,
-                );
-                if let AudioCommandResult::Retry = result {
+                let result =
+                    self.run_audio_command(audio_command, audio_sources, audio_instances, &channel);
+                if let AudioCommandResult::Retry(audio_command) = result {
                     commands.push_front(audio_command);
                 }
                 i += 1;
@@ -397,45 +392,44 @@ impl<B: Backend> AudioOutput<B> {
 
     pub(crate) fn run_audio_command(
         &mut self,
-        audio_command: &AudioCommand,
+        audio_command: AudioCommand,
         audio_sources: &Assets<AudioSource>,
         audio_instances: &mut Assets<AudioInstance>,
         channel: &Channel,
     ) -> AudioCommandResult {
         match audio_command {
             AudioCommand::Play(play_args) => {
-                if let Some(audio_source) = audio_sources.get(&play_args.source) {
-                    self.play(
-                        channel,
-                        &play_args.settings,
-                        audio_source,
-                        play_args.instance_handle.clone(),
-                        audio_instances,
-                    )
-                } else {
+                let Some(audio_source) = audio_sources.get(&play_args.source) else {
                     // audio source hasn't loaded yet. Add it back to the queue
-                    AudioCommandResult::Retry
-                }
+                    return AudioCommandResult::Retry(AudioCommand::Play(play_args));
+                };
+                self.play(
+                    channel,
+                    play_args.settings,
+                    audio_source,
+                    play_args.instance_handle,
+                    audio_instances,
+                )
             }
-            AudioCommand::Stop(tween) => self.stop(channel, audio_instances, tween),
+            AudioCommand::Stop(tween) => self.stop(channel, audio_instances, &tween),
             AudioCommand::Pause(tween) => {
-                self.pause(channel, audio_instances, tween);
+                self.pause(channel, audio_instances, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::Resume(tween) => {
-                self.resume(channel, audio_instances, tween);
+                self.resume(channel, audio_instances, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetVolume(volume, tween) => {
-                self.set_volume(channel, audio_instances, *volume, tween);
+                self.set_volume(channel, audio_instances, volume, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetPanning(panning, tween) => {
-                self.set_panning(channel, audio_instances, *panning, tween);
+                self.set_panning(channel, audio_instances, panning, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetPlaybackRate(playback_rate, tween) => {
-                self.set_playback_rate(channel, audio_instances, *playback_rate, tween);
+                self.set_playback_rate(channel, audio_instances, playback_rate, &tween);
                 AudioCommandResult::Ok
             }
         }

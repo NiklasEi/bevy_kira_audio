@@ -60,6 +60,8 @@
 use crate::audio::AudioTween;
 use kira::effect::EffectBuilder as KiraEffectBuilder;
 use kira::track::TrackBuilder;
+use parking_lot::Mutex;
+use std::fmt;
 use std::time::Duration;
 
 pub use kira::effect::Effect;
@@ -119,13 +121,13 @@ pub trait AudioEffect {
 ///         .run();
 /// }
 /// ```
-pub struct AudioTrack(TrackBuilder);
+pub struct AudioTrack(Mutex<TrackBuilder>);
 
 impl AudioTrack {
     /// Create a new track with no effects.
     #[must_use]
     pub fn new() -> Self {
-        Self(TrackBuilder::new())
+        Self(Mutex::new(TrackBuilder::new()))
     }
 
     /// Create the track carrying a single sound instance's own effects.
@@ -133,13 +135,15 @@ impl AudioTrack {
     /// Such a track hosts exactly the one sound: nesting anything under an instance
     /// track fails with `ResourceLimitReached`.
     pub(crate) fn for_instance() -> Self {
-        Self(TrackBuilder::new().sound_capacity(1).sub_track_capacity(0))
+        Self(Mutex::new(
+            TrackBuilder::new().sound_capacity(1).sub_track_capacity(0),
+        ))
     }
 
     /// Add an effect to this track and return its handle for runtime control.
     pub fn add_effect<E: AudioEffect>(&mut self, effect: E) -> E::Handle {
         let (built, handle) = effect.build_effect();
-        self.0.add_built_effect(built);
+        self.0.get_mut().add_built_effect(built);
 
         handle
     }
@@ -159,13 +163,13 @@ impl AudioTrack {
     pub fn volume(self, volume: impl Into<Decibels>) -> Self {
         let volume: Decibels = volume.into();
 
-        Self(self.0.volume(volume))
+        self.map(|track| track.volume(volume))
     }
 
     /// Set the maximum number of sounds that can play on this track at a time.
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
     pub fn sound_capacity(self, capacity: usize) -> Self {
-        Self(self.0.sound_capacity(capacity))
+        self.map(|track| track.sound_capacity(capacity))
     }
 
     /// Set the maximum number of sub-tracks this track can hold.
@@ -176,23 +180,33 @@ impl AudioTrack {
     /// [effect tail](crate::PlayAudioCommand::with_effect_tail).
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
     pub fn sub_track_capacity(self, capacity: usize) -> Self {
-        Self(self.0.sub_track_capacity(capacity))
+        self.map(|track| track.sub_track_capacity(capacity))
     }
 
     /// Keep the track alive until all sounds on it have finished playing.
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
     pub fn persist_until_sounds_finish(self, persist: bool) -> Self {
-        Self(self.0.persist_until_sounds_finish(persist))
+        self.map(|track| track.persist_until_sounds_finish(persist))
+    }
+
+    fn map(self, f: impl FnOnce(TrackBuilder) -> TrackBuilder) -> Self {
+        Self(Mutex::new(f(self.0.into_inner())))
     }
 
     pub(crate) fn into_inner(self) -> TrackBuilder {
-        self.0
+        self.0.into_inner()
     }
 }
 
 impl Default for AudioTrack {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl fmt::Debug for AudioTrack {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AudioTrack").finish_non_exhaustive()
     }
 }
 

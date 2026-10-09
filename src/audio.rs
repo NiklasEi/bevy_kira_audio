@@ -18,18 +18,11 @@ use bevy::prelude::{PostUpdate, default};
 use kira::sound::EndPosition;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{Decibels, Panning, Value};
-use parking_lot::Mutex;
 use std::any::TypeId;
-use std::fmt;
 use std::marker::PhantomData;
 use std::mem;
 use std::time::Duration;
 use uuid::Uuid;
-
-/// The slot carrying one sound instance's own [`AudioTrack`] to the audio output.
-/// Wrapped because the audio output must take the `Send`-but-not-`Sync` track out through
-/// a shared reference to the command queue.
-pub(crate) type InstanceTrackSlot = Mutex<Option<Box<AudioTrack>>>;
 
 #[derive(Debug)]
 pub(crate) enum AudioCommand {
@@ -42,7 +35,7 @@ pub(crate) enum AudioCommand {
     Resume(Option<AudioTween>),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct PartialSoundSettings {
     pub(crate) loop_start: Option<f64>,
     pub(crate) loop_end: Option<f64>,
@@ -54,33 +47,8 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
     pub(crate) emitter: Option<Entity>,
-    pub(crate) track: InstanceTrackSlot,
+    pub(crate) track: Option<Box<AudioTrack>>,
     pub(crate) effect_tail: Option<Duration>,
-}
-
-impl fmt::Debug for PartialSoundSettings {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PartialSoundSettings")
-            .field("loop_start", &self.loop_start)
-            .field("loop_end", &self.loop_end)
-            .field("volume", &self.volume)
-            .field("playback_rate", &self.playback_rate)
-            .field("start_position", &self.start_position)
-            .field("panning", &self.panning)
-            .field("reverse", &self.reverse)
-            .field("paused", &self.paused)
-            .field("fade_in", &self.fade_in)
-            .field("emitter", &self.emitter)
-            .field(
-                "track",
-                &self
-                    .track
-                    .try_lock()
-                    .map_or(Some("<locked>"), |track| track.as_ref().map(|_| "...")),
-            )
-            .field("effect_tail", &self.effect_tail)
-            .finish()
-    }
 }
 
 /// Different kinds of easing for fade-in and fade-out
@@ -352,7 +320,6 @@ impl<'a> PlayAudioCommand<'a> {
     pub fn add_effect<E: AudioEffect>(&mut self, effect: E) -> E::Handle {
         self.settings
             .track
-            .get_mut()
             .get_or_insert_with(|| Box::new(AudioTrack::for_instance()))
             .add_effect(effect)
     }
@@ -490,10 +457,10 @@ impl TweenCommand<'_, FadeOut> {
     }
 }
 
-#[derive(PartialEq)]
-pub enum AudioCommandResult {
+pub(crate) enum AudioCommandResult {
     Ok,
-    Retry,
+    /// The command could not run yet and is handed back to be queued again.
+    Retry(AudioCommand),
 }
 
 /// Playback status of a currently playing sound.
