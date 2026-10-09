@@ -20,11 +20,10 @@ const MAX_TAIL_FADE_OUT: Duration = Duration::from_millis(10);
 /// The track of one sound with effects of its own.
 ///
 /// Kira removes a track as soon as its handle is dropped, cutting off whatever is still ringing on
-/// it. So the handle is kept until the sound is gone and its effects have rung out, or until the
-/// sound was stopped.
+/// it. So the handle is kept until the sound is gone and its effects have rung out, or have faded
+/// out after the sound was stopped.
 pub(crate) struct InstanceTrack {
     pub(crate) handle: TrackHandle,
-    stopped: Arc<AtomicBool>,
     tail: Arc<TailState>,
 }
 
@@ -41,24 +40,25 @@ impl InstanceTrack {
         let volume = builder.add_effect(VolumeControlBuilder::new(Decibels::IDENTITY));
         let tail_state = Arc::new(TailState::default());
         builder.add_built_effect(Box::new(TailMonitor::new(tail, tail_state.clone())));
-        let stopped = Arc::new(AtomicBool::new(false));
 
         let track = Self {
             handle: add_sub_track(builder)?,
-            stopped: stopped.clone(),
-            tail: tail_state,
+            tail: tail_state.clone(),
         };
 
-        Ok((track, InstanceEffects { volume, stopped }))
+        Ok((
+            track,
+            InstanceEffects {
+                volume,
+                tail: tail_state,
+            },
+        ))
     }
 
     /// Whether the track has to be kept for the sound or its effects.
     pub(crate) fn keep_alive(&self) -> bool {
         if self.handle.num_sounds() > 0 {
             return true;
-        }
-        if self.stopped.load(Ordering::Relaxed) {
-            return false;
         }
         self.tail.sound_finished.store(true, Ordering::Relaxed);
 
@@ -69,17 +69,17 @@ impl InstanceTrack {
 /// Lets an [`AudioInstance`](crate::AudioInstance) cut off the effects of its sound when stopped.
 pub(crate) struct InstanceEffects {
     volume: VolumeControlHandle,
-    stopped: Arc<AtomicBool>,
+    tail: Arc<TailState>,
 }
 
 impl InstanceEffects {
     pub(crate) fn stop(&mut self, tween: Tween) {
-        self.stopped.store(true, Ordering::Relaxed);
+        self.tail.stopped.store(true, Ordering::Relaxed);
         self.volume.set_volume(Decibels::SILENCE, tween);
     }
 
     pub(crate) fn resume(&mut self, tween: Tween) {
-        self.stopped.store(false, Ordering::Relaxed);
+        self.tail.stopped.store(false, Ordering::Relaxed);
         self.volume.set_volume(Decibels::IDENTITY, tween);
     }
 }
@@ -88,6 +88,8 @@ impl InstanceEffects {
 struct TailState {
     /// Set once the sound is gone, which starts the tail.
     sound_finished: AtomicBool,
+    /// Set while the sound is stopped, which ends the tail as soon as its effects have faded out.
+    stopped: AtomicBool,
     /// Set by the monitor once the tail is over.
     rung_out: AtomicBool,
 }
@@ -144,7 +146,12 @@ impl Effect for TailMonitor {
             0.0
         };
 
-        if finished && (self.silent_for >= self.tail.silence.as_secs_f64() || self.gain == 0.0) {
+        let stopped = self.state.stopped.load(Ordering::Relaxed);
+        if finished
+            && ((stopped && silent)
+                || self.silent_for >= self.tail.silence.as_secs_f64()
+                || self.gain == 0.0)
+        {
             self.state.rung_out.store(true, Ordering::Relaxed);
         }
     }

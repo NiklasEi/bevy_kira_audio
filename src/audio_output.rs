@@ -232,9 +232,12 @@ impl<B: Backend> AudioOutput<B> {
                 self.add_instance_track(channel, track)
             })
             .inspect_err(|error| {
-                    warn!("Failed to create a track for the sound's effects, playing it without them: {error:?}");
-                })
-                .ok()
+                warn!(
+                    "Failed to create a track for the sound's effects, playing it without them: \
+                     {error:?}"
+                );
+            })
+            .ok()
         });
 
         let (sound_handle, effects) = if let Some((mut track, effects)) = instance_track {
@@ -740,6 +743,27 @@ mod test {
             .stop(AudioTween::default());
         render_for(&mut audio_output, &mut instances, Duration::from_millis(30));
 
+        assert!(audio_output.instance_tracks.is_empty());
+    }
+
+    #[test]
+    fn stopping_a_sound_during_its_tail_fades_its_effects_out_before_dropping_its_track() {
+        let mut audio_output = audio_output();
+        let mut instances = Assets::<AudioInstance>::default();
+        let (instance, _ringing) = play_ringing_sound(&mut audio_output, &mut instances, TAIL);
+        render_for(
+            &mut audio_output,
+            &mut instances,
+            Duration::from_millis(200),
+        );
+
+        instances
+            .get_mut(&instance)
+            .unwrap()
+            .stop(AudioTween::linear(Duration::from_millis(100)));
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(50));
+        assert_eq!(audio_output.instance_tracks.len(), 1);
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(60));
         assert!(audio_output.instance_tracks.is_empty());
     }
 
