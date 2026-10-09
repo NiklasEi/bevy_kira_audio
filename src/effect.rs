@@ -199,12 +199,6 @@ impl AudioTrack {
         self.map(|track| track.sub_track_capacity(capacity.get()))
     }
 
-    /// Keep the track alive until all sounds on it have finished playing.
-    #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
-    pub fn persist_until_sounds_finish(self, persist: bool) -> Self {
-        self.map(|track| track.persist_until_sounds_finish(persist))
-    }
-
     fn map(self, f: impl FnOnce(TrackBuilder) -> TrackBuilder) -> Self {
         Self(Mutex::new(f(self.0.into_inner())))
     }

@@ -19,6 +19,7 @@ use kira::sound::EndPosition;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{Decibels, Panning, Value};
 use std::any::TypeId;
+use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::mem;
 use std::time::Duration;
@@ -598,11 +599,19 @@ pub trait AudioApp {
     fn add_audio_channel_with_track<T: Resource>(&mut self, track: AudioTrack) -> &mut Self;
 }
 
+/// The typed channels whose systems have been added.
+#[derive(Resource, Default)]
+struct RegisteredAudioChannels(HashSet<TypeId>);
+
 impl AudioApp for App {
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self {
-        // Registering a channel twice would run its systems twice per frame and drop anything
-        // already queued on the channel.
-        if self.world().contains_resource::<AudioChannel<T>>() {
+        // Adding the systems twice would run them twice per frame.
+        let newly_registered = self
+            .world_mut()
+            .get_resource_or_init::<RegisteredAudioChannels>()
+            .0
+            .insert(TypeId::of::<T>());
+        if !newly_registered {
             return self;
         }
 
@@ -614,14 +623,23 @@ impl AudioApp for App {
             PreUpdate,
             update_instance_states::<T>.after(AudioSystemSet::InstanceCleanup),
         )
-        .insert_resource(AudioChannel::<T>::default())
+        .init_resource::<AudioChannel<T>>()
     }
 
     fn add_audio_channel_with_track<T: Resource>(&mut self, track: AudioTrack) -> &mut Self {
         self.add_audio_channel::<T>();
 
+        let channel = Channel::Typed(TypeId::of::<T>());
         if let Some(mut audio_output) = self.world_mut().get_non_send_mut::<AudioOutput>() {
-            audio_output.create_channel_track(Channel::Typed(TypeId::of::<T>()), track);
+            // Replacing the track would cut off everything playing on it.
+            if audio_output.has_channel_track(&channel) {
+                error!(
+                    "Channel `{}` already has an audio track; keeping it and ignoring the new one",
+                    std::any::type_name::<T>(),
+                );
+            } else {
+                audio_output.create_channel_track(channel, track);
+            }
         } else {
             error!(
                 "Failed to add audio track for channel `{}`: `AudioPlugin` must be added before \
@@ -631,5 +649,35 @@ impl AudioApp for App {
         }
 
         self
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[derive(Resource)]
+    struct Sfx;
+
+    fn channel_systems(app: &App) -> usize {
+        app.get_schedule(PreUpdate).unwrap().systems_len()
+            + app.get_schedule(PostUpdate).unwrap().systems_len()
+    }
+
+    #[test]
+    fn a_channel_gets_its_systems_once() {
+        let mut app = App::new();
+        app.add_audio_channel::<Sfx>().add_audio_channel::<Sfx>();
+
+        assert_eq!(channel_systems(&app), 2);
+    }
+
+    #[test]
+    fn a_channel_gets_its_systems_even_if_its_resource_already_exists() {
+        let mut app = App::new();
+        app.init_resource::<AudioChannel<Sfx>>()
+            .add_audio_channel::<Sfx>();
+
+        assert_eq!(channel_systems(&app), 2);
     }
 }

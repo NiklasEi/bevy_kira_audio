@@ -412,18 +412,15 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
+    pub(crate) fn has_channel_track(&self, channel: &Channel) -> bool {
+        self.channel_tracks.contains_key(channel)
+    }
+
     pub(crate) fn create_channel_track(&mut self, channel: Channel, track: AudioTrack) {
         if let Some(manager) = self.manager.as_mut() {
             match manager.add_sub_track(track.into_inner()) {
                 Ok(track_handle) => {
-                    if self.channel_tracks.insert(channel, track_handle).is_some() {
-                        warn!(
-                            "An audio track was already registered for this channel and has been \
-                             replaced. Effect handles for the previous track will no longer control \
-                             this channel. Ensure `add_audio_channel_with_track` is called only once \
-                             per channel type."
-                        );
-                    }
+                    self.channel_tracks.insert(channel, track_handle);
                 }
                 Err(error) => {
                     warn!("Failed to create channel sub-track: {:?}", error);
