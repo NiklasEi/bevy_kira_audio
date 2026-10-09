@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- `AudioSettings::sound_capacity` and `AudioSettings::sub_track_capacity` are now `NonZeroUsize`; a capacity of 0 made Kira panic
+
 ## v0.26.0 - 21.06.2026
 - Update to Bevy `0.19`
 - Update Kira to `0.12`

@@ -62,6 +62,7 @@ use kira::effect::EffectBuilder as KiraEffectBuilder;
 use kira::track::TrackBuilder;
 use parking_lot::Mutex;
 use std::fmt;
+use std::num::NonZeroUsize;
 use std::time::Duration;
 
 pub use kira::effect::Effect;
@@ -132,8 +133,7 @@ impl AudioTrack {
 
     /// Create the track carrying a single sound instance's own effects.
     ///
-    /// Such a track hosts exactly the one sound: nesting anything under an instance
-    /// track fails with `ResourceLimitReached`.
+    /// Such a track hosts exactly the one sound and never has anything nested under it.
     pub(crate) fn for_instance() -> Self {
         Self(Mutex::new(
             TrackBuilder::new().sound_capacity(1).sub_track_capacity(0),
@@ -168,8 +168,8 @@ impl AudioTrack {
 
     /// Set the maximum number of sounds that can play on this track at a time.
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
-    pub fn sound_capacity(self, capacity: usize) -> Self {
-        self.map(|track| track.sound_capacity(capacity))
+    pub fn sound_capacity(self, capacity: NonZeroUsize) -> Self {
+        self.map(|track| track.sound_capacity(capacity.get()))
     }
 
     /// Set the maximum number of sub-tracks this track can hold.
@@ -179,8 +179,8 @@ impl AudioTrack {
     /// takes a slot for as long as it plays, plus its
     /// [effect tail](crate::PlayAudioCommand::with_effect_tail).
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
-    pub fn sub_track_capacity(self, capacity: usize) -> Self {
-        self.map(|track| track.sub_track_capacity(capacity))
+    pub fn sub_track_capacity(self, capacity: NonZeroUsize) -> Self {
+        self.map(|track| track.sub_track_capacity(capacity.get()))
     }
 
     /// Keep the track alive until all sounds on it have finished playing.

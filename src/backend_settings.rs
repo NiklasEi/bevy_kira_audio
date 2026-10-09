@@ -1,6 +1,7 @@
 use bevy::ecs::resource::Resource;
 use bevy::utils::default;
 use kira::{AudioManagerSettings, Capacities, DefaultBackend, track::MainTrackBuilder};
+use std::num::NonZeroUsize;
 
 /// This resource is used to configure the audio backend at creation
 ///
@@ -9,16 +10,16 @@ use kira::{AudioManagerSettings, Capacities, DefaultBackend, track::MainTrackBui
 #[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AudioSettings {
     /// The maximum number of sounds that can play on the main track; channel tracks set their own.
-    pub sound_capacity: usize,
+    pub sound_capacity: NonZeroUsize,
     /// The maximum number of sub-tracks on the main track; channel tracks set their own.
-    pub sub_track_capacity: usize,
+    pub sub_track_capacity: NonZeroUsize,
 }
 
 impl Default for AudioSettings {
     fn default() -> Self {
         Self {
-            sound_capacity: 128,
-            sub_track_capacity: 128,
+            sound_capacity: NonZeroUsize::new(128).unwrap(),
+            sub_track_capacity: NonZeroUsize::new(128).unwrap(),
         }
     }
 }
@@ -27,10 +28,11 @@ impl From<AudioSettings> for AudioManagerSettings<DefaultBackend> {
     fn from(settings: AudioSettings) -> Self {
         AudioManagerSettings {
             capacities: Capacities {
-                sub_track_capacity: settings.sub_track_capacity,
+                sub_track_capacity: settings.sub_track_capacity.get(),
                 ..default()
             },
-            main_track_builder: MainTrackBuilder::new().sound_capacity(settings.sound_capacity),
+            main_track_builder: MainTrackBuilder::new()
+                .sound_capacity(settings.sound_capacity.get()),
             ..default()
         }
     }
