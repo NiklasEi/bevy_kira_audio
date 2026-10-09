@@ -1,14 +1,9 @@
 //! Audio effects
 //!
-//! Effects modify the audio signal of a single sound instance or of a whole channel.
-//!
 //! Add an effect to one sound with [`PlayAudioCommand::add_effect`](crate::PlayAudioCommand::add_effect),
-//! or to an entire channel by building an [`AudioTrack`] and passing it to
+//! or to a whole channel with an [`AudioTrack`] passed to
 //! [`add_audio_channel_with_track`](crate::AudioApp::add_audio_channel_with_track).
-//!
-//! Every effect is configured through a builder. Adding it returns a handle that controls the
-//! effect while it plays. All handle setters take an [`AudioTween`] describing how the change is
-//! interpolated, just like the rest of this crate's API.
+//! Adding an effect returns a handle to control it while it plays.
 //!
 //! ```no_run
 //! # use bevy::prelude::*;
@@ -22,10 +17,7 @@
 //! }
 //! ```
 //!
-//! Effects added to a single sound run on a track of that sound's own. Reverb and delay keep
-//! sounding after their input has gone quiet, so that track outlives the sound by
-//! [`DEFAULT_EFFECT_TAIL`]; see
-//! [`with_effect_tail`](crate::PlayAudioCommand::with_effect_tail) to change how long.
+//! When a sound ends on its own, its effects ring out (see [`EffectTail`]).
 //!
 //! # Custom effects
 //!
@@ -60,6 +52,9 @@
 use crate::audio::AudioTween;
 use kira::effect::EffectBuilder as KiraEffectBuilder;
 use kira::track::TrackBuilder;
+use parking_lot::Mutex;
+use std::fmt;
+use std::num::NonZeroUsize;
 use std::time::Duration;
 
 pub use kira::effect::Effect;
@@ -74,23 +69,38 @@ pub use kira::effect::panning_control::PanningControlBuilder;
 pub use kira::effect::reverb::ReverbBuilder;
 pub use kira::effect::volume_control::VolumeControlBuilder;
 
-/// How long a sound's effects keep running after the sound itself has stopped.
+/// How long a sound's own effects keep running after the sound has ended on its own.
 ///
-/// Effects like reverb and delay go on producing sound after their input has gone quiet. A sound
-/// with per-instance effects plays on its own track, and tearing that track down the moment the
-/// sound ends would cut those tails off mid-ring. The track is therefore kept for this long
-/// afterwards. Override it per sound with
-/// [`with_effect_tail`](crate::PlayAudioCommand::with_effect_tail).
-pub const DEFAULT_EFFECT_TAIL: Duration = Duration::from_secs(2);
+/// Reverb and delay keep producing sound after their input has ended. The tail ends once the
+/// effects have been silent for [`silence`](Self::silence), or after [`max`](Self::max) at the
+/// latest. Stopping a sound skips its tail.
+///
+/// Set it per sound with [`with_effect_tail`](crate::PlayAudioCommand::with_effect_tail).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct EffectTail {
+    /// How long the effects have to stay silent for the tail to end.
+    ///
+    /// Must be longer than the gap between the echoes of a delay effect.
+    pub silence: Duration,
+    /// How long the tail lasts at most, for effects that never fall silent.
+    pub max: Duration,
+}
+
+impl Default for EffectTail {
+    fn default() -> Self {
+        Self {
+            silence: Duration::from_secs(1),
+            max: Duration::from_secs(10),
+        }
+    }
+}
 
 /// Something that can be added to an audio track as an effect.
 ///
-/// This is implemented for every built-in effect builder. Implement it for your own type to use a
-/// custom [`Effect`] with this plugin (see the [module documentation](self#custom-effects)).
+/// Implemented for all built-in effect builders; see [custom effects](self#custom-effects).
 pub trait AudioEffect {
-    /// Handle used to control the effect while it is running.
-    ///
-    /// Use `()` if the effect has nothing to control at runtime.
+    /// Handle used to control the effect while it is running. Use `()` if there is nothing to
+    /// control.
     type Handle;
 
     /// Build the effect together with a handle to control it.
@@ -119,27 +129,28 @@ pub trait AudioEffect {
 ///         .run();
 /// }
 /// ```
-pub struct AudioTrack(TrackBuilder);
+pub struct AudioTrack(Mutex<TrackBuilder>);
 
 impl AudioTrack {
     /// Create a new track with no effects.
     #[must_use]
     pub fn new() -> Self {
-        Self(TrackBuilder::new())
+        Self(Mutex::new(TrackBuilder::new()))
     }
 
     /// Create the track carrying a single sound instance's own effects.
     ///
-    /// Such a track hosts exactly the one sound: nesting anything under an instance
-    /// track fails with `ResourceLimitReached`.
+    /// Such a track hosts exactly the one sound and never has anything nested under it.
     pub(crate) fn for_instance() -> Self {
-        Self(TrackBuilder::new().sound_capacity(1).sub_track_capacity(0))
+        Self(Mutex::new(
+            TrackBuilder::new().sound_capacity(1).sub_track_capacity(0),
+        ))
     }
 
     /// Add an effect to this track and return its handle for runtime control.
     pub fn add_effect<E: AudioEffect>(&mut self, effect: E) -> E::Handle {
         let (built, handle) = effect.build_effect();
-        self.0.add_built_effect(built);
+        self.0.get_mut().add_built_effect(built);
 
         handle
     }
@@ -159,40 +170,42 @@ impl AudioTrack {
     pub fn volume(self, volume: impl Into<Decibels>) -> Self {
         let volume: Decibels = volume.into();
 
-        Self(self.0.volume(volume))
+        self.map(|track| track.volume(volume))
     }
 
     /// Set the maximum number of sounds that can play on this track at a time.
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
-    pub fn sound_capacity(self, capacity: usize) -> Self {
-        Self(self.0.sound_capacity(capacity))
+    pub fn sound_capacity(self, capacity: NonZeroUsize) -> Self {
+        self.map(|track| track.sound_capacity(capacity.get()))
     }
 
     /// Set the maximum number of sub-tracks this track can hold.
     ///
-    /// Every sound played on this channel with per-instance effects (see
-    /// [`add_effect`](crate::PlayAudioCommand::add_effect)) runs on a sub-track of this one and
-    /// takes a slot for as long as it plays, plus its
-    /// [effect tail](crate::PlayAudioCommand::with_effect_tail).
+    /// Each sound on this channel with effects of its own takes one until its effects have rung
+    /// out.
     #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
-    pub fn sub_track_capacity(self, capacity: usize) -> Self {
-        Self(self.0.sub_track_capacity(capacity))
+    pub fn sub_track_capacity(self, capacity: NonZeroUsize) -> Self {
+        self.map(|track| track.sub_track_capacity(capacity.get()))
     }
 
-    /// Keep the track alive until all sounds on it have finished playing.
-    #[must_use = "This method consumes self and returns a modified AudioTrack, so the return value should be used"]
-    pub fn persist_until_sounds_finish(self, persist: bool) -> Self {
-        Self(self.0.persist_until_sounds_finish(persist))
+    fn map(self, f: impl FnOnce(TrackBuilder) -> TrackBuilder) -> Self {
+        Self(Mutex::new(f(self.0.into_inner())))
     }
 
     pub(crate) fn into_inner(self) -> TrackBuilder {
-        self.0
+        self.0.into_inner()
     }
 }
 
 impl Default for AudioTrack {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl fmt::Debug for AudioTrack {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AudioTrack").finish_non_exhaustive()
     }
 }
 

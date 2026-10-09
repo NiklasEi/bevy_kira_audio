@@ -85,11 +85,11 @@ You can either control a whole audio channel and all instances playing in it ([`
 
 Effects modify the audio signal of a single sound or of a whole channel. Adding an effect returns a handle to control it while it plays.
 
-Add them to a single sound instance ([`filter` example](examples/filter.rs)), or to an `AudioTrack` that applies them to every sound on a channel ([`reverb_channel` example](examples/reverb_channel.rs)). Multiple effects can be chained ([`multiple_effects` example](examples/multiple_effects.rs)).
+Add them to a single sound ([`effects` example](examples/effects.rs)), or to an `AudioTrack` that applies them to every sound on a channel ([`reverb_channel` example](examples/reverb_channel.rs)).
 
 Both kinds stack: a sound with per-instance effects played on a channel with its own track is processed by the per-instance effects first, then by the channel effects ([`stacked_effects` example](examples/stacked_effects.rs)).
 
-Effects on a single sound keep running for a short while after that sound stops, so reverb and delay tails are not cut off. Use `with_effect_tail` to give a long reverb more time, or to reclaim the track sooner ([`effect_tail` example](examples/effect_tail.rs)).
+When a sound with effects of its own ends by itself, its reverb and delay ring out until they fall silent. Stopping the sound fades its effects out with it ([`effect_tail` example](examples/effect_tail.rs)).
 
 The built-in effects are filter, reverb, delay, distortion, compressor, EQ filter, volume control and panning control. You can also write your own by implementing `Effect` and `AudioEffect` ([`peak_meter` example](examples/peak_meter.rs)).
 

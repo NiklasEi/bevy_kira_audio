@@ -2,12 +2,10 @@ use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use std::time::Duration;
 
-/// Demonstrates applying three effects to a single audio instance,
-/// then toggling them on and off at runtime.
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, AudioPlugin))
-        .add_systems(Startup, play)
+        .add_systems(Startup, (play, setup_text))
         .add_systems(Update, cycle_effects)
         .run();
 }
@@ -15,7 +13,7 @@ fn main() {
 fn play(audio: Res<Audio>, asset_server: Res<AssetServer>, mut commands: Commands) {
     let mut cmd = audio.play(asset_server.load("sounds/loop.ogg"));
 
-    // Effect 1: low-pass filter (starts wide open)
+    // Effects run in the order they are added. The filter starts wide open, the reverb dry.
     let filter = cmd.add_effect(
         FilterBuilder::new()
             .mode(FilterMode::LowPass)
@@ -23,15 +21,6 @@ fn play(audio: Res<Audio>, asset_server: Res<AssetServer>, mut commands: Command
             .mix(1.0_f32),
     );
 
-    // Effect 2: delay (starts silent)
-    cmd.with_effect(
-        DelayBuilder::new()
-            .delay_time(Duration::from_millis(350))
-            .feedback(-8.0_f32)
-            .mix(0.0_f32),
-    );
-
-    // Effect 3: reverb (starts dry)
     let reverb = cmd.add_effect(ReverbBuilder::new().feedback(0.8).damping(0.3).mix(0.0_f32));
 
     cmd.looped();
@@ -42,6 +31,13 @@ fn play(audio: Res<Audio>, asset_server: Res<AssetServer>, mut commands: Command
         step: 0,
         timer: Timer::new(Duration::from_secs(3), TimerMode::Repeating),
     });
+}
+
+fn setup_text(mut commands: Commands) {
+    commands.spawn(Camera2d);
+    commands.spawn(Text::new(
+        "Every three seconds the sound switches between dry, low-pass filter, reverb, and both",
+    ));
 }
 
 fn cycle_effects(time: Res<Time>, mut state: ResMut<EffectsState>) {

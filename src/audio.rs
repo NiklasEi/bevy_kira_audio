@@ -5,7 +5,7 @@ use crate::audio_output::{AudioOutput, play_audio_channel, update_instance_state
 use crate::channel::AudioCommandQue;
 use crate::channel::Channel;
 use crate::channel::typed::AudioChannel;
-use crate::effect::{AudioEffect, AudioTrack};
+use crate::effect::{AudioEffect, AudioTrack, EffectTail};
 use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use bevy::app::{App, PreUpdate};
@@ -18,18 +18,12 @@ use bevy::prelude::{PostUpdate, default};
 use kira::sound::EndPosition;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{Decibels, Panning, Value};
-use parking_lot::Mutex;
 use std::any::TypeId;
-use std::fmt;
+use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::mem;
 use std::time::Duration;
 use uuid::Uuid;
-
-/// The slot carrying one sound instance's own [`AudioTrack`] to the audio output.
-/// Wrapped because the audio output must take the `Send`-but-not-`Sync` track out through
-/// a shared reference to the command queue.
-pub(crate) type InstanceTrackSlot = Mutex<Option<Box<AudioTrack>>>;
 
 #[derive(Debug)]
 pub(crate) enum AudioCommand {
@@ -42,7 +36,7 @@ pub(crate) enum AudioCommand {
     Resume(Option<AudioTween>),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct PartialSoundSettings {
     pub(crate) loop_start: Option<f64>,
     pub(crate) loop_end: Option<f64>,
@@ -54,33 +48,8 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
     pub(crate) emitter: Option<Entity>,
-    pub(crate) track: InstanceTrackSlot,
-    pub(crate) effect_tail: Option<Duration>,
-}
-
-impl fmt::Debug for PartialSoundSettings {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PartialSoundSettings")
-            .field("loop_start", &self.loop_start)
-            .field("loop_end", &self.loop_end)
-            .field("volume", &self.volume)
-            .field("playback_rate", &self.playback_rate)
-            .field("start_position", &self.start_position)
-            .field("panning", &self.panning)
-            .field("reverse", &self.reverse)
-            .field("paused", &self.paused)
-            .field("fade_in", &self.fade_in)
-            .field("emitter", &self.emitter)
-            .field(
-                "track",
-                &self
-                    .track
-                    .try_lock()
-                    .map_or(Some("<locked>"), |track| track.as_ref().map(|_| "...")),
-            )
-            .field("effect_tail", &self.effect_tail)
-            .finish()
-    }
+    pub(crate) track: Option<Box<AudioTrack>>,
+    pub(crate) effect_tail: EffectTail,
 }
 
 /// Different kinds of easing for fade-in and fade-out
@@ -324,20 +293,13 @@ impl<'a> PlayAudioCommand<'a> {
         self
     }
 
-    /// Add an audio effect to this sound instance and return its handle for runtime control.
+    /// Add an effect to this sound and return its handle to control it while it plays.
     ///
-    /// The effect will be applied via a dedicated sub-track created for this sound instance.
-    /// The returned handle can be stored and used to modify the effect at runtime.
-    ///
-    /// **Note:** Per-instance effects and channel-level effects (via
-    /// [`add_audio_channel_with_track`](AudioApp::add_audio_channel_with_track)) stack. When the
-    /// channel has a track of its own, this sound's sub-track is nested inside it, so the sound is
-    /// processed by its own effects first and by the channel's effects afterwards. Each such
-    /// sub-track takes one of the channel track's
-    /// [`sub_track_capacity`](AudioTrack::sub_track_capacity) slots, or one of
+    /// The sound goes through its own effects first and then through those of its channel's
+    /// [`AudioTrack`], if any. It plays on a sub-track of its own, which counts towards the
+    /// channel track's [`sub_track_capacity`](AudioTrack::sub_track_capacity), or
     /// [`AudioSettings::sub_track_capacity`](crate::AudioSettings::sub_track_capacity) for
-    /// channels without a track. The sub-track outlives the sound, so effects that ring out are
-    /// not cut short; see [`with_effect_tail`](Self::with_effect_tail).
+    /// channels without a track.
     ///
     /// ```no_run
     /// # use bevy::prelude::*;
@@ -352,15 +314,11 @@ impl<'a> PlayAudioCommand<'a> {
     pub fn add_effect<E: AudioEffect>(&mut self, effect: E) -> E::Handle {
         self.settings
             .track
-            .get_mut()
             .get_or_insert_with(|| Box::new(AudioTrack::for_instance()))
             .add_effect(effect)
     }
 
-    /// Add an audio effect to this sound instance (chainable).
-    ///
-    /// Like [`add_effect`](Self::add_effect), but discards the effect handle
-    /// and returns `&mut Self` for method chaining.
+    /// Like [`add_effect`](Self::add_effect), but discards the effect handle.
     ///
     /// ```no_run
     /// # use bevy::prelude::*;
@@ -378,11 +336,7 @@ impl<'a> PlayAudioCommand<'a> {
         self
     }
 
-    /// Set how long this sound's effects keep running after the sound itself has stopped.
-    ///
-    /// Reverb and delay go on producing sound after their input has gone quiet. The track carrying
-    /// this sound's effects is kept alive for this long after playback stops, so those tails are
-    /// not cut off. Defaults to [`DEFAULT_EFFECT_TAIL`](crate::effect::DEFAULT_EFFECT_TAIL).
+    /// Set how long this sound's effects keep running after the sound has ended on its own.
     ///
     /// ```no_run
     /// # use bevy::prelude::*;
@@ -392,11 +346,14 @@ impl<'a> PlayAudioCommand<'a> {
     /// fn play(audio: Res<Audio>, asset_server: Res<AssetServer>) {
     ///     audio.play(asset_server.load("sounds/loop.ogg"))
     ///         .with_effect(ReverbBuilder::new().feedback(0.95))
-    ///         .with_effect_tail(Duration::from_secs(6));
+    ///         .with_effect_tail(EffectTail {
+    ///             max: Duration::from_secs(20),
+    ///             ..default()
+    ///         });
     /// }
     /// ```
-    pub fn with_effect_tail(&mut self, tail: Duration) -> &mut Self {
-        self.settings.effect_tail = Some(tail);
+    pub fn with_effect_tail(&mut self, tail: EffectTail) -> &mut Self {
+        self.settings.effect_tail = tail;
 
         self
     }
@@ -490,10 +447,10 @@ impl TweenCommand<'_, FadeOut> {
     }
 }
 
-#[derive(PartialEq)]
-pub enum AudioCommandResult {
+pub(crate) enum AudioCommandResult {
     Ok,
-    Retry,
+    /// The command could not run yet and is handed back to be queued again.
+    Retry(Box<AudioCommand>),
 }
 
 /// Playback status of a currently playing sound.
@@ -602,41 +559,26 @@ pub trait AudioApp {
     /// ```
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self;
 
-    /// Add a new audio channel with a custom [`AudioTrack`] for channel-level effects.
+    /// Add a new audio channel whose sounds all play through the effects of `track`.
     ///
-    /// Effects added to the `AudioTrack` will apply to all sounds played on this channel.
-    /// You can use [`AudioTrack::add_effect`] to add effects and store the returned handles
-    /// as Bevy resources for runtime control.
-    ///
-    /// [`AudioPlugin`](crate::AudioPlugin) must be added before calling this method. If it has not
-    /// been added yet, an error is logged and the channel is added without the track or its effects.
-    ///
-    /// ```no_run
-    /// use bevy::prelude::*;
-    /// use bevy_kira_audio::prelude::*;
-    ///
-    /// #[derive(Resource)]
-    /// struct MusicChannel;
-    ///
-    /// fn main() {
-    ///     let mut track = AudioTrack::new();
-    ///     let _reverb = track.add_effect(ReverbBuilder::new());
-    ///
-    ///     App::new()
-    ///         .add_plugins(DefaultPlugins)
-    ///         .add_plugins(AudioPlugin)
-    ///         .add_audio_channel_with_track::<MusicChannel>(track)
-    ///         .run();
-    /// }
-    /// ```
+    /// [`AudioPlugin`](crate::AudioPlugin) must be added first. If the channel already has a
+    /// track, it is kept and `track` is ignored.
     fn add_audio_channel_with_track<T: Resource>(&mut self, track: AudioTrack) -> &mut Self;
 }
 
+/// The typed channels whose systems have been added.
+#[derive(Resource, Default)]
+struct RegisteredAudioChannels(HashSet<TypeId>);
+
 impl AudioApp for App {
     fn add_audio_channel<T: Resource>(&mut self) -> &mut Self {
-        // Registering a channel twice would run its systems twice per frame and drop anything
-        // already queued on the channel.
-        if self.world().contains_resource::<AudioChannel<T>>() {
+        // Adding the systems twice would run them twice per frame.
+        let newly_registered = self
+            .world_mut()
+            .get_resource_or_init::<RegisteredAudioChannels>()
+            .0
+            .insert(TypeId::of::<T>());
+        if !newly_registered {
             return self;
         }
 
@@ -648,14 +590,23 @@ impl AudioApp for App {
             PreUpdate,
             update_instance_states::<T>.after(AudioSystemSet::InstanceCleanup),
         )
-        .insert_resource(AudioChannel::<T>::default())
+        .init_resource::<AudioChannel<T>>()
     }
 
     fn add_audio_channel_with_track<T: Resource>(&mut self, track: AudioTrack) -> &mut Self {
         self.add_audio_channel::<T>();
 
+        let channel = Channel::Typed(TypeId::of::<T>());
         if let Some(mut audio_output) = self.world_mut().get_non_send_mut::<AudioOutput>() {
-            audio_output.create_channel_track(Channel::Typed(TypeId::of::<T>()), track);
+            // Replacing the track would cut off everything playing on it.
+            if audio_output.has_channel_track(&channel) {
+                error!(
+                    "Channel `{}` already has an audio track; keeping it and ignoring the new one",
+                    std::any::type_name::<T>(),
+                );
+            } else {
+                audio_output.create_channel_track(channel, track);
+            }
         } else {
             error!(
                 "Failed to add audio track for channel `{}`: `AudioPlugin` must be added before \
@@ -665,5 +616,35 @@ impl AudioApp for App {
         }
 
         self
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[derive(Resource)]
+    struct Sfx;
+
+    fn channel_systems(app: &App) -> usize {
+        app.get_schedule(PreUpdate).unwrap().systems_len()
+            + app.get_schedule(PostUpdate).unwrap().systems_len()
+    }
+
+    #[test]
+    fn a_channel_gets_its_systems_once() {
+        let mut app = App::new();
+        app.add_audio_channel::<Sfx>().add_audio_channel::<Sfx>();
+
+        assert_eq!(channel_systems(&app), 2);
+    }
+
+    #[test]
+    fn a_channel_gets_its_systems_even_if_its_resource_already_exists() {
+        let mut app = App::new();
+        app.init_resource::<AudioChannel<Sfx>>()
+            .add_audio_channel::<Sfx>();
+
+        assert_eq!(channel_systems(&app), 2);
     }
 }

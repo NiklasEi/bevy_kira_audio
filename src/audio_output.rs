@@ -8,63 +8,22 @@ use crate::backend_settings::AudioSettings;
 use crate::channel::dynamic::DynamicAudioChannels;
 use crate::channel::typed::AudioChannel;
 use crate::channel::{Channel, ChannelState};
-use crate::effect::{AudioTrack, DEFAULT_EFFECT_TAIL};
+use crate::effect::AudioTrack;
 use crate::instance::AudioInstance;
+use crate::instance_track::InstanceTrack;
 use crate::source::AudioSource;
-use bevy::asset::{AssetId, Assets, Handle};
+use bevy::asset::{Assets, Handle};
 use bevy::ecs::change_detection::{NonSendMut, ResMut};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{NonSend, Res};
 use bevy::ecs::world::{FromWorld, World};
 use bevy::log::warn;
-use bevy::platform::time::Instant;
 use kira::ResourceLimitReached;
 use kira::backend::{Backend, DefaultBackend};
-use kira::track::TrackHandle;
+use kira::track::{TrackBuilder, TrackHandle};
 use kira::{AudioManager, Panning};
 use kira::{Decibels, PlaybackRate};
 use std::collections::HashMap;
-use std::time::Duration;
-
-/// The sub-track carrying one sound instance's effects.
-///
-/// Kira tears a track out of the audio graph as soon as its handle is dropped, without waiting for
-/// anything still ringing on it to fade. Dropping the handle the moment playback stops would
-/// therefore silence reverb and delay tails instead of letting them ring out, so the handle is held
-/// for a while longer.
-struct InstanceTrack {
-    /// Held only for its `Drop`, which is what removes the sub-track from the audio graph.
-    #[expect(dead_code, reason = "kept alive so that dropping it removes the track")]
-    handle: TrackHandle,
-    /// How long to hold on after the sound stops.
-    tail: Duration,
-    /// When the tail runs out. `None` while the sound is still playing.
-    ///
-    /// Effects ring out in wall-clock time, so this deadline is taken against
-    /// [`Instant`] rather than any of Bevy's clocks, which can be paused, scaled or missing
-    /// entirely when [`TimePlugin`](bevy::time::TimePlugin) is not part of the app.
-    expires_at: Option<Instant>,
-}
-
-impl InstanceTrack {
-    fn new(handle: TrackHandle, tail: Duration) -> Self {
-        Self {
-            handle,
-            tail,
-            expires_at: None,
-        }
-    }
-
-    /// Start the countdown after which the track and its effects are torn down.
-    fn start_tail(&mut self, now: Instant) {
-        self.expires_at.get_or_insert(now + self.tail);
-    }
-
-    /// Report whether the track should be kept at `now`.
-    fn keep_alive(&self, now: Instant) -> bool {
-        self.expires_at.is_none_or(|expires_at| now < expires_at)
-    }
-}
 
 /// Non-send resource that acts as audio output
 ///
@@ -75,7 +34,7 @@ pub(crate) struct AudioOutput<B: Backend = DefaultBackend> {
     instances: HashMap<Channel, Vec<Handle<AudioInstance>>>,
     channels: HashMap<Channel, ChannelState>,
     channel_tracks: HashMap<Channel, TrackHandle>,
-    instance_tracks: HashMap<AssetId<AudioInstance>, InstanceTrack>,
+    instance_tracks: Vec<InstanceTrack>,
 }
 
 impl FromWorld for AudioOutput {
@@ -91,7 +50,7 @@ impl FromWorld for AudioOutput {
             instances: HashMap::default(),
             channels: HashMap::default(),
             channel_tracks: HashMap::default(),
-            instance_tracks: HashMap::default(),
+            instance_tracks: Vec::new(),
         }
     }
 }
@@ -107,7 +66,7 @@ impl<B: Backend> AudioOutput<B> {
             let tween = map_tween(tween);
             for instance in instances {
                 if let Some(mut instance) = audio_instances.get_mut(instance.id()) {
-                    instance.handle.stop(tween);
+                    instance.stop_with(tween);
                 }
             }
         }
@@ -156,7 +115,7 @@ impl<B: Backend> AudioOutput<B> {
                         || instance.handle.state() == kira::sound::PlaybackState::Pausing
                         || instance.handle.state() == kira::sound::PlaybackState::Stopping)
                 {
-                    instance.handle.resume(tween);
+                    instance.resume_with(tween);
                 }
             }
         }
@@ -249,7 +208,7 @@ impl<B: Backend> AudioOutput<B> {
     fn play(
         &mut self,
         channel: &Channel,
-        partial_sound_settings: &PartialSoundSettings,
+        mut partial_sound_settings: PartialSoundSettings,
         audio_source: &AudioSource,
         instance_handle: Handle<AudioInstance>,
         audio_instances: &mut Assets<AudioInstance>,
@@ -268,34 +227,32 @@ impl<B: Backend> AudioOutput<B> {
         }
         partial_sound_settings.apply(&mut sound);
 
-        // Determine where to play the sound based on per-instance and channel tracks
-        let instance_track = partial_sound_settings.track.lock().take();
+        let instance_track = partial_sound_settings.track.take().and_then(|track| {
+            InstanceTrack::add(*track, partial_sound_settings.effect_tail, |track| {
+                self.add_instance_track(channel, track)
+            })
+            .inspect_err(|error| {
+                warn!(
+                    "Failed to create a track for the sound's effects, playing it without them: \
+                     {error:?}"
+                );
+            })
+            .ok()
+        });
 
-        let sound_handle = if let Some(track) = instance_track {
-            // Per-instance effects: create a sub-track for this instance
-            match self.add_instance_track(channel, *track) {
-                Ok(mut track_handle) => {
-                    let result = track_handle.play(sound);
-                    if result.is_ok() {
-                        let tail = partial_sound_settings
-                            .effect_tail
-                            .unwrap_or(DEFAULT_EFFECT_TAIL);
-                        self.instance_tracks
-                            .insert(instance_handle.id(), InstanceTrack::new(track_handle, tail));
-                    }
-                    result
-                }
-                Err(error) => {
-                    warn!("Failed to create sub-track: {:?}", error);
-                    return AudioCommandResult::Ok;
-                }
+        let (sound_handle, effects) = if let Some((mut track, effects)) = instance_track {
+            // Per-instance effects: play on the sub-track of this instance
+            let result = track.handle.play(sound);
+            if result.is_ok() {
+                self.instance_tracks.push(track);
             }
+            (result, Some(effects))
         } else if let Some(track_handle) = self.channel_tracks.get_mut(channel) {
             // Channel-level effects: play on the channel's sub-track
-            track_handle.play(sound)
+            (track_handle.play(sound), None)
         } else {
             // No effects: play on the main track
-            self.manager.as_mut().unwrap().play(sound)
+            (self.manager.as_mut().unwrap().play(sound), None)
         };
 
         if let Err(error) = sound_handle {
@@ -321,6 +278,7 @@ impl<B: Backend> AudioOutput<B> {
             &instance_handle,
             AudioInstance {
                 handle: sound_handle,
+                effects,
             },
         );
         if let Some(instance_states) = self.instances.get_mut(channel) {
@@ -350,13 +308,14 @@ impl<B: Backend> AudioOutput<B> {
         let mut i = 0;
         while i < len {
             let audio_command = commands.pop_back().unwrap();
+            let is_stop = matches!(audio_command, AudioCommand::Stop(_));
             let result =
-                self.run_audio_command(&audio_command, audio_sources, audio_instances, &channel);
-            if let AudioCommand::Stop(_) = audio_command {
+                self.run_audio_command(audio_command, audio_sources, audio_instances, &channel);
+            if is_stop {
                 commands_to_retry.clear();
             }
-            if let AudioCommandResult::Retry = result {
-                commands_to_retry.push(audio_command);
+            if let AudioCommandResult::Retry(audio_command) = result {
+                commands_to_retry.push(*audio_command);
             }
             i += 1;
         }
@@ -381,14 +340,10 @@ impl<B: Backend> AudioOutput<B> {
             let mut i = 0;
             while i < len {
                 let audio_command = commands.pop_back().unwrap();
-                let result = self.run_audio_command(
-                    &audio_command,
-                    audio_sources,
-                    audio_instances,
-                    &channel,
-                );
-                if let AudioCommandResult::Retry = result {
-                    commands.push_front(audio_command);
+                let result =
+                    self.run_audio_command(audio_command, audio_sources, audio_instances, &channel);
+                if let AudioCommandResult::Retry(audio_command) = result {
+                    commands.push_front(*audio_command);
                 }
                 i += 1;
             }
@@ -397,64 +352,58 @@ impl<B: Backend> AudioOutput<B> {
 
     pub(crate) fn run_audio_command(
         &mut self,
-        audio_command: &AudioCommand,
+        audio_command: AudioCommand,
         audio_sources: &Assets<AudioSource>,
         audio_instances: &mut Assets<AudioInstance>,
         channel: &Channel,
     ) -> AudioCommandResult {
         match audio_command {
             AudioCommand::Play(play_args) => {
-                if let Some(audio_source) = audio_sources.get(&play_args.source) {
-                    self.play(
-                        channel,
-                        &play_args.settings,
-                        audio_source,
-                        play_args.instance_handle.clone(),
-                        audio_instances,
-                    )
-                } else {
+                let Some(audio_source) = audio_sources.get(&play_args.source) else {
                     // audio source hasn't loaded yet. Add it back to the queue
-                    AudioCommandResult::Retry
-                }
+                    return AudioCommandResult::Retry(Box::new(AudioCommand::Play(play_args)));
+                };
+                self.play(
+                    channel,
+                    play_args.settings,
+                    audio_source,
+                    play_args.instance_handle,
+                    audio_instances,
+                )
             }
-            AudioCommand::Stop(tween) => self.stop(channel, audio_instances, tween),
+            AudioCommand::Stop(tween) => self.stop(channel, audio_instances, &tween),
             AudioCommand::Pause(tween) => {
-                self.pause(channel, audio_instances, tween);
+                self.pause(channel, audio_instances, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::Resume(tween) => {
-                self.resume(channel, audio_instances, tween);
+                self.resume(channel, audio_instances, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetVolume(volume, tween) => {
-                self.set_volume(channel, audio_instances, *volume, tween);
+                self.set_volume(channel, audio_instances, volume, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetPanning(panning, tween) => {
-                self.set_panning(channel, audio_instances, *panning, tween);
+                self.set_panning(channel, audio_instances, panning, &tween);
                 AudioCommandResult::Ok
             }
             AudioCommand::SetPlaybackRate(playback_rate, tween) => {
-                self.set_playback_rate(channel, audio_instances, *playback_rate, tween);
+                self.set_playback_rate(channel, audio_instances, playback_rate, &tween);
                 AudioCommandResult::Ok
             }
         }
     }
 
-    /// Create the sub-track carrying one sound's own effects.
+    /// Add the sub-track carrying one sound's own effects.
     ///
-    /// The track is nested under the channel's track when the channel has one, so that the
-    /// channel's effects still run after this sound's. Kira processes a track's children before
-    /// the track's own effects, which makes the resulting chain sound → instance effects →
-    /// channel effects → main track. Channels without a track of their own attach it directly to
-    /// the main track instead.
+    /// It goes under the channel's track if there is one, so the channel's effects run after the
+    /// sound's.
     fn add_instance_track(
         &mut self,
         channel: &Channel,
-        track: AudioTrack,
+        track: TrackBuilder,
     ) -> Result<TrackHandle, ResourceLimitReached> {
-        let track = track.into_inner();
-
         if let Some(channel_track) = self.channel_tracks.get_mut(channel) {
             channel_track.add_sub_track(track)
         } else {
@@ -462,18 +411,15 @@ impl<B: Backend> AudioOutput<B> {
         }
     }
 
+    pub(crate) fn has_channel_track(&self, channel: &Channel) -> bool {
+        self.channel_tracks.contains_key(channel)
+    }
+
     pub(crate) fn create_channel_track(&mut self, channel: Channel, track: AudioTrack) {
         if let Some(manager) = self.manager.as_mut() {
             match manager.add_sub_track(track.into_inner()) {
                 Ok(track_handle) => {
-                    if self.channel_tracks.insert(channel, track_handle).is_some() {
-                        warn!(
-                            "An audio track was already registered for this channel and has been \
-                             replaced. Effect handles for the previous track will no longer control \
-                             this channel. Ensure `add_audio_channel_with_track` is called only once \
-                             per channel type."
-                        );
-                    }
+                    self.channel_tracks.insert(channel, track_handle);
                 }
                 Err(error) => {
                     warn!("Failed to create channel sub-track: {:?}", error);
@@ -483,27 +429,16 @@ impl<B: Backend> AudioOutput<B> {
     }
 
     pub(crate) fn cleanup_stopped_instances(&mut self, instances: &mut Assets<AudioInstance>) {
-        let now = Instant::now();
-
         for handles in self.instances.values_mut() {
             handles.retain(|handle| {
-                let stopped = instances.get(handle).is_none_or(|instance| {
-                    instance.handle.state() == kira::sound::PlaybackState::Stopped
-                });
-                if stopped {
-                    // Let the effects on this instance's track ring out before tearing it down.
-                    if let Some(track) = self.instance_tracks.get_mut(&handle.id()) {
-                        track.start_tail(now);
-                    }
-                }
-
-                !stopped
+                instances.get(handle).is_some_and(|instance| {
+                    instance.handle.state() != kira::sound::PlaybackState::Stopped
+                })
             });
         }
 
         // Dropping the handle is what removes the sub-track from kira's audio graph.
-        self.instance_tracks
-            .retain(|_, track| track.keep_alive(now));
+        self.instance_tracks.retain(InstanceTrack::keep_alive);
     }
 }
 
@@ -562,7 +497,7 @@ mod test {
 
     use super::*;
     use crate::channel::AudioControl;
-    use crate::effect::{AudioEffect, Effect, FilterBuilder, Info, ReverbBuilder};
+    use crate::effect::{AudioEffect, Effect, EffectTail, FilterBuilder, Info, ReverbBuilder};
     use crate::{Audio, AudioPlugin, PlayAudioCommand};
     use bevy::asset::AssetPlugin;
     use bevy::prelude::*;
@@ -570,17 +505,11 @@ mod test {
     use kira::Frame;
     use kira::backend::mock::{MockBackend, MockBackendSettings};
     use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
-    use kira::track::TrackBuilder;
+    use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::Duration;
     use uuid::Uuid;
-
-    fn instance_track(tail: Duration) -> InstanceTrack {
-        let mut manager =
-            AudioManager::new(AudioManagerSettings::<MockBackend>::default()).unwrap();
-
-        InstanceTrack::new(manager.add_sub_track(TrackBuilder::new()).unwrap(), tail)
-    }
 
     const SAMPLE_RATE: u32 = 44_100;
 
@@ -598,16 +527,16 @@ mod test {
             instances: HashMap::default(),
             channels: HashMap::default(),
             channel_tracks: HashMap::default(),
-            instance_tracks: HashMap::default(),
+            instance_tracks: Vec::new(),
         }
     }
 
-    /// A second of audio at full amplitude, so that effects can tell it from silence.
+    /// A tenth of a second of audio at full amplitude, so that effects can tell it from silence.
     fn audio_source() -> AudioSource {
         AudioSource {
             sound: StaticSoundData {
                 sample_rate: SAMPLE_RATE,
-                frames: Arc::from(vec![Frame::from_mono(1.0); SAMPLE_RATE as usize]),
+                frames: Arc::from(vec![Frame::from_mono(1.0); SAMPLE_RATE as usize / 10]),
                 settings: StaticSoundSettings::default(),
                 slice: None,
             },
@@ -625,6 +554,43 @@ mod test {
 
         backend.on_start_processing();
         backend.process();
+    }
+
+    /// Render `duration` worth of audio, cleaning up after every buffer like the plugin does
+    /// every frame.
+    fn render_for(
+        audio_output: &mut AudioOutput<MockBackend>,
+        instances: &mut Assets<AudioInstance>,
+        duration: Duration,
+    ) {
+        // The mock backend renders the default internal buffer of 128 frames at a time.
+        let buffers = (duration.as_secs_f64() * f64::from(SAMPLE_RATE) / 128.0).ceil() as usize;
+        for _ in 0..buffers {
+            render(audio_output);
+            audio_output.cleanup_stopped_instances(instances);
+        }
+    }
+
+    /// An effect that keeps producing sound for as long as its handle says so, like a reverb that
+    /// never decays.
+    struct Ring(Arc<AtomicBool>);
+
+    impl Effect for Ring {
+        fn process(&mut self, input: &mut [Frame], _dt: f64, _info: &Info) {
+            if self.0.load(Ordering::Relaxed) {
+                input.fill(Frame::from_mono(1.0));
+            }
+        }
+    }
+
+    impl AudioEffect for Ring {
+        type Handle = Arc<AtomicBool>;
+
+        fn build_effect(self) -> (Box<dyn Effect>, Self::Handle) {
+            let ringing = self.0.clone();
+
+            (Box::new(self), ringing)
+        }
     }
 
     /// An effect recording whether any audio reached it.
@@ -680,45 +646,138 @@ mod test {
     /// Play a single sound on `AudioChannel<Audio>`, configured by `configure`.
     fn play_on_main_channel(
         audio_output: &mut AudioOutput<MockBackend>,
+        instances: &mut Assets<AudioInstance>,
         configure: impl FnOnce(&mut PlayAudioCommand),
-    ) {
+    ) -> Handle<AudioInstance> {
         let mut sources = Assets::<AudioSource>::default();
-        let mut instances = Assets::<AudioInstance>::default();
         let source: Handle<AudioSource> = Handle::Uuid(Uuid::new_v4(), PhantomData);
         let _ = sources.insert(&source, audio_source());
 
         let channel = AudioChannel::<Audio>::default();
-        configure(&mut channel.play(source));
+        let instance = {
+            let mut command = channel.play(source);
+            configure(&mut command);
+            command.handle()
+        };
 
-        audio_output.play_channel(&sources, &channel, &mut instances);
+        audio_output.play_channel(&sources, &channel, instances);
+
+        instance
+    }
+
+    /// Play a sound whose own effect rings for as long as the returned flag is set.
+    fn play_ringing_sound(
+        audio_output: &mut AudioOutput<MockBackend>,
+        instances: &mut Assets<AudioInstance>,
+        tail: EffectTail,
+    ) -> (Handle<AudioInstance>, Arc<AtomicBool>) {
+        let mut ringing = None;
+        let instance = play_on_main_channel(audio_output, instances, |command| {
+            ringing = Some(command.add_effect(Ring(Arc::new(AtomicBool::new(true)))));
+            command.with_effect_tail(tail);
+        });
+
+        (instance, ringing.unwrap())
+    }
+
+    const TAIL: EffectTail = EffectTail {
+        silence: Duration::from_millis(100),
+        max: Duration::from_secs(1),
+    };
+
+    #[test]
+    fn instance_track_is_kept_until_its_effects_fall_silent() {
+        let mut audio_output = audio_output();
+        let mut instances = Assets::<AudioInstance>::default();
+        let (_, ringing) = play_ringing_sound(&mut audio_output, &mut instances, TAIL);
+
+        // The sound itself is over after 100ms, but its effect still rings.
+        render_for(
+            &mut audio_output,
+            &mut instances,
+            Duration::from_millis(500),
+        );
+        assert_eq!(audio_output.instance_tracks.len(), 1);
+
+        ringing.store(false, Ordering::Relaxed);
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(50));
+        assert_eq!(audio_output.instance_tracks.len(), 1);
+        render_for(
+            &mut audio_output,
+            &mut instances,
+            Duration::from_millis(100),
+        );
+        assert!(audio_output.instance_tracks.is_empty());
     }
 
     #[test]
-    fn instance_track_is_kept_while_its_sound_plays() {
-        let track = instance_track(Duration::from_millis(100));
-        let now = Instant::now();
+    fn instance_track_is_dropped_after_the_max_tail_if_its_effects_keep_ringing() {
+        let mut audio_output = audio_output();
+        let mut instances = Assets::<AudioInstance>::default();
+        let _ringing = play_ringing_sound(&mut audio_output, &mut instances, TAIL);
 
-        assert!(track.keep_alive(now + Duration::from_secs(10)));
+        render_for(
+            &mut audio_output,
+            &mut instances,
+            Duration::from_millis(900),
+        );
+        assert_eq!(audio_output.instance_tracks.len(), 1);
+        render_for(
+            &mut audio_output,
+            &mut instances,
+            Duration::from_millis(300),
+        );
+        assert!(audio_output.instance_tracks.is_empty());
     }
 
     #[test]
-    fn instance_track_outlives_its_sound_by_the_effect_tail() {
-        let mut track = instance_track(Duration::from_millis(100));
-        let now = Instant::now();
-        track.start_tail(now);
+    fn stopping_a_sound_drops_its_track_without_a_tail() {
+        let mut audio_output = audio_output();
+        let mut instances = Assets::<AudioInstance>::default();
+        let (instance, _ringing) = play_ringing_sound(&mut audio_output, &mut instances, TAIL);
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(20));
 
-        assert!(track.keep_alive(now + Duration::from_millis(60)));
-        assert!(track.keep_alive(now + Duration::from_millis(99)));
-        assert!(!track.keep_alive(now + Duration::from_millis(100)));
+        instances
+            .get_mut(&instance)
+            .unwrap()
+            .stop(AudioTween::default());
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(30));
+
+        assert!(audio_output.instance_tracks.is_empty());
     }
 
     #[test]
-    fn a_zero_effect_tail_drops_the_instance_track_right_away() {
-        let mut track = instance_track(Duration::ZERO);
-        let now = Instant::now();
-        track.start_tail(now);
+    fn stopping_a_sound_during_its_tail_fades_its_effects_out_before_dropping_its_track() {
+        let mut audio_output = audio_output();
+        let mut instances = Assets::<AudioInstance>::default();
+        let (instance, _ringing) = play_ringing_sound(&mut audio_output, &mut instances, TAIL);
+        render_for(
+            &mut audio_output,
+            &mut instances,
+            Duration::from_millis(200),
+        );
 
-        assert!(!track.keep_alive(now));
+        instances
+            .get_mut(&instance)
+            .unwrap()
+            .stop(AudioTween::linear(Duration::from_millis(100)));
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(50));
+        assert_eq!(audio_output.instance_tracks.len(), 1);
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(60));
+        assert!(audio_output.instance_tracks.is_empty());
+    }
+
+    #[test]
+    fn instance_track_is_kept_while_its_sound_plays_even_without_its_instance() {
+        let mut audio_output = audio_output();
+        let mut instances = Assets::<AudioInstance>::default();
+        let (instance, ringing) = play_ringing_sound(&mut audio_output, &mut instances, TAIL);
+        ringing.store(false, Ordering::Relaxed);
+
+        instances.remove(&instance);
+        render_for(&mut audio_output, &mut instances, Duration::from_millis(80));
+
+        assert_eq!(audio_output.instance_tracks.len(), 1);
     }
 
     #[test]
@@ -729,7 +788,7 @@ mod test {
             AudioTrack::new().with_effect(ReverbBuilder::new()),
         );
 
-        play_on_main_channel(&mut audio_output, |command| {
+        play_on_main_channel(&mut audio_output, &mut Assets::default(), |command| {
             command.with_effect(FilterBuilder::new());
         });
 
@@ -748,7 +807,7 @@ mod test {
         audio_output.create_channel_track(main_channel(), track);
 
         let mut instance_probe = None;
-        play_on_main_channel(&mut audio_output, |command| {
+        play_on_main_channel(&mut audio_output, &mut Assets::default(), |command| {
             instance_probe = Some(command.add_effect(Probe::new()));
         });
         render(&mut audio_output);
@@ -767,7 +826,7 @@ mod test {
     fn instance_effects_run_on_a_manager_track_without_a_channel_track() {
         let mut audio_output = audio_output();
 
-        play_on_main_channel(&mut audio_output, |command| {
+        play_on_main_channel(&mut audio_output, &mut Assets::default(), |command| {
             command.with_effect(FilterBuilder::new());
         });
 
@@ -785,12 +844,30 @@ mod test {
             AudioTrack::new().with_effect(ReverbBuilder::new()),
         );
 
-        play_on_main_channel(&mut audio_output, |_| {});
+        play_on_main_channel(&mut audio_output, &mut Assets::default(), |_| {});
 
         assert_eq!(audio_output.instances[&main_channel()].len(), 1);
         assert!(audio_output.instance_tracks.is_empty());
         assert_eq!(channel_sub_tracks(&audio_output, &main_channel()), 0);
         assert_eq!(manager_sub_tracks(&audio_output), 1);
+    }
+
+    #[test]
+    fn a_sound_plays_without_its_effects_when_its_track_cannot_be_created() {
+        let mut audio_output = audio_output();
+        audio_output.create_channel_track(
+            main_channel(),
+            AudioTrack::new().sub_track_capacity(NonZeroUsize::MIN),
+        );
+
+        for _ in 0..2 {
+            play_on_main_channel(&mut audio_output, &mut Assets::default(), |command| {
+                command.with_effect(FilterBuilder::new());
+            });
+        }
+
+        assert_eq!(audio_output.instances[&main_channel()].len(), 2);
+        assert_eq!(audio_output.instance_tracks.len(), 1);
     }
 
     #[test]
