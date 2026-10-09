@@ -1,7 +1,7 @@
 use bevy::ecs::relationship::RelatedSpawnerCommands;
-use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::schedule::ScheduleConfigs;
+use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
+use bevy::ui_widgets::{Activate, Button};
 use bevy_kira_audio::AudioApp;
 use bevy_kira_audio::prelude::*;
 use std::clone::Clone;
@@ -9,43 +9,46 @@ use std::marker::PhantomData;
 
 // This is a bigger example with a GUI for full control over three audio channels
 fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, AudioPlugin))
-        .init_resource::<LastAction>()
+    let mut app = App::new();
+    app.add_plugins((DefaultPlugins, AudioPlugin))
         .add_systems(Startup, prepare_audio_and_ui)
-        .add_systems(Update, create_row_systems::<FirstChannel>())
-        .add_systems(Update, create_row_systems::<SecondChannel>())
-        .add_systems(Update, create_row_systems::<ThirdChannel>())
         .add_audio_channel::<FirstChannel>()
         .add_audio_channel::<SecondChannel>()
-        .add_audio_channel::<ThirdChannel>()
-        .run();
+        .add_audio_channel::<ThirdChannel>();
+    add_channel_row::<FirstChannel>(&mut app);
+    add_channel_row::<SecondChannel>(&mut app);
+    add_channel_row::<ThirdChannel>(&mut app);
+
+    app.run();
 }
 
-fn create_row_systems<C: Component + Default>()
--> ScheduleConfigs<Box<dyn bevy::prelude::System<In = (), Out = ()> + 'static>> {
-    (
-        stop_button::<C>,
-        loop_button::<C>,
-        volume_buttons::<C>,
-        play_sound_button::<C>,
-        play_pause_button::<C>,
+fn add_channel_row<C: Component + Default>(app: &mut App) {
+    app.add_systems(
+        Update,
+        (
+            update_play_pause_button::<C>,
+            update_stop_button::<C>,
+            update_loop_button::<C>,
+            update_play_sound_button::<C>,
+            update_volume_buttons::<C>,
+        ),
     )
-        .into_configs()
+    .add_observer(play_pause::<C>)
+    .add_observer(stop::<C>)
+    .add_observer(start_loop::<C>)
+    .add_observer(play_sound::<C>)
+    .add_observer(change_volume::<C>);
 }
 
-fn play_pause_button<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
-    mut channel_state: ResMut<ChannelAudioState<T>>,
-    time: Res<Time>,
-    mut last_action: ResMut<LastAction>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlayPauseButton<T>>>,
+fn update_play_pause_button<T: Component + Default>(
+    channel_state: Res<ChannelAudioState<T>>,
+    mut button: Query<(&Hovered, &mut BackgroundColor), With<PlayPauseButton<T>>>,
     mut play_pause_text: Query<&mut TextSpan, With<PlayPauseButton<T>>>,
 ) -> Result {
-    let (interaction, mut background_color) = interaction_query.single_mut()?;
+    let (hovered, mut background_color) = button.single_mut()?;
     background_color.0 = if channel_state.stopped {
         DISABLED_BUTTON
-    } else if interaction == &Interaction::Hovered {
+    } else if hovered.get() {
         HOVERED_BUTTON
     } else {
         NORMAL_BUTTON
@@ -56,142 +59,145 @@ fn play_pause_button<T: Component + Default>(
     } else {
         "Pause".to_owned()
     };
-    if channel_state.stopped {
-        return Ok(());
-    }
-    if interaction == &Interaction::Pressed && last_action.action(&time) {
-        if channel_state.paused {
-            channel.resume();
-        } else {
-            channel.pause();
-        }
-        channel_state.paused = !channel_state.paused;
-    }
 
     Ok(())
 }
 
-fn stop_button<T: Component + Default>(
+fn play_pause<T: Component + Default>(
+    activate: On<Activate>,
+    buttons: Query<(), With<PlayPauseButton<T>>>,
     channel: Res<AudioChannel<T>>,
-    time: Res<Time>,
-    mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StopButton<T>>>,
+) {
+    if !buttons.contains(activate.entity) || channel_state.stopped {
+        return;
+    }
+    if channel_state.paused {
+        channel.resume();
+    } else {
+        channel.pause();
+    }
+    channel_state.paused = !channel_state.paused;
+}
+
+fn update_stop_button<T: Component + Default>(
+    channel_state: Res<ChannelAudioState<T>>,
+    mut button: Query<(&Hovered, &mut BackgroundColor), With<StopButton<T>>>,
 ) -> Result {
-    let (interaction, mut background_color) = interaction_query.single_mut()?;
+    let (hovered, mut background_color) = button.single_mut()?;
     background_color.0 = if channel_state.stopped {
         DISABLED_BUTTON
-    } else if interaction == &Interaction::Hovered {
+    } else if hovered.get() {
         HOVERED_BUTTON
     } else {
         NORMAL_BUTTON
     };
-    if channel_state.stopped {
-        return Ok(());
-    }
-    if interaction == &Interaction::Pressed && last_action.action(&time) {
-        channel.stop();
-        *channel_state = ChannelAudioState::<T>::default();
-    }
 
     Ok(())
 }
 
-fn loop_button<T: Component + Default>(
+fn stop<T: Component + Default>(
+    activate: On<Activate>,
+    buttons: Query<(), With<StopButton<T>>>,
     channel: Res<AudioChannel<T>>,
-    time: Res<Time>,
-    mut last_action: ResMut<LastAction>,
     mut channel_state: ResMut<ChannelAudioState<T>>,
-    audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<StartLoopButton<T>>>,
-) -> Result {
-    let (interaction, mut background_color) = interaction_query.single_mut()?;
-    background_color.0 = if !channel_state.loop_started {
-        if interaction == &Interaction::Hovered {
-            HOVERED_BUTTON
-        } else {
-            NORMAL_BUTTON
-        }
-    } else {
-        DISABLED_BUTTON
-    };
-    if channel_state.loop_started {
-        return Ok(());
-    }
-    if interaction == &Interaction::Pressed && last_action.action(&time) {
-        channel_state.loop_started = true;
-        channel_state.stopped = false;
-        channel.play(audio_handles.loop_handle.clone()).looped();
-    }
-
-    Ok(())
-}
-
-fn play_sound_button<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
-    time: Res<Time>,
-    mut last_action: ResMut<LastAction>,
-    mut channel_state: ResMut<ChannelAudioState<T>>,
-    audio_handles: Res<AudioHandles>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), With<PlaySoundButton<T>>>,
-) -> Result {
-    let (interaction, mut background_color) = interaction_query.single_mut()?;
-    background_color.0 = if interaction == &Interaction::Hovered {
-        HOVERED_BUTTON
-    } else {
-        NORMAL_BUTTON
-    };
-    if interaction == &Interaction::Pressed && last_action.action(&time) {
-        channel_state.paused = false;
-        channel_state.stopped = false;
-        channel
-            .play(audio_handles.sound_handle.clone())
-            .with_volume(channel_state.volume);
-    }
-
-    Ok(())
-}
-
-fn volume_buttons<T: Component + Default>(
-    channel: Res<AudioChannel<T>>,
-    time: Res<Time>,
-    mut last_action: ResMut<LastAction>,
-    mut channel_state: ResMut<ChannelAudioState<T>>,
-    mut interaction_query: Query<(&Interaction, &mut BackgroundColor, &ChangeVolumeButton<T>)>,
 ) {
-    for (interaction, mut background_color, volume) in &mut interaction_query {
-        background_color.0 = if interaction == &Interaction::Hovered {
+    if !buttons.contains(activate.entity) || channel_state.stopped {
+        return;
+    }
+    channel.stop();
+    *channel_state = ChannelAudioState::<T>::default();
+}
+
+fn update_loop_button<T: Component + Default>(
+    channel_state: Res<ChannelAudioState<T>>,
+    mut button: Query<(&Hovered, &mut BackgroundColor), With<StartLoopButton<T>>>,
+) -> Result {
+    let (hovered, mut background_color) = button.single_mut()?;
+    background_color.0 = if channel_state.loop_started {
+        DISABLED_BUTTON
+    } else if hovered.get() {
+        HOVERED_BUTTON
+    } else {
+        NORMAL_BUTTON
+    };
+
+    Ok(())
+}
+
+fn start_loop<T: Component + Default>(
+    activate: On<Activate>,
+    buttons: Query<(), With<StartLoopButton<T>>>,
+    channel: Res<AudioChannel<T>>,
+    audio_handles: Res<AudioHandles>,
+    mut channel_state: ResMut<ChannelAudioState<T>>,
+) {
+    if !buttons.contains(activate.entity) || channel_state.loop_started {
+        return;
+    }
+    channel_state.loop_started = true;
+    channel_state.stopped = false;
+    channel.play(audio_handles.loop_handle.clone()).looped();
+}
+
+fn update_play_sound_button<T: Component + Default>(
+    mut button: Query<(&Hovered, &mut BackgroundColor), With<PlaySoundButton<T>>>,
+) -> Result {
+    let (hovered, mut background_color) = button.single_mut()?;
+    background_color.0 = if hovered.get() {
+        HOVERED_BUTTON
+    } else {
+        NORMAL_BUTTON
+    };
+
+    Ok(())
+}
+
+fn play_sound<T: Component + Default>(
+    activate: On<Activate>,
+    buttons: Query<(), With<PlaySoundButton<T>>>,
+    channel: Res<AudioChannel<T>>,
+    audio_handles: Res<AudioHandles>,
+    mut channel_state: ResMut<ChannelAudioState<T>>,
+) {
+    if !buttons.contains(activate.entity) {
+        return;
+    }
+    channel_state.paused = false;
+    channel_state.stopped = false;
+    channel
+        .play(audio_handles.sound_handle.clone())
+        .with_volume(channel_state.volume);
+}
+
+fn update_volume_buttons<T: Component + Default>(
+    mut buttons: Query<(&Hovered, &mut BackgroundColor), With<ChangeVolumeButton<T>>>,
+) {
+    for (hovered, mut background_color) in &mut buttons {
+        background_color.0 = if hovered.get() {
             HOVERED_BUTTON
         } else {
             NORMAL_BUTTON
         };
-        if interaction == &Interaction::Pressed {
-            if !last_action.action(&time) {
-                return;
-            }
-            if volume.louder {
-                channel_state.volume += 2.;
-            } else {
-                channel_state.volume = (channel_state.volume - 2.).max(-60.);
-            }
-            println!("{}", channel_state.volume);
-            channel.set_volume(channel_state.volume);
-        }
     }
 }
 
-#[derive(Resource, Default)]
-struct LastAction(f64);
-
-impl LastAction {
-    fn action(&mut self, time: &Time) -> bool {
-        if time.elapsed_secs_f64() - self.0 < 0.2 {
-            return false;
-        }
-        self.0 = time.elapsed_secs_f64();
-
-        true
+fn change_volume<T: Component + Default>(
+    activate: On<Activate>,
+    buttons: Query<&ChangeVolumeButton<T>>,
+    channel: Res<AudioChannel<T>>,
+    mut channel_state: ResMut<ChannelAudioState<T>>,
+) {
+    let Ok(button) = buttons.get(activate.entity) else {
+        return;
+    };
+    if button.louder {
+        channel_state.volume += 2.;
+    } else {
+        channel_state.volume = (channel_state.volume - 2.).max(-60.);
     }
+    println!("{}", channel_state.volume);
+    channel.set_volume(channel_state.volume);
 }
 
 #[derive(Component, Default, Clone)]
@@ -397,6 +403,7 @@ fn spawn_button<T: Component + Clone>(
             },
             BackgroundColor(color),
             Button,
+            Hovered::default(),
         ))
         .insert(marker.clone())
         .with_children(|parent| {

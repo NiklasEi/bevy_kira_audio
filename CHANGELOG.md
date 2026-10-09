@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## v0.27.0 - 09.10.2026
+- Update to Bevy `0.20`
+- Depend on Bevy subcrates
+- Update `ron` to `0.12`
 - Add audio effects ([#153](https://github.com/NiklasEi/bevy_kira_audio/pull/153))
   - Add effects to a single sound with `PlayAudioCommand::with_effect`/`add_effect`, or to a whole channel with an `AudioTrack` and `add_audio_channel_with_track`
   - Custom effects can be written by implementing `Effect` and `AudioEffect`

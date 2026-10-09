@@ -1,17 +1,17 @@
 use crate::{AudioInstance, AudioSystemSet, AudioTween};
-use bevy::app::{App, Plugin, PostUpdate, PreUpdate};
-use bevy::asset::{Assets, Handle};
-use bevy::ecs::component::Component;
-use bevy::ecs::{
+use bevy_app::{App, Plugin, PostUpdate, PreUpdate};
+use bevy_asset::{Assets, Handle};
+use bevy_curve::{Curve, EaseFunction, EasingCurve};
+use bevy_ecs::component::Component;
+use bevy_ecs::{
     change_detection::{Res, ResMut},
     query::With,
     resource::Resource,
     schedule::IntoScheduleConfigs,
     system::Query,
 };
-use bevy::math::Vec3;
-use bevy::prelude::{Curve, EaseFunction, EasingCurve};
-use bevy::transform::components::{GlobalTransform, Transform};
+use bevy_math::Vec3;
+use bevy_transform::components::{GlobalTransform, Transform};
 use std::f32::consts::PI;
 
 /// This plugin adds basic spatial audio.
