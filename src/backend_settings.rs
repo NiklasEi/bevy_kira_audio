@@ -1,5 +1,4 @@
 use bevy_ecs::resource::Resource;
-use bevy_utils::default;
 use kira::{AudioManagerSettings, Capacities, DefaultBackend, track::MainTrackBuilder};
 use std::num::NonZeroUsize;
 
@@ -29,11 +28,11 @@ impl From<AudioSettings> for AudioManagerSettings<DefaultBackend> {
         AudioManagerSettings {
             capacities: Capacities {
                 sub_track_capacity: settings.sub_track_capacity.get(),
-                ..default()
+                ..Default::default()
             },
             main_track_builder: MainTrackBuilder::new()
                 .sound_capacity(settings.sound_capacity.get()),
-            ..default()
+            ..Default::default()
         }
     }
 }

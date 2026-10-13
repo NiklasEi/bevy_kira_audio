@@ -1,6 +1,6 @@
 [package]
 name = "bevy_kira_audio"
-version = "0.27.0"
+version = "0.27.1"
 authors = ["Niklas Eicker <hello@nikl.me>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -14,24 +14,23 @@ readme = "./README.md"
 rust-version = "1.96"
 
 [features]
-default = ["ogg"]
+default = ["ogg", "spatial"]
 flac = ["kira/flac"]
 mp3 = ["kira/mp3"]
 ogg = ["kira/ogg", "kira/vorbis"]
 wav = ["kira/wav", "kira/pcm"]
 settings_loader = ["dep:ron", "dep:serde", "kira/serde"]
+spatial = ["dep:bevy_curve", "dep:bevy_math", "dep:bevy_transform"]
 
 [dependencies]
-bevy_app = "0.20"
+bevy_app = { version = "0.20", default-features = false, features = ["std"] }
 bevy_asset = "0.20"
-bevy_curve = "0.20"
-bevy_ecs = "0.20"
-bevy_log = "0.20"
-bevy_math = "0.20"
-bevy_platform = "0.20"
-bevy_reflect = "0.20"
-bevy_transform = "0.20"
-bevy_utils = "0.20"
+bevy_curve = { version = "0.20", default-features = false, features = ["std"], optional = true }
+bevy_ecs = { version = "0.20", default-features = false, features = ["std"] }
+bevy_math = { version = "0.20", default-features = false, features = ["std"], optional = true }
+bevy_platform = { version = "0.20", default-features = false, features = ["std"] }
+bevy_reflect = { version = "0.20", default-features = false, features = ["std"] }
+bevy_transform = { version = "0.20", default-features = false, features = ["std", "bevy-support"], optional = true }
 anyhow = "1.0"
 uuid = { version = "1", features = ["fast-rng"] }
 kira = { version = "0.12.1", default-features = false, features = ["cpal"] }
@@ -39,6 +38,7 @@ ron = { version = "0.12", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 parking_lot = "0.12"
 thiserror = "2"
+tracing = { version = "0.1", default-features = false, features = ["std"] }
 
 [dev-dependencies.bevy]
 version = "0.20"
@@ -118,4 +118,4 @@ required-features = ["ogg"]
 [[example]]
 name = "spatial"
 path = "examples/spatial.rs"
-required-features = ["ogg"]
+required-features = ["ogg", "spatial"]

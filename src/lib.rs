@@ -42,6 +42,7 @@ pub mod effect;
 mod instance;
 mod instance_track;
 mod source;
+#[cfg(feature = "spatial")]
 mod spatial;
 
 pub use audio::{
@@ -54,6 +55,7 @@ use bevy_asset::AssetApp;
 pub use channel::AudioControl;
 pub use effect::{AudioEffect, AudioTrack, EffectTail};
 pub use source::AudioSource;
+#[cfg(feature = "spatial")]
 pub use spatial::{
     DefaultSpatialRadius, SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver,
     SpatialRadius,
@@ -101,6 +103,7 @@ pub mod prelude {
     #[cfg(feature = "wav")]
     pub use crate::source::wav_loader::*;
     #[doc(hidden)]
+    #[cfg(feature = "spatial")]
     pub use crate::spatial::{SpatialAudioEmitter, SpatialAudioPlugin, SpatialAudioReceiver};
     #[doc(hidden)]
     pub use crate::{Audio, AudioPlugin, MainTrack};

@@ -95,7 +95,7 @@ The built-in effects are filter, reverb, delay, distortion, compressor, EQ filte
 
 ### Spatial audio
 
-There is limited spatial audio support. Currently, only the volume of audio and it's panning can be automatically changed based on emitter and receiver positions. Take a look at the [`spatial` example](examples/spatial.rs) for some code.
+There is limited spatial audio support. Currently, only the volume of audio and it's panning can be automatically changed based on emitter and receiver positions. Take a look at the [`spatial` example](examples/spatial.rs) for some code. Spatial audio requires the feature `spatial` (enabled by default).
 
 ## Compatible Bevy versions
 

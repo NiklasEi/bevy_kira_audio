@@ -10,11 +10,10 @@ use crate::instance::AudioInstance;
 use crate::source::AudioSource;
 use bevy_app::{App, PostUpdate, PreUpdate};
 use bevy_asset::Handle;
+#[cfg(feature = "spatial")]
 use bevy_ecs::entity::Entity;
 use bevy_ecs::resource::Resource;
 use bevy_ecs::schedule::IntoScheduleConfigs;
-use bevy_log::error;
-use bevy_utils::default;
 use kira::sound::EndPosition;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{Decibels, Panning, Value};
@@ -23,6 +22,7 @@ use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::mem;
 use std::time::Duration;
+use tracing::error;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -47,6 +47,7 @@ pub(crate) struct PartialSoundSettings {
     pub(crate) reverse: Option<bool>,
     pub(crate) paused: bool,
     pub(crate) fade_in: Option<AudioTween>,
+    #[cfg(feature = "spatial")]
     pub(crate) emitter: Option<Entity>,
     pub(crate) track: Option<Box<AudioTrack>>,
     pub(crate) effect_tail: EffectTail,
@@ -110,7 +111,7 @@ impl From<&AudioTween> for kira::Tween {
         kira::Tween {
             duration: tween.duration,
             easing: tween.easing,
-            ..default()
+            ..Default::default()
         }
     }
 }
@@ -150,7 +151,7 @@ impl PartialSoundSettings {
             sound.settings.fade_in_tween = Some(kira::Tween {
                 duration,
                 easing,
-                ..default()
+                ..Default::default()
             });
         }
     }
@@ -288,6 +289,7 @@ impl<'a> PlayAudioCommand<'a> {
     }
     /// Play this sound from the location of the given entity.
     /// The entity must have a `SpatialAudioEmitter` component.
+    #[cfg(feature = "spatial")]
     pub fn with_emitter(&mut self, emitter_entity: Entity) -> &mut Self {
         self.settings.emitter = Some(emitter_entity);
         self
