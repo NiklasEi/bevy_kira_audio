@@ -17,13 +17,13 @@ use bevy_ecs::change_detection::{NonSendMut, ResMut};
 use bevy_ecs::resource::Resource;
 use bevy_ecs::system::{NonSend, Res};
 use bevy_ecs::world::{FromWorld, World};
-use bevy_log::warn;
 use kira::ResourceLimitReached;
 use kira::backend::{Backend, DefaultBackend};
 use kira::track::{TrackBuilder, TrackHandle};
 use kira::{AudioManager, Panning};
 use kira::{Decibels, PlaybackRate};
 use std::collections::HashMap;
+use tracing::warn;
 
 /// Non-send resource that acts as audio output
 ///

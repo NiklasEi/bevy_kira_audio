@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.27.1 - 13.10.2026
+- Disable default features of Bevy subcrates
+- Drop the dependencies on `bevy_utils` and `bevy_log`
+- Spatial audio is behind the new default feature `spatial`
+
 ## v0.27.0 - 09.10.2026
 - Update to Bevy `0.20`
 - Depend on Bevy subcrates
